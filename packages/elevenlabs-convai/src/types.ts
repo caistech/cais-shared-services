@@ -23,9 +23,9 @@ export interface ConvAIAgentConfig {
   llmModel?: string;          // Default: 'gpt-4o-mini'
   temperature?: number;       // Default: 0.7
 
-  // Webhook
-  webhookUrl: string;
-  webhookEvents?: string[];   // Default: ['conversation.transcript', 'conversation.ended']
+  // Webhook — optional. When omitted, no webhook block is sent to ElevenLabs.
+  webhookUrl?: string;
+  webhookEvents?: string[];   // Default (only when webhookUrl set): ['conversation.transcript', 'conversation.ended']
 }
 
 /**
@@ -94,6 +94,9 @@ export interface ElevenLabsAgentConfig {
       url: string;
       events: string[];
     };
+    // ElevenLabs accepts arbitrary platform-settings keys (widget, evaluation, etc.);
+    // consumers can pass additional keys via CreateAgentOptions.platformSettings.
+    [key: string]: unknown;
   };
 }
 

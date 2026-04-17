@@ -27,6 +27,10 @@ export interface CreateAgentOptions {
   firstMessage: string;
   language?: string;          // Default: 'en'
   tools?: ConvAITool[];
+  // Arbitrary additional platform_settings keys merged into the outgoing payload.
+  // Use for widget, evaluation, overrides, etc. The webhook block is added
+  // automatically from config.webhookUrl and should NOT be duplicated here.
+  platformSettings?: Record<string, unknown>;
 }
 
 export async function createAgent(
@@ -52,29 +56,41 @@ export async function createAgent(
         model_id: config.voiceModel || defaultVoiceModelFor(language),
       },
     },
-    platform_settings: {
-      webhook: {
-        url: config.webhookUrl,
-        events: config.webhookEvents || ['conversation.transcript', 'conversation.ended'],
-      },
-    },
   };
+
+  // Merge platform_settings from caller (widget, etc.) with the auto-built webhook block
+  const platformSettings: Record<string, unknown> = { ...(options.platformSettings || {}) };
+  if (config.webhookUrl) {
+    platformSettings.webhook = {
+      url: config.webhookUrl,
+      events: config.webhookEvents || ['conversation.transcript', 'conversation.ended'],
+    };
+  }
+  if (Object.keys(platformSettings).length > 0) {
+    agentConfig.platform_settings = platformSettings as ElevenLabsAgentConfig['platform_settings'];
+  }
 
   // Add webhook tools if defined
   if (tools && tools.length > 0) {
     const webhookTools = tools
       .filter(t => t.type === 'webhook')
-      .map(t => ({
-        type: 'webhook',
-        name: t.name,
-        description: t.description,
-        webhook: {
-          url: t.webhook?.url || `${config.webhookUrl.replace(/\/webhook$/, '')}/tools/${t.name}`,
-          method: t.webhook?.method || 'POST',
-          headers: t.webhook?.headers || { 'Content-Type': 'application/json' },
-        },
-        parameters: t.parameters,
-      }));
+      .map(t => {
+        // Derive tool webhook URL from the main webhookUrl if not explicitly set
+        const derivedUrl = config.webhookUrl
+          ? `${config.webhookUrl.replace(/\/webhook$/, '')}/tools/${t.name}`
+          : undefined;
+        return {
+          type: 'webhook',
+          name: t.name,
+          description: t.description,
+          webhook: {
+            url: t.webhook?.url || derivedUrl,
+            method: t.webhook?.method || 'POST',
+            headers: t.webhook?.headers || { 'Content-Type': 'application/json' },
+          },
+          parameters: t.parameters,
+        };
+      });
 
     if (webhookTools.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
