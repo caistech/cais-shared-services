@@ -1,0 +1,75 @@
+{
+  "_comment": "Data classification patterns for PII, financial, credential, and privileged content detection. Extend per-project without modifying core logic.",
+  "PII": {
+    "description": "Personally identifiable information",
+    "patterns": [
+      { "name": "email", "regex": "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}", "redact_with": "[EMAIL_REDACTED]" },
+      { "name": "au_phone", "regex": "(?:\\+?61|0)[2-478]\\s?\\d{4}\\s?\\d{4}", "redact_with": "[PHONE_REDACTED]" },
+      { "name": "au_mobile", "regex": "(?:\\+?61|0)4\\d{2}\\s?\\d{3}\\s?\\d{3}", "redact_with": "[MOBILE_REDACTED]" },
+      { "name": "au_tfn", "regex": "\\b\\d{3}\\s?\\d{3}\\s?\\d{3}\\b", "redact_with": "[TFN_REDACTED]", "context_keywords": ["tfn", "tax file", "tax number"] },
+      { "name": "au_abn", "regex": "\\b\\d{2}\\s?\\d{3}\\s?\\d{3}\\s?\\d{3}\\b", "redact_with": "[ABN_REDACTED]", "context_keywords": ["abn", "business number"] },
+      { "name": "au_medicare", "regex": "\\b\\d{4}\\s?\\d{5}\\s?\\d{1}\\b", "redact_with": "[MEDICARE_REDACTED]", "context_keywords": ["medicare"] },
+      { "name": "au_address", "regex": "\\d{1,5}\\s+[A-Z][a-zA-Z]+\\s+(?:Street|St|Road|Rd|Avenue|Ave|Drive|Dr|Court|Ct|Place|Pl|Lane|Ln|Way|Parade|Pde|Boulevard|Blvd|Crescent|Cres|Terrace|Tce)\\b", "redact_with": "[ADDRESS_REDACTED]" },
+      { "name": "postcode", "regex": "\\b(?:2|3|4|5|6|7|0)[0-9]{3}\\b", "redact_with": "[POSTCODE_REDACTED]", "context_keywords": ["postcode", "post code", "zip"] },
+      { "name": "dob", "regex": "\\b\\d{1,2}[/.-]\\d{1,2}[/.-](?:19|20)\\d{2}\\b", "redact_with": "[DOB_REDACTED]", "context_keywords": ["born", "birth", "dob", "date of birth"] },
+      { "name": "full_name", "regex": "(?:Mr|Mrs|Ms|Miss|Dr|Prof)\\.?\\s+[A-Z][a-z]+\\s+[A-Z][a-z]+", "redact_with": "[NAME_REDACTED]" }
+    ]
+  },
+  "FINANCIAL": {
+    "description": "Financial data — bank accounts, credit cards, salary, invoices",
+    "patterns": [
+      { "name": "credit_card", "regex": "\\b(?:4\\d{3}|5[1-5]\\d{2}|3[47]\\d{2}|6(?:011|5\\d{2}))[-\\s]?\\d{4}[-\\s]?\\d{4}[-\\s]?\\d{4}\\b", "redact_with": "[CARD_REDACTED]" },
+      { "name": "au_bsb", "regex": "\\b\\d{3}[-\\s]?\\d{3}\\b", "redact_with": "[BSB_REDACTED]", "context_keywords": ["bsb", "bank", "account"] },
+      { "name": "au_account", "regex": "\\b\\d{6,10}\\b", "redact_with": "[ACCOUNT_REDACTED]", "context_keywords": ["account number", "account no", "acct"] },
+      { "name": "salary", "regex": "\\$\\s?\\d{2,3},?\\d{3}(?:\\.\\d{2})?", "redact_with": "[SALARY_REDACTED]", "context_keywords": ["salary", "wage", "pay", "remuneration", "compensation", "package"] },
+      { "name": "invoice_amount", "regex": "\\$\\s?[\\d,]+\\.\\d{2}", "redact_with": "[AMOUNT_REDACTED]", "context_keywords": ["invoice", "total", "amount due", "balance"] }
+    ]
+  },
+  "CREDENTIAL": {
+    "description": "API keys, passwords, tokens, secrets — ALWAYS block",
+    "patterns": [
+      { "name": "generic_api_key", "regex": "(?:api[_-]?key|apikey|api[_-]?token)\\s*[=:]\\s*['\"]?[A-Za-z0-9_\\-]{20,}['\"]?", "redact_with": "[CREDENTIAL_REDACTED]" },
+      { "name": "bearer_token", "regex": "Bearer\\s+[A-Za-z0-9\\-._~+/]+=*", "redact_with": "[TOKEN_REDACTED]" },
+      { "name": "password_field", "regex": "(?:password|passwd|pwd)\\s*[=:]\\s*['\"]?[^\\s'\"]{6,}['\"]?", "redact_with": "[PASSWORD_REDACTED]" },
+      { "name": "private_key", "regex": "-----BEGIN\\s+(?:RSA\\s+)?PRIVATE\\s+KEY-----", "redact_with": "[PRIVATE_KEY_REDACTED]" },
+      { "name": "aws_key", "regex": "AKIA[A-Z0-9]{16}", "redact_with": "[AWS_KEY_REDACTED]" },
+      { "name": "supabase_key", "regex": "eyJ[A-Za-z0-9_-]{50,}\\.[A-Za-z0-9_-]{50,}", "redact_with": "[SUPABASE_KEY_REDACTED]" },
+      { "name": "openai_key", "regex": "sk-[A-Za-z0-9]{32,}", "redact_with": "[OPENAI_KEY_REDACTED]" },
+      { "name": "anthropic_key", "regex": "sk-ant-[A-Za-z0-9\\-]{32,}", "redact_with": "[ANTHROPIC_KEY_REDACTED]" }
+    ]
+  },
+  "PRIVILEGED": {
+    "description": "Legally privileged or protected communications",
+    "keywords": [
+      "without prejudice",
+      "legally privileged",
+      "attorney-client",
+      "solicitor-client",
+      "legal professional privilege",
+      "confidential legal",
+      "medical in confidence",
+      "medical certificate",
+      "workers compensation",
+      "work cover",
+      "fair work",
+      "unfair dismissal"
+    ]
+  },
+  "COMMERCIAL": {
+    "description": "Commercial-in-confidence — allow but log",
+    "keywords": [
+      "commercial in confidence",
+      "confidential",
+      "proprietary",
+      "trade secret",
+      "competitor analysis",
+      "pricing strategy",
+      "margin",
+      "profit",
+      "acquisition target",
+      "due diligence",
+      "term sheet",
+      "non-disclosure"
+    ]
+  }
+}

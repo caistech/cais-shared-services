@@ -1,0 +1,16 @@
+{
+  "name": "@cais/language-config",
+  "version": "0.1.0",
+  "description": "80+ language definitions with TTS provider mapping (ElevenLabs/Google)",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "files": ["src/"],
+  "license": "PRIVATE"
+}

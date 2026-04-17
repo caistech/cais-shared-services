@@ -1,0 +1,90 @@
+/*
+ * Corporate AI Solutions — Shared Global Styles
+ * Copy the relevant sections into your project's globals.css
+ *
+ * Requirements: Tailwind CSS 3.x or 4.x, Inter font
+ */
+
+/* ─── Font Import ─── */
+/* If not using next/font, add this to your <head> or CSS: */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    @apply antialiased;
+  }
+
+  /* ─── Typography Scale ─── */
+  h1 {
+    @apply text-4xl font-bold tracking-tight;        /* 36px */
+  }
+  h2 {
+    @apply text-3xl font-semibold tracking-tight;     /* 30px */
+  }
+  h3 {
+    @apply text-2xl font-semibold;                    /* 24px */
+  }
+  h4 {
+    @apply text-xl font-semibold;                     /* 20px */
+  }
+  h5 {
+    @apply text-lg font-medium;                       /* 18px */
+  }
+  h6 {
+    @apply text-base font-medium;                     /* 16px */
+  }
+  p, li, td {
+    @apply text-base leading-relaxed;                 /* 16px */
+  }
+  small, .text-detail {
+    @apply text-sm;                                   /* 14px */
+  }
+}
+
+@layer components {
+  /* ─── Buttons ─── */
+  .btn-primary {
+    @apply bg-[#22c55e] hover:bg-[#16a34a] text-white font-medium px-6 py-2.5 rounded-lg transition-all duration-200 shadow-lg shadow-[#22c55e]/25 hover:shadow-[#22c55e]/40;
+  }
+  .btn-secondary {
+    @apply bg-slate-800 hover:bg-slate-700 text-gray-200 font-medium px-6 py-2.5 rounded-lg border border-slate-600 transition-all duration-200;
+  }
+
+  /* ─── Cards ─── */
+  .card {
+    @apply bg-slate-900 border border-slate-700 rounded-xl p-6;
+  }
+  .card-hover {
+    @apply bg-slate-900 border border-slate-700 rounded-xl p-6 hover:border-[#22c55e]/50 hover:shadow-lg hover:shadow-[#22c55e]/5 transition-all duration-300;
+  }
+
+  /* ─── Navigation ─── */
+  .nav-link {
+    @apply text-slate-400 hover:text-white px-4 py-2 rounded-lg transition-colors duration-200;
+  }
+  .nav-link-active {
+    @apply text-white bg-slate-800 px-4 py-2 rounded-lg;
+  }
+
+  /* ─── Badges ─── */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .badge-green {
+    @apply badge bg-[#22c55e]/10 text-[#4ade80] border border-[#22c55e]/20;
+  }
+  .badge-blue {
+    @apply badge bg-blue-500/10 text-blue-400 border border-blue-500/20;
+  }
+  .badge-purple {
+    @apply badge bg-purple-500/10 text-purple-400 border border-purple-500/20;
+  }
+  .badge-orange {
+    @apply badge bg-orange-500/10 text-orange-400 border border-orange-500/20;
+  }
+}
