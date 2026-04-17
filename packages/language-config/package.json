@@ -1,5 +1,5 @@
 {
-  "name": "@cais/language-config",
+  "name": "@caistech/language-config",
   "version": "0.1.0",
   "private": true,
   "description": "80+ language definitions with TTS provider mapping (ElevenLabs/Google)",

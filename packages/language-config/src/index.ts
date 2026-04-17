@@ -1,5 +1,5 @@
 /**
- * @cais/language-config — Shared language definitions for all CAIS projects.
+ * @caistech/language-config — Shared language definitions for all CAIS projects.
  * 80+ languages with TTS provider mapping.
  * Extracted from Mova's lingoCore.ts. Used by: Mova, TourLingo, ConferenceLingo.
  */

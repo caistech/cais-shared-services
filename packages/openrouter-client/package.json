@@ -1,5 +1,5 @@
 {
-  "name": "@cais/openrouter-client",
+  "name": "@caistech/openrouter-client",
   "version": "0.1.0",
   "private": true,
   "description": "OpenRouter LLM client with retry logic and streaming support",

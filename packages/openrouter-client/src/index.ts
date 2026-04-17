@@ -1,9 +1,9 @@
 /**
- * @cais/openrouter-client — OpenRouter LLM wrapper with retry logic.
+ * @caistech/openrouter-client — OpenRouter LLM wrapper with retry logic.
  * Used by any project that calls LLMs via OpenRouter.
  *
  * Usage:
- *   import { chatCompletion, chatCompletionStream } from '@cais/openrouter-client';
+ *   import { chatCompletion, chatCompletionStream } from '@caistech/openrouter-client';
  *   const reply = await chatCompletion(messages, process.env.OPENROUTER_API_KEY!);
  */
 

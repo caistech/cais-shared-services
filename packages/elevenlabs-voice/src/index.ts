@@ -1,7 +1,7 @@
 /**
- * @cais/elevenlabs-voice — ElevenLabs TTS + STT wrappers.
+ * @caistech/elevenlabs-voice — ElevenLabs TTS + STT wrappers.
  * For one-shot text-to-speech and speech-to-text operations.
- * NOT for conversational AI (use @cais/elevenlabs-convai for that).
+ * NOT for conversational AI (use @caistech/elevenlabs-convai for that).
  *
  * Extracted from Mova's lingoCore.ts. Used by: Mova, TourLingo.
  */

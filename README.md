@@ -6,13 +6,13 @@ Shared services for Corporate AI Solutions projects. npm workspace monorepo.
 
 | Package | Description | Used by |
 |---------|-------------|---------|
-| `@cais/elevenlabs-convai` | ElevenLabs Conversational AI — agent CRUD, webhooks, persistent memory | Kira, MOVA Drive |
-| `@cais/elevenlabs-voice` | ElevenLabs TTS + STT for one-shot voice operations | Mova, TourLingo |
-| `@cais/openrouter-client` | OpenRouter LLM client with retry + streaming | Mova, DisasterSupport |
-| `@cais/language-config` | 80+ language definitions, TTS provider mapping | Mova, TourLingo |
-| `@cais/stt-noise-filter` | Filter ambient noise from STT transcriptions | Mova, TourLingo |
-| `@cais/agents` | Agent provisioning, prompt templates, secure gateway (JS) | Corporate-AI-Solutions |
-| `@cais/security` | Permissions, PII classifier, audit logger, consent, retention (JS) | Corporate-AI-Solutions |
+| `@caistech/elevenlabs-convai` | ElevenLabs Conversational AI — agent CRUD, webhooks, persistent memory | Kira, MOVA Drive |
+| `@caistech/elevenlabs-voice` | ElevenLabs TTS + STT for one-shot voice operations | Mova, TourLingo |
+| `@caistech/openrouter-client` | OpenRouter LLM client with retry + streaming | Mova, DisasterSupport |
+| `@caistech/language-config` | 80+ language definitions, TTS provider mapping | Mova, TourLingo |
+| `@caistech/stt-noise-filter` | Filter ambient noise from STT transcriptions | Mova, TourLingo |
+| `@caistech/agents` | Agent provisioning, prompt templates, secure gateway (JS) | Corporate-AI-Solutions |
+| `@caistech/security` | Permissions, PII classifier, audit logger, consent, retention (JS) | Corporate-AI-Solutions |
 
 ## Consuming from a project
 
@@ -24,7 +24,7 @@ Packages publish to **GitHub Packages** (private npm registry). Install is a sta
 2. Add `.npmrc` to the consumer repo root (do NOT commit a token — use env var):
 
    ```
-   @cais:registry=https://npm.pkg.github.com
+   @caistech:registry=https://npm.pkg.github.com
    //npm.pkg.github.com/:_authToken=${GITHUB_PACKAGES_TOKEN}
    ```
 
@@ -34,14 +34,14 @@ Packages publish to **GitHub Packages** (private npm registry). Install is a sta
 ### Installing
 
 ```bash
-pnpm add @cais/elevenlabs-convai
-pnpm add @cais/openrouter-client
+pnpm add @caistech/elevenlabs-convai
+pnpm add @caistech/openrouter-client
 ```
 
 Then import as usual:
 
 ```ts
-import { createAgent, defaultVoiceModelFor } from '@cais/elevenlabs-convai';
+import { createAgent, defaultVoiceModelFor } from '@caistech/elevenlabs-convai';
 ```
 
 ### Publishing a new version
@@ -72,7 +72,7 @@ cais-shared-services/
 
 ## Adding a new package
 
-1. Create `packages/<name>/` with `package.json` (name: `@cais/<name>`) and `src/`
+1. Create `packages/<name>/` with `package.json` (name: `@caistech/<name>`) and `src/`
 2. Add to workspace root `package.json` workspaces array (already `packages/*`)
 3. For TypeScript packages, extend `tsconfig.base.json`
 4. Commit and push — consumers update via git

@@ -1,6 +1,6 @@
 {
-  "name": "@cais/elevenlabs-convai",
-  "version": "0.1.0",
+  "name": "@caistech/elevenlabs-convai",
+  "version": "0.1.1",
   "description": "ElevenLabs Conversational AI — agent management, webhooks, persistent memory",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -16,5 +16,8 @@
     "migration.sql",
     "README.md"
   ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "license": "PRIVATE"
 }

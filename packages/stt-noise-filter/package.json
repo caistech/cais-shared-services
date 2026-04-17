@@ -1,5 +1,5 @@
 {
-  "name": "@cais/stt-noise-filter",
+  "name": "@caistech/stt-noise-filter",
   "version": "0.1.0",
   "private": true,
   "description": "Filter ambient noise descriptions from speech-to-text output (rule-based + LLM)",

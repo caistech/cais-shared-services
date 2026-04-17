@@ -1,5 +1,5 @@
 {
-  "name": "@cais/elevenlabs-voice",
+  "name": "@caistech/elevenlabs-voice",
   "version": "0.1.0",
   "private": true,
   "description": "ElevenLabs TTS + STT wrappers for one-shot voice operations",
