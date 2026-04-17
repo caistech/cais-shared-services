@@ -132,6 +132,7 @@ export interface UpdateAgentOptions {
   voiceModel?: string;
   firstMessage?: string;
   language?: string;          // Only used when voiceId is set + voiceModel is not; defaults to 'en'
+  name?: string;              // Top-level agent display name
 }
 
 export async function updateAgent(
@@ -140,17 +141,21 @@ export async function updateAgent(
   options: UpdateAgentOptions
 ): Promise<void> {
   const updates: Record<string, unknown> = {};
+  const agentPatch: Record<string, unknown> = {};
 
   if (options.systemPrompt) {
-    updates.conversation_config = {
-      agent: {
-        prompt: {
-          prompt: options.systemPrompt,
-          llm: options.llmModel || 'gpt-4o-mini',
-          temperature: options.temperature || 0.7,
-        },
-      },
+    agentPatch.prompt = {
+      prompt: options.systemPrompt,
+      llm: options.llmModel || 'gpt-4o-mini',
+      temperature: options.temperature || 0.7,
     };
+  }
+  if (options.firstMessage) {
+    agentPatch.first_message = options.firstMessage;
+  }
+
+  if (Object.keys(agentPatch).length > 0) {
+    updates.conversation_config = { agent: agentPatch };
   }
 
   if (options.voiceId) {
@@ -162,6 +167,10 @@ export async function updateAgent(
         model_id: options.voiceModel || defaultVoiceModelFor(options.language || 'en'),
       },
     };
+  }
+
+  if (options.name) {
+    updates.name = options.name;
   }
 
   if (Object.keys(updates).length === 0) return;
