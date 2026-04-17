@@ -1,6 +1,7 @@
 {
   "name": "@cais/stt-noise-filter",
   "version": "0.1.0",
+  "private": true,
   "description": "Filter ambient noise descriptions from speech-to-text output (rule-based + LLM)",
   "main": "src/index.ts",
   "types": "src/index.ts",
