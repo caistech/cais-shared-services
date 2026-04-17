@@ -16,18 +16,39 @@ Shared services for Corporate AI Solutions projects. npm workspace monorepo.
 
 ## Consuming from a project
 
-Add to your project's `package.json`:
+Packages publish to **GitHub Packages** (private npm registry). Install is a standard `pnpm add` / `npm install` once the registry is configured.
 
-```json
-{
-  "dependencies": {
-    "@cais/elevenlabs-convai": "github:dennissolver/cais-shared-services#main:packages/elevenlabs-convai",
-    "@cais/openrouter-client": "github:dennissolver/cais-shared-services#main:packages/openrouter-client"
-  }
-}
+### One-time setup per consumer repo
+
+1. Create a GitHub Personal Access Token with `read:packages` scope: https://github.com/settings/tokens
+2. Add `.npmrc` to the consumer repo root (do NOT commit a token — use env var):
+
+   ```
+   @cais:registry=https://npm.pkg.github.com
+   //npm.pkg.github.com/:_authToken=${GITHUB_PACKAGES_TOKEN}
+   ```
+
+3. Export the token locally: `export GITHUB_PACKAGES_TOKEN=ghp_...`
+4. In CI (Vercel, GitHub Actions, etc.) set `GITHUB_PACKAGES_TOKEN` as a secret env var.
+
+### Installing
+
+```bash
+pnpm add @cais/elevenlabs-convai
+pnpm add @cais/openrouter-client
 ```
 
-Or for simpler setup, copy the `packages/<name>/src/` directory into your project's `lib/` or `shared/`.
+Then import as usual:
+
+```ts
+import { createAgent, defaultVoiceModelFor } from '@cais/elevenlabs-convai';
+```
+
+### Publishing a new version
+
+- Bump the relevant `packages/<name>/package.json` version (stay on `0.x.y` while pre-1.0 — break freely).
+- Commit, push, then tag: `git tag v0.1.1 && git push origin v0.1.1`
+- GitHub Actions publishes all workspaces on tag push (see `.github/workflows/publish.yml`).
 
 ## Structure
 

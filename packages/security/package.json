@@ -4,5 +4,8 @@
   "description": "AI agent security — permissions, PII classification, audit logging, consent, data retention",
   "main": "src/index.js",
   "files": ["src/"],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "license": "PRIVATE"
 }

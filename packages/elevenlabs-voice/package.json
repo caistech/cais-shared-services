@@ -12,5 +12,8 @@
     "typescript": ">=5.0.0"
   },
   "files": ["src/"],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "license": "PRIVATE"
 }

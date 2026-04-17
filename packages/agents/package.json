@@ -4,5 +4,8 @@
   "description": "AI agent provisioning, prompt templates, and secure gateway",
   "main": "src/index.js",
   "files": ["src/"],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "license": "PRIVATE"
 }
