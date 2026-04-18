@@ -15,5 +15,10 @@
     "type": "git",
     "url": "https://github.com/dennissolver/cais-shared-services.git"
   },
-  "license": "PRIVATE"
+  "license": "PRIVATE",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "typescript": "^5.3.0"
+  }
 }
