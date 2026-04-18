@@ -12,7 +12,20 @@
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
     "typescript": ">=5.0.0",
-    "@caistech/abn-lookup": "*"
+    "@caistech/abn-lookup": "*",
+    "@caistech/mapbox": "*",
+    "lucide-react": ">=0.400.0"
+  },
+  "peerDependenciesMeta": {
+    "@caistech/abn-lookup": {
+      "optional": true
+    },
+    "@caistech/mapbox": {
+      "optional": true
+    },
+    "lucide-react": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/react": "^19.0.0"

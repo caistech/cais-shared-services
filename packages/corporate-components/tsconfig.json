@@ -17,5 +17,9 @@
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "exclude": [
+    "src/abn-lookup",
+    "src/address-autocomplete"
+  ]
 }

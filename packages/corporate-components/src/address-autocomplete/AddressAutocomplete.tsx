@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-// NOTE: These imports use @/ aliases — when copying into a project, these resolve
-// via the project's tsconfig paths. Requires: shadcn/ui Input, lucide-react.
-// Mapbox lib + types are in corporate-ai-common/lib/
+// NOTE: This is a copy-paste component. `@/components/ui/input` resolves via the
+// consumer Next.js app's tsconfig paths (shadcn/ui Input). `lucide-react` is a
+// peer dependency. Mapbox helpers now come from `@caistech/mapbox`.
 import { Input } from "@/components/ui/input";
 import { MapPin } from "lucide-react";
-import { forwardSearch, reverseSearch, parseCoordinates, featureToGeocodedAddress } from "@/lib/mapbox";
-import type { MapboxFeature, GeocodedAddress } from "@/lib/mapbox-types";
+import { forwardSearch, reverseSearch, parseCoordinates, featureToGeocodedAddress } from "@caistech/mapbox";
+import type { MapboxFeature, GeocodedAddress } from "@caistech/mapbox";
 
 interface AddressAutocompleteProps {
   onSelect: (address: GeocodedAddress) => void;
