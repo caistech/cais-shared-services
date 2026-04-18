@@ -1,7 +1,6 @@
 {
   "name": "@caistech/corporate-components",
   "version": "0.1.0",
-  "private": true,
   "description": "Corporate AI Solutions React components — header, footer, ABN lookup, address autocomplete. Plus brand Tailwind palette + global CSS.",
   "main": "src/index.ts",
   "types": "src/index.ts",

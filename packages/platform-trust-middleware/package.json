@@ -1,7 +1,6 @@
 {
   "name": "@caistech/platform-trust-middleware",
   "version": "0.1.0",
-  "private": true,
   "description": "Platform Trust middleware — rate limiting, permission checks, audit logging, metering, and Next.js withTrust wrapper. Connects to the Platform Trust Supabase service.",
   "main": "src/index.ts",
   "types": "src/index.ts",

@@ -1,7 +1,6 @@
 {
   "name": "@caistech/abn-lookup",
   "version": "0.1.0",
-  "private": true,
   "description": "Australian Business Number (ABN) validation, formatting, and ABR lookup client",
   "main": "src/index.ts",
   "types": "src/index.ts",

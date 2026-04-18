@@ -1,7 +1,6 @@
 {
   "name": "@caistech/nudge-core",
   "version": "0.1.0",
-  "private": true,
   "description": "Generic nudge/notification infrastructure — evaluator registry, frequency caps, email builder, cron handler.",
   "main": "src/index.ts",
   "types": "src/index.ts",

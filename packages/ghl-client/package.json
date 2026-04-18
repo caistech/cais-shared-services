@@ -1,7 +1,6 @@
 {
   "name": "@caistech/ghl-client",
   "version": "0.1.0",
-  "private": true,
   "description": "Go High Level (GHL) CRM API client — contacts, opportunities, workflows. Built on native fetch.",
   "main": "src/index.js",
   "files": ["src/"],
