@@ -254,7 +254,7 @@ function extractSocialLinks(html: string): SocialLinks {
 // JSON parsing (tolerant of markdown wrapping)
 // ============================================================
 
-function parseJsonResponse(text: string): Record<string, unknown> | null {
+function parseJsonResponse(text: string): Record<string, any> | null {
   // Try direct parse
   try {
     return JSON.parse(text);

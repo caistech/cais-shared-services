@@ -159,7 +159,7 @@ async function fetchAndClean(
   }
 }
 
-function parseJson(text: string): Record<string, unknown> | null {
+function parseJson(text: string): Record<string, any> | null {
   try { return JSON.parse(text); } catch { /* continue */ }
   const codeBlock = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
   if (codeBlock) { try { return JSON.parse(codeBlock[1]); } catch { /* continue */ } }
