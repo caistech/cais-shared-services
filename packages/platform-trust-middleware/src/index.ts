@@ -12,3 +12,8 @@ export type { MeterCallInput, MeterCallResult } from './meterCall'
 
 export { withTrust, createTrustMiddleware } from './nextjs'
 export type { ScopeRule } from './nextjs'
+
+// Compat shim for the hand-copied lib/platform-trust.ts template
+// (see src/trust-gate.ts for behavioural details vs the primitives).
+export { trustGate, trustLog, trustMeter } from './trust-gate'
+export type { TrustContext, TrustGateResult } from './trust-gate'
