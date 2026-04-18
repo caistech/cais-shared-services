@@ -1,0 +1,34 @@
+{
+  "name": "@caistech/coordination-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cross-project issue tracking + multi-party coordination SDK. Supabase-backed, with evaluators, magic links, and React hooks. Wraps the coordination repo's deployed Supabase instance.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server/index.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.99.0",
+    "@caistech/nudge-core": "*"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "typescript": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "files": ["src/"],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "license": "PRIVATE"
+}
