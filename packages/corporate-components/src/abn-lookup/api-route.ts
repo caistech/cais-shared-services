@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { lookupAbn, searchByName, isAbrError } from "../../lib/abr-client.js";
+import { lookupAbn, searchByName, isAbrError } from "@caistech/abn-lookup";
 
 const ABR_GUID = process.env.ABR_GUID || "";
 

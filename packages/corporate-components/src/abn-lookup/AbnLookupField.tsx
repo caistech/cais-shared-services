@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { formatAbn, type AbnLookupResult } from "@/lib/abn";
+import { formatAbn, type AbnLookupResult } from "@caistech/abn-lookup";
 import { CheckCircle, Loader2, Search, Building2 } from "lucide-react";
 
 interface NameSearchResult {
