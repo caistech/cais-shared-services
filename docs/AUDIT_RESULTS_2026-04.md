@@ -333,3 +333,52 @@ No more `lib/`, `components/`, `integrations/`, `migrations/`, `styles/`, or `ta
 | 7.9b | Fix pre-existing strict-mode type errors in `@caistech/extractors/src/profile-extractor.ts` (LLM response typing) | XS | — |
 | 7.9c | Add `@types/node` + `@types/react` to the workspace root devDependencies so all TS packages resolve | XS | — |
 | 7.9d | Delete the source `nudge-core/` repo now that its code is folded into `@caistech/nudge-core` — or keep as reference? | XS | decision |
+
+### 7.11 Publish-readiness + coordination/sdk extraction (2026-04-18 cont.)
+
+Eight commits closed out items 2, 5, 6, and the coordination/sdk extraction (item 6c / 3). Publish + consumer migration (items 1 + 4) **blocked on GitHub Packages authentication** — surfaced below.
+
+| Commit | Subject |
+|---|---|
+| `c8ecba9` | `chore(workspace): wire up tsc at workspace root` — root devDeps (@types/node ^20, @types/react ^19, typescript ^5.3), `package-lock.json` landed, 4 missing tsconfigs added (elevenlabs-voice, language-config, openrouter-client, stt-noise-filter) |
+| `ebaf25d` | `fix(extractors): relax LLM JSON parse typing under strict mode` — parsed-response `Record<string, unknown>` → `Record<string, any>` in both extractors |
+| `9079ff9` | `fix(platform-trust-middleware): bundle pricing.ts + add next peer dep` — pulled `platform-trust/lib/pricing.ts` into the package; next added as optional peer dep + devDep for `next/server` resolution |
+| `8674c3d` | `refactor(corporate-components): abn-lookup + address-autocomplete are copy-paste` — reverted direct export; tsc-excluded the two subdirs; optional peer deps for @caistech/abn-lookup + @caistech/mapbox + lucide-react |
+| `dc2648d` | `feat(coordination-sdk): new @caistech/coordination-sdk package` — scope rename @gbta → @caistech across root + all 7 evaluator imports; dual-export shape preserved (`. → src/index.ts`, `./server → src/server/index.ts`) |
+
+**All 17 workspace packages now pass `npm run lint --workspaces --if-present` clean.** `nudge-core/` source repo deleted (local-only, no remote, code now canonical in hub).
+
+Corporate-components disposition clarified in commit `8674c3d`: `CorporateHeader` and `CorporateFooter` are directly importable; `AbnLookupField` and `AddressAutocomplete` remain copy-paste artefacts because they depend on the consumer's shadcn/ui components via `@/components/ui/*` — aliases the package itself cannot resolve at tsc time.
+
+### 7.12 Blocker — GitHub Packages auth not configured
+
+Items 1 (publish 10 new packages) and 4 (migrate 20 consumer repos to `@caistech/platform-trust-middleware`) are **blocked** pending auth setup on this machine.
+
+Evidence from `npm whoami --registry=https://npm.pkg.github.com`:
+```
+npm error code ENEEDAUTH
+npm error need auth You need to authorize this machine using `npm adduser`
+```
+
+No `.npmrc` entry for `npm.pkg.github.com` was found in the hub, `~/.npmrc`, or machine-level config. No `GITHUB_TOKEN` / `NPM_TOKEN` / `NODE_AUTH_TOKEN` in env.
+
+**To unblock, do ONE of the following:**
+
+1. **Create a GitHub Personal Access Token** with `read:packages` + `write:packages` scopes. Add to `~/.npmrc`:
+   ```
+   //npm.pkg.github.com/:_authToken=ghp_<token>
+   @caistech:registry=https://npm.pkg.github.com
+   ```
+2. **Or run** `npm login --registry=https://npm.pkg.github.com --scope=@caistech` (prompts for GH username + PAT).
+
+Once either is done, items 1 + 4 can proceed. The consumer repos also need the `@caistech:registry=...` line in their own `.npmrc` for `npm install` to pull scoped packages from GitHub.
+
+### 7.13 Remaining work (after auth unblock)
+
+| Item | Subject | Effort |
+|---|---|---|
+| 1 | Publish all 10 new packages (`abn-lookup, corporate-components, coordination-sdk, db-schema, extractors, ghl-client, mapbox, nudge-core, platform-trust-middleware, property-services-sdk`) | XS each |
+| 3c | Swap 3 consumer copies of property-services SDK (DealFindrs, MMCBuild, F2K-Checkpoint-Latest: `src/lib/property-services/` → `@caistech/property-services-sdk`) | M |
+| 4 | Migrate 20 platform-trust middleware consumers — REGULATED tier first (mmcbuild, ndissda-automate, f2k-checkpoint, f2k-fund-tokenisation, r-and-d-tax, disaster-support), then STANDARD tier | L |
+| 5c | Rewrite `platform-trust/scripts/portfolio-trust-middleware.ts` to emit an import stub instead of a template | S |
+| Future | Clean up residual `@gbta/coordination` mentions in `coordination-sdk/src/client.ts` error strings | XS |
