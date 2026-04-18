@@ -1,299 +1,232 @@
-# PycharmProjects Shared-Services Audit — 2026-04
+# Shared-Services Repo Consolidation Audit — 2026-04
 
 **Author of spec:** Claude (carry-forward from session c00546d7…, 2026-04-17/18)
-**Intended executor:** Next Claude Code session (preferably started in `C:\Users\denni\PycharmProjects\cais-shared-services`)
-**Type:** Research-only. No code edits. Output = markdown deliverable.
+**Intended executor:** Next Claude Code session (started in `C:\Users\denni\PycharmProjects\cais-shared-services`)
+**Type:** Research-only. No code edits. No commits. Output = markdown deliverable.
 
 ---
 
-## 1. Mission
+## 1. The question being answered
 
-Audit every repo under `C:\Users\denni\PycharmProjects\` to surface **duplicated or near-duplicated code, infrastructure, and patterns** that should be extracted into `@caistech/*` shared packages — or already have a planned extraction and need faster prioritization.
+> **"Do I have exactly ONE repo that holds all current and future shared services — or do I have multiple overlapping ones that should be consolidated?"**
 
-Produce a **prioritized extraction backlog** Dennis can work through over the next 6–8 weeks.
+Dennis has surfaced the following candidates that might all be doing "shared services":
 
-Goal is not completeness — it is **ranked ROI**. A 3-repo 50-line duplication beats a 2-repo 500-line duplication if the 3-repo one is in regulated code paths.
+1. **`C:\Users\denni\PycharmProjects\cais-shared-services`** — the declared canonical (`caistech/cais-shared-services`)
+2. **`C:\Users\denni\PycharmProjects\packages\`** — local-only non-git sibling dir containing `corporate-ai-common/` and `translation/`
+3. **`C:\Users\denni\PycharmProjects\platform-trust`** — role unclear
+4. **`C:\Users\denni\PycharmProjects\property-services`** — GitHub describes it as "Shared property intelligence platform — Supabase edge functions + SDK for F2K, DealFindrs, MMC Build"
+5. **Potentially others** — any directory with names like `-shared`, `-common`, `-sdk`, `-lib`, `-core`, `-services`, `packages`, `apps`
 
----
+The audit's job: **inventory these, classify each, and produce a concrete consolidation plan.**
 
-## 2. Context (read first, don't re-derive)
-
-- **Shared repo:** `caistech/cais-shared-services` (GitHub Packages, private, `@caistech/*` scope). Already published: `@caistech/elevenlabs-convai@0.1.3`.
-- **Declared but unpublished packages (gated `"private": true`):** `@caistech/elevenlabs-voice`, `@caistech/openrouter-client`, `@caistech/language-config`, `@caistech/stt-noise-filter`, `@caistech/agents`, `@caistech/security`.
-- **Sequencing memory:** `C:\Users\denni\.claude\projects\C--Users-denni-PycharmProjects-F2K-Fund-Tokenisation\memory\project_cais_shared_services_sequence.md` — has 5-step pipeline + already-confirmed next extractions (compliance-guardrails, corporate-components, abn-lookup, openrouter-client, ghl-client).
-- **Repo tiers** (from `C:\Users\denni\.claude\CLAUDE.md`):
-  - **REGULATED**: mmcbuild, platform-trust, ndissda-automate, f2k-checkpoint, f2k-fund-tokenisation, r-and-d-tax, disaster-support
-  - **REVENUE/CASE STUDY**: easy-claude-code, tenderwatch, deal-findrs, investorpilot, partner-pilot, storefront-mcp
-  - **STANDARD**: everything else
-- **Recently migrated** (already extracted):
-  - `@caistech/elevenlabs-convai` — F2K admin-console migrated (`apps/admin-console/src/app/dataroom/[id]/api/activate/route.ts`). Kira + Connexions have the pre-migration hotfix committed but NOT yet migrated to import from the package.
-- **Just-surfaced duplicate not yet in the pipeline:** "Platform Trust middleware + security gate + .env.example" appears in at least Kira and Connexions (identical commit messages). Investigate if this is a 3rd duplicate.
+Not in scope: finding new duplicates across the other ~35 repos. That's a separate later audit.
 
 ---
 
-## 3. Scope
+## 2. Classification framework
 
-### In scope
-- All git-tracked repos directly under `C:\Users\denni\PycharmProjects\*` (≈40 repos — see Section 9 for list).
-- TypeScript/JavaScript code (primary).
-- Config/infrastructure: `.env.example`, Next.js middleware, GitHub Actions workflows, Supabase migrations, Tailwind config.
-- Architectural patterns where the same shape recurs (auth flows, API route scaffolds, error handling, RLS policies).
+For each candidate, classify it as one of:
 
-### Out of scope
-- `node_modules`, `.next`, `dist`, `build`, `.venv`, `__pycache__`, `.git` directories.
-- Auto-generated files (lockfiles, type generators' output).
-- Project-specific business logic that happens to look similar superficially (e.g. two different SaaS pricing pages).
-- Python code **unless** it sits alongside a JS service (the shared-services target is the Node/TS ecosystem).
+| Class | Meaning | Example | Belongs where |
+|---|---|---|---|
+| **A. Shared library (npm package)** | Import-time code reused by multiple repos | `@caistech/elevenlabs-convai` | `cais-shared-services/packages/*` |
+| **B. Client SDK for a deployed service** | Lib that wraps calls to a service you run | A TS client for property-services edge functions | `cais-shared-services/packages/*` (the SDK); service stays separate |
+| **C. Deployed service (own runtime)** | Has its own deploy target (Supabase edge functions, standalone Next.js app, API server, background worker) | `property-services` edge functions | Separate repo — NOT in cais-shared-services |
+| **D. Staging / historical** | Older copy being migrated from or abandoned | `packages/corporate-ai-common/` probably | Delete once nothing points to it |
+| **E. Single-consumer code mislabelled as "shared"** | Has "shared"/"common" in its name but only one repo imports it | e.g. a helper lib used by exactly one app | Fold back into that one repo |
+| **F. Uncertain / needs inspection** | Can't tell without reading | — | Report as uncertain, don't guess |
 
----
-
-## 4. Method
-
-Favor scale over depth. **Use the `Explore` agent for anything >2 greps**. Main thread should:
-
-1. **List all repos** via `ls -d C:/Users/denni/PycharmProjects/*/` and filter to git-tracked ones.
-2. **Parallelize scans** across the candidate categories in Section 6 using multiple `Explore` agents (5+ in a single message).
-3. **Gather evidence not opinions.** Every claim must cite specific file paths. Line counts where relevant.
-4. **Compare shape, not identity.** Two files that do the same thing with different variable names still count as duplication.
-5. **Weight by risk tier.** REGULATED tier duplication is a higher-priority finding than STANDARD tier.
-
-### Signature patterns to grep for (non-exhaustive)
-
-```
-# API surface duplication
-api.elevenlabs.io/v1/convai
-api.openai.com/v1/chat
-openrouter.ai/api/v1
-api.anthropic.com/v1
-claude-sonnet-4|claude-sonnet-4-5|claude-haiku-4
-
-# Integration duplication
-app.gohighlevel.com|rest.gohighlevel.com  # GHL CRM
-api.stripe.com                            # Stripe
-api.resend.com                            # email
-sumsub                                    # KYC
-
-# Compliance / guardrails
-INVESTMENT_DISCLAIMER|AFSL|wholesale investor|s708
-buildClaudeSystemPrompt|buildSystemPrompt
-PII|redact|sanitize
-
-# UI components
-CorporateHeader|CorporateFooter|ABN.?Lookup|AddressAutocomplete
-tailwind-brand-colors
-
-# Platform Trust / security middleware
-platform-trust|platformTrust|security-gate|securityGate
-
-# Auth / Supabase
-createSupabaseService|createClient.*SUPABASE
-createRouteHandlerClient
-auth\\(\\).getUser|getSession
-
-# Next.js scaffolds
-export async function POST.*NextResponse
-createRouteHandlerClient
-middleware\\.ts
-next\\.config\\.js.*transpilePackages
-
-# GitHub Actions workflows
-actions/setup-node@v4
-actions/checkout@v4
-pnpm install
-```
-
-### When comparing two candidate duplicates, check:
-- Does one have fixes the other doesn't? (security patches, model rename, etc.)
-- Does one handle an edge case the other doesn't? (retries, rate limits, error shapes)
-- Does extraction require flexibility neither currently has? (e.g. passing custom headers)
-- What's the call-site count per repo?
+**Key rule**: class A/B belong inside `cais-shared-services` as packages. Class C stays separate (deployed things aren't npm packages). Class D/E should be removed or absorbed.
 
 ---
 
-## 5. Output specification
-
-Write a single markdown file:
+## 3. Required output
 
 **Path:** `C:\Users\denni\PycharmProjects\cais-shared-services\docs\AUDIT_RESULTS_2026-04.md`
 
-**Target length:** 2,500–4,000 words (don't pad; don't bloat).
+**Target length:** 1,200–2,500 words. Fewer is fine if evidence is clear.
 
-**Required sections:**
+### 3.1 One-line verdict (first line of the doc)
+Example: *"You currently have 3 shared-libraries fragmentation points: cais-shared-services (canonical), packages/corporate-ai-common (should delete after migrating 2 remaining files), and property-services/sdk (should split — move SDK to @caistech, keep edge functions separate)."*
 
-### 5.1 Executive summary (≤200 words)
-- Top 3 extraction candidates by ROI (brief sentence each, with blast radius)
-- Highest-risk drift across regulated tier
-- One-sentence call on each already-declared-but-unpublished `@caistech/*` package: "ship as v0.1.0 / needs more audit / scope reshape / drop"
+### 3.2 Inventory table (required)
+Every candidate from the list in Section 4 below, as rows:
 
-### 5.2 Per-category findings
-One subsection per investigated category from Section 6. Each must contain:
-- **Category name**
-- **Duplication count:** how many repos share variants
-- **Evidence:** file paths (absolute, forward slashes), total LOC affected
-- **Divergence map:** a small table — repo → which variant (A/B/C with 1-line description)
-- **Best-of-breed:** which repo/file is closest to what the extracted package should look like
-- **Extraction effort:** XS (<30 min) / S (30 min–2 h) / M (half day) / L (1+ day) / XL (project)
-- **Extraction blockers:** API shape mismatches, breaking behavior changes, needed before extraction
-- **Priority:** P0 (blocking revenue / regulated risk) / P1 (big win) / P2 (tidy) / P3 (later)
+| Path | Git state | Class (A–F) | Purpose (1 line) | Consumed by (list of repos) | Recommendation |
+|---|---|---|---|---|---|
 
-### 5.3 Non-duplication findings
-- Repos that drift from established shared patterns where migration would improve them (e.g. projects that still hand-roll a Supabase client instead of using an existing shared one)
-- Architectural anti-patterns that recur (e.g. N+1 API calls, inlined secrets, missing error handling)
+Populate EVERY row. "Unknown" is only acceptable if the candidate genuinely requires user input; flag it in Section 3.5.
 
-### 5.4 Ranked backlog
-Single ordered list of extraction actions. Each line:
+### 3.3 Consolidation plan per candidate
+For anything classed A, B, D, or E, provide:
+- Current location
+- Target location (e.g. `cais-shared-services/packages/<name>/src/`)
+- What moves (file list or dir)
+- What stays behind (e.g. deployed service in original repo)
+- Dependencies it creates (imports, env vars)
+- Order of operations (do this before that)
+- Rough effort: XS (<30 min) / S (30 min–2 h) / M (half day) / L (1+ day)
+
+For class C, state the boundary: "this repo deploys X; its lib code at `path/` is a viable `@caistech/...` SDK package."
+
+### 3.4 Overlap map (required)
+A section showing any code that exists in ≥2 candidate locations (especially between `cais-shared-services/packages/*` and `packages/corporate-ai-common/packages/*`). Even ~60% similarity counts.
+
+Evidence: file paths + diff stat or sample line counts.
+
+### 3.5 Unknowns / decisions needed from Dennis
+Short list. One line each. These become the blocking questions before execution.
+
+### 3.6 Proposed final state
+A tree showing what the shared-services landscape should look like in 2 weeks:
+
 ```
-[priority] @caistech/<name> — <one-line description> (effort: S, repos touched: N, LOC saved: ~M)
-```
+caistech/cais-shared-services/
+├── packages/
+│   ├── elevenlabs-convai/          # already live
+│   ├── elevenlabs-voice/           # planned
+│   ├── <new ones from this audit>
+│   └── ...
 
-### 5.5 Uncertainty log
-Things the reviewer wasn't sure about. Short list. Honest beats confident-wrong.
+dennissolver/property-services/      # deployed edge functions — stays separate
+├── functions/                       # Supabase edge functions, own deploy
+└── sdk/ → MOVE TO @caistech/property-services-sdk
+
+DELETE:
+- C:\Users\denni\PycharmProjects\packages\corporate-ai-common\   (superseded)
+- <anything else obsolete>
+```
 
 ---
 
-## 6. Categories to investigate
+## 4. Candidates — baseline list (audit must cover all, plus discover more)
 
-Parallelize across these. Not every category will yield findings — that's fine; report a one-liner null result for categories where no meaningful duplication was found.
+Start with these. Use the method in Section 5 to find any others.
 
-| # | Category | Hypothesis |
-|---|---|---|
-| 1 | **ElevenLabs ConvAI agent lifecycle** | Already extracted; verify no stragglers missed the v0.1.3 upgrade |
-| 2 | **ElevenLabs TTS/STT one-shot** | Planned `@caistech/elevenlabs-voice` — scope the actual shape from Mova / TourLingo / UniversalLingo |
-| 3 | **OpenRouter LLM client** | Planned extraction — likely in InvestorPilot, PartnerPilot, Mova, DisasterSupport, raiseready-core |
-| 4 | **Anthropic SDK usage patterns** | Repeated `createClient` / `messages.create` scaffolds across F2K, DealFindrs, Connexions, Kira |
-| 5 | **Supabase client factories** | `createSupabaseService` / `createSupabaseBrowser` / `createSupabaseServer` — almost certainly duplicated |
-| 6 | **Supabase auth helpers** | `getAdminUser`, `getUser`, RLS policy patterns |
-| 7 | **Compliance guardrails** | `INVESTMENT_DISCLAIMER`, `buildClaudeSystemPrompt`, AFSL disclaimers — confirmed duplicated in F2K |
-| 8 | **PII redaction / classification** | `classification-patterns.json` from `@caistech/security` — find consumers, verify usage |
-| 9 | **ABN lookup + address autocomplete** | `lib/abn.ts`, `lib/abr-client.ts`, `components/abn-lookup/` — confirm where used |
-| 10 | **Corporate UI components** | `CorporateHeader`, `CorporateFooter`, brand colors — DealFindrs, TourLingo, others |
-| 11 | **GHL CRM integration** | Planned `@caistech/ghl-client` — find all GHL touchpoints |
-| 12 | **Stripe patterns** | Webhook handlers, subscription lifecycle — Kira has one; who else? |
-| 13 | **Resend email templates** | Invitation emails, transactional — F2K has a dataroom invite flow |
-| 14 | **Sumsub KYC integration** | F2K mentions it; check if any other repo touches KYC |
-| 15 | **Next.js middleware patterns** | **Just surfaced: "Platform Trust middleware"** in Kira + Connexions. Find all copies |
-| 16 | **Security gate / .env.example templates** | Same commit msg "security gate + .env.example" in multiple repos — template duplication or intentional |
-| 17 | **GitHub Actions workflows** | Publishing, deploys, preview env setup — standardizable |
-| 18 | **Vercel config patterns** | `vercel.json`, build commands, env var lists |
-| 19 | **Audit logging** | F2K has audit_log table + helper; other regulated repos? |
-| 20 | **Error handling / response shapes** | `NextResponse.json({ error })` scaffolds, status code conventions |
-| 21 | **Rate limiting** | Which repos have it? Which need it? |
-| 22 | **Claude Code skills / agents / hooks** | `.claude/` directories — which repos share skills; gstack usage |
-| 23 | **Testing harnesses** | Hardhat config, Vitest setups, Jest configs |
-| 24 | **DB migration patterns** | Supabase SQL files — idempotent CREATE patterns, RLS boilerplate |
-| 25 | **Tailwind / design system** | `tailwind.config.js` patterns, shadcn/ui setup, brand palettes |
+### 4.1 Confirmed candidates (known from this session's history)
 
-If a new category emerges mid-audit, add it. Don't skip.
+| # | Path | Known facts | What to confirm |
+|---|---|---|---|
+| a | `C:\Users\denni\PycharmProjects\cais-shared-services` | Canonical. 7 declared packages: elevenlabs-convai (published 0.1.3), elevenlabs-voice, openrouter-client, language-config, stt-noise-filter, agents, security. Top-level `lib/`, `components/`, `integrations/`, `migrations/`, `styles/` still hold un-extracted content. | What's canonical vs still-pending migration inside its own tree |
+| b | `C:\Users\denni\PycharmProjects\packages\corporate-ai-common` | Local-only (not a git repo). Was the template source for cais-shared-services. Has been partially migrated (elevenlabs-convai etc.). | Which of its files/dirs still have no equivalent in cais-shared-services |
+| c | `C:\Users\denni\PycharmProjects\packages\translation` | Local-only sibling of corporate-ai-common | Purpose? Consumers? Should it become `@caistech/translation`? |
+| d | `C:\Users\denni\PycharmProjects\platform-trust` | Referenced in `CLAUDE.md` as a REGULATED project. "Platform Trust middleware" commits also seen in Kira + Connexions | Is this the *service*, and the middleware in Kira/Connexions is the *client*? Or are Kira/Connexions copy-pasting this repo's code? |
+| e | `C:\Users\denni\PycharmProjects\property-services` | GitHub description: "Shared property intelligence platform — Supabase edge functions + SDK for F2K, DealFindrs, MMC Build" | What's the SDK portion (should migrate) vs the edge functions (should stay)? |
+
+### 4.2 Discoverable candidates — search for more
+
+Scan `C:\Users\denni\PycharmProjects\*` for directories whose names match any of these patterns:
+- `*-shared`, `*-common`, `shared-*`, `common-*`
+- `*-sdk`, `*-client`, `*-lib`
+- `*-core`, `*-kit`, `*-tools`, `*-utils`
+- `*-services`, `services-*`
+- `packages`, `apps`, `libs`
+- Anything containing `ai-common`, `ai-kit`, `ai-tools`, `ai-sdk`
+
+Then inspect each hit that matches a candidate profile. Known suspects to investigate regardless:
+- `agentic-os`, `Agentic-OS-old`, `apps`, `coordination`, `llm-council`, `nudge-core`, `property-analysis-sdk`, `easy-claude-code`, `storefront-mcp`
+
+For each discovered candidate, apply the Section 2 classification.
 
 ---
 
-## 7. Known hotspots (start here, don't re-discover)
+## 5. Method
 
-These are already documented duplications — the audit should verify blast radius and add them to the backlog without spending time re-proving them.
+### 5.1 Inspection checklist per candidate
 
-| Duplicate | Known repos | Source of knowledge |
-|---|---|---|
-| ElevenLabs ConvAI agent CRUD | F2K, Kira, Connexions (migrated / hotfixed) | previous session audit |
-| `INVESTMENT_DISCLAIMER` + `buildClaudeSystemPrompt` | F2K (two copies internally) | other-session audit reference in sequencing memory |
-| OpenRouter client | InvestorPilot, PartnerPilot, Mova, DisasterSupport | README of cais-shared-services |
-| ABN lookup API adapter | MMCBuild (at least) | sequencing memory |
-| Corporate UI components | DealFindrs, TourLingo | README of cais-shared-services |
-| Platform Trust middleware + security gate + .env.example | Kira, Connexions (confirmed); possibly more | git log 2026-04-17 |
-| stt-noise-filter | Mova, TourLingo | README of cais-shared-services |
-| Claude Code project memory templates | every project has `PROJECT_STATUS.md`; each project also generates `CLAUDE.md` | per global CLAUDE.md config |
+For each candidate, gather:
+1. **Is it a git repo?** `git -C <path> rev-parse --git-dir` → yes/no.
+2. **GitHub description** (if git): `gh repo view <owner>/<name> --json description,isPrivate`.
+3. **Top-level structure**: `ls` of root, names of top-level dirs and files.
+4. **Presence of a `package.json`?** If yes, read `name`, `private`, `main`, `files`.
+5. **Any `packages/` subdirectory** (i.e., is this itself a monorepo of shared packages)?
+6. **What kind of artifact does it produce?** Library code (TS/JS source, exportable), deployed thing (Next.js app, Supabase functions, worker), mixed?
+7. **Consumer search** — grep other repos for imports or refs to this candidate. Examples:
+   - For `property-services`: grep all repos for `property-services`, `@caistech/property`, imports from anything suggestive
+   - For `platform-trust`: grep for `platform-trust`, `platformTrust`, HTTP calls to platform-trust URLs
+   - For `packages/corporate-ai-common/*`: grep for path references or bare imports like `@cais/*`, `corporate-ai-common`
+8. **Last meaningful commit** — is this actively maintained or abandoned?
 
----
+### 5.2 Overlap detection between candidates
 
-## 8. Priority framework
+For candidates with similar-named subdirs (e.g., `corporate-ai-common/elevenlabs-convai/` vs `cais-shared-services/packages/elevenlabs-convai/src/`):
+- `diff -rq` to find unique-to-each-side files
+- For same-named files, `diff --stat` to see divergence scale
+- Record: "X files identical, Y files changed, Z files only in side A"
 
-For each extraction candidate, compute a rough priority:
+### 5.3 Parallelization
 
-```
-priority_score = (blast_radius * tier_weight) + severity_of_drift - extraction_effort
-```
+Dispatch `Explore` agents for the slower parts:
+- One `Explore` agent per candidate path, charged with answering the Section 5.1 checklist for that candidate
+- One `Explore` agent for the pattern-based discovery (Section 4.2)
+- One `Explore` agent for cross-repo consumer searches (Section 5.1 step 7)
 
-Where:
-- `blast_radius` = number of repos with the duplicate
-- `tier_weight` = REGULATED = 3, REVENUE = 2, STANDARD = 1
-- `severity_of_drift` = how divergent the copies have become (0 = identical, 3 = versions have real bugs in some)
-- `extraction_effort` = XS=1, S=2, M=3, L=5, XL=8
+Run them in parallel (single message, multiple Agent tool calls). Gather reports, then write the deliverable on the main thread.
 
-Don't mechanically follow this — use judgment. But if two candidates feel close, this tiebreaks.
+### 5.4 What NOT to do
 
----
-
-## 9. Repo list (starting set)
-
-Derived from `ls C:/Users/denni/PycharmProjects/*/`. Not exhaustive — if new ones exist, include them.
-
-```
-AI-God-Mode, AI-Inside, AI_Forge, Agentic-OS-old, ApplicationReady,
-ConferenceLingo, Connexions, Corporate-AI-Solutions, DealFindrs,
-DisabilityConnect, DisasterSupport, F2K Voice Agent,
-F2K-Checkpoint-Latest, F2K-Contracts, F2K-Fund-Tokenisation,
-GRFC_Projects, HouseSitAgent, JessAIChat, Kira, LaunchReady,
-LeadSpark, LongtailAIVentureStudio, MMCBuild, MessageReady, Mova,
-NDISSDAAutomate, OutreachReady, PartnerPilot, PubGuard,
-PycharmProjectsRaiseReady, QuoteMaster,
-R-and-D-Tax-Eligibility-Work-Recording, RaiseReadyTemplate,
-RehearsalsAI, SmartBoard, StoryVerse, Tenderwatch, TourLingo,
-UniversalLingo, WarrantyReady, WordToDocs, agentic-os, apps,
-coordination, easy-claude-code, gbta-openclaw, investorpilot,
-llm-council, nudge-core, packages, platform-trust,
-property-analysis-sdk, property-services, raiseready-core,
-reverseauction, storefront-mcp, universal-interviews,
-whatsyourproject
-```
-
-Also inspect: `C:\Users\denni\PycharmProjects\packages\` — a local-only sibling directory (non-git) containing `corporate-ai-common` and `translation` — historical staging area; compare against `caistech/cais-shared-services` to see what's been migrated vs what's still orphaned there.
+- **Don't open every file.** Use `ls`, `glob`, `grep` at scale.
+- **Don't try to migrate anything.** Audit-only.
+- **Don't make assumptions about intent.** If two repos have similar-named folders but you can't tell if they were ever meant to be the same thing, say so in §3.5.
+- **Don't skip the local-only `packages/` directory** just because it's not a git repo — it's a critical node in the fragmentation picture.
 
 ---
 
-## 10. Evaluation criteria for your output
+## 6. Evaluation
 
-The deliverable is good if Dennis can:
+Output is good if Dennis can read it in <10 minutes and walk away with:
+- A clear count: "You have N shared-service repos, of which X should consolidate."
+- A tightly ordered action list: merge/migrate/keep-separate/delete per candidate.
+- Zero unresolved ambiguity about class A vs C (the "should it be a package vs a deployed service?" question must be answered for every candidate).
 
-1. Read the executive summary and **pick the next extraction without reading the rest** of the doc.
-2. See, for the top 5 backlog items, **exactly which files need to change** and roughly how much code moves.
-3. Identify **one or two surprising findings** — things neither we nor Dennis expected.
-4. Trust the priority ranking — because the evidence backs it.
-
-The deliverable is bad if:
-- It reads like an inventory (boring, shallow).
-- It claims duplication without file paths.
-- It spends more than 200 words on categories with no findings.
-- It recommends extracting things already in the published pipeline without adding new info.
-- It sprawls past 5,000 words.
+Output is bad if:
+- It re-derives what's already in §2 of the sequencing memory (`project_cais_shared_services_sequence.md`) without adding new info.
+- It hedges on the verdict.
+- It investigates code duplication inside consumer repos (that's the broader audit, not this one).
+- It proposes `cais-shared-services` should absorb things that are clearly deployed services (class C).
 
 ---
 
-## 11. Session priming (paste this at start of the next session)
+## 7. Known prior knowledge — don't re-derive
+
+- `cais-shared-services` was set up in 2026-04-17 from `corporate-ai-common` as the template.
+- Top-level legacy dirs (`elevenlabs-convai/`, `agents/`, `security/`) were DELETED from cais-shared-services in commit `872cf36`; remaining top-level dirs there (`lib/`, `components/`, `integrations/`, `migrations/`, `styles/`) are pending extraction into packages.
+- `@caistech/elevenlabs-convai@0.1.3` is published and installed by F2K (committed 2026-04-17).
+- Kira + Connexions also shared this code and have the bug fix applied but not yet migrated to import the package (documented in memory).
+- The sequencing memory lists these as planned future packages: `@caistech/compliance-guardrails`, `@caistech/corporate-components`, `@caistech/abn-lookup`, `@caistech/openrouter-client`, `@caistech/ghl-client`. The audit should reconcile these planned extractions against what `property-services`, `platform-trust`, `packages/*`, and other candidates actually contain — some may already exist there.
+
+---
+
+## 8. Session priming (paste at start of next session)
 
 ```
-I'm starting a cross-repo shared-services audit. Read
+Doing a shared-services repo consolidation audit. Read
 C:/Users/denni/PycharmProjects/cais-shared-services/docs/AUDIT_SPEC_2026-04.md
-in full before doing anything. Then execute per that spec.
-Confirm you've read the spec and briefly state which categories
-you'll start with + the parallel Explore agent fan-out plan before
-doing any greps.
+in full before anything else.
 
-Working directory: C:/Users/denni/PycharmProjects/cais-shared-services
-Output file: docs/AUDIT_RESULTS_2026-04.md
-Don't edit any code. Don't commit or push.
+The core question: do I have ONE shared-services repo, or several
+parallel/overlapping ones that need to be reconciled?
+
+Candidates to inventory (minimum):
+  - cais-shared-services
+  - packages/corporate-ai-common, packages/translation
+  - platform-trust
+  - property-services
+  - plus any others matching the discovery patterns
+
+Output: docs/AUDIT_RESULTS_2026-04.md per the spec.
+No code edits. No commits.
+
+Confirm you've read the spec and list your parallel Explore
+agent fan-out plan before dispatching.
 ```
 
 ---
 
-## 12. Non-goals for this audit session
+## 9. Non-goals
 
-- **Don't extract anything.** That's a separate future session per package.
-- **Don't migrate any call sites.** Record them as evidence only.
-- **Don't write new packages.** Document gaps only.
-- **Don't publish anything.** Read-only across the board.
-- **Don't refactor the audit target codebases** even if you see obvious wins.
-
----
-
-## 13. Success signals
-
-When this audit's output lands, the next 3 extraction sessions should each be able to start with: "open `AUDIT_RESULTS_2026-04.md`, read the top entry in §5.4, and execute the extraction plan." No re-audit, no rediscovery.
+- Finding code duplication inside consumer repos (F2K, Kira, Connexions, InvestorPilot, etc.) — that's the broader audit, not this one.
+- Deciding what the NEXT `@caistech/*` extraction should be — the sequencing memory already covers that.
+- Publishing or consuming anything.
+- Fixing what you find. Report only.
