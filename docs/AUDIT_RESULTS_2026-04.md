@@ -289,3 +289,47 @@ Inspected all four repos. Revised dispositions based on what was actually inside
 | 6c | Extract `coordination/sdk/` → `@caistech/coordination-sdk`; leave coordination repo for Supabase | M | — |
 | Mapbox / profile / social extractors | Extract `lib/{mapbox*, profile-extractor, social-extractor}.ts` into a 4th hub package (proposed: `@caistech/mapbox` + `@caistech/extractors` OR bundle) | S | scope decision — single or two packages? |
 | `migrations/org-multi-agent.sql` | Decide: stay at hub root, move into `@caistech/agents` package, or delete? | XS | decision only |
+
+### 7.9 Hub-root cleanup round 2 + property-analysis-sdk deletion (2026-04-18 cont.)
+
+Closed out the three open decisions from §7.8. Three more commits on `main` plus one destructive delete.
+
+| Commit | Subject |
+|---|---|
+| `97fee07` | `feat(mapbox): new @caistech/mapbox package` (also swept the queued extractors + db-schema/002 renames) |
+| `85ec113` | `feat(extractors): new @caistech/extractors package` |
+| `83f9e6f` | `feat(db-schema): new @caistech/db-schema package` |
+
+**Decisions taken:**
+1. `@caistech/mapbox` and `@caistech/extractors` as **two separate packages** (option B) — they share no code or consumer; the only reason to bundle would have been co-location, which doesn't outweigh clean semantic boundaries.
+2. `@caistech/db-schema` as a **dedicated package** (option C) rather than folding into `@caistech/agents`. Justified because the companion files `001-create-tables.sql` and `003-storefront-tables.sql` were discovered living in `gbta-openclaw/infrastructure/db/migrations/` — a proper 001/002/003 sequence that wants a single home. Package README documents migration order + idempotency.
+3. `property-analysis-sdk` **deleted outright** — confirmed duplicate/predecessor of `@caistech/property-services-sdk` per §7.7(b). Not a git repo, zero consumers, no recovery path needed. `rm -rf C:\Users\denni\PycharmProjects\property-analysis-sdk` executed.
+
+**Final hub-root state after this session:**
+
+```
+cais-shared-services/
+├── packages/                    (16 packages — see §5 plus db-schema, extractors, mapbox, nudge-core)
+├── docs/
+├── package.json, tsconfig.base.json
+├── README.md, STYLING.md, PROJECT_STATUS_TEMPLATE.md
+└── bootstrap-status.sh
+```
+
+No more `lib/`, `components/`, `integrations/`, `migrations/`, `styles/`, or `tailwind-brand-colors.js` at hub root. Every piece of shared code now lives inside a package.
+
+### 7.10 Remaining work after this session
+
+| Item | Subject | Effort | Blocker |
+|---|---|---|---|
+| 3b | Publish `@caistech/property-services-sdk` to GitHub Packages | XS | — |
+| 3c | Swap consumer copies in DealFindrs, MMCBuild, F2K-Checkpoint-Latest | M | per-repo commits |
+| 4d | Run `npm install` at hub root so workspace deps (React types, Node types) resolve | XS | — |
+| 5b | Publish `@caistech/platform-trust-middleware` | XS | — |
+| 5c | Rewrite `platform-trust/scripts/portfolio-trust-middleware.ts` to emit an import stub | S | — |
+| 5d | Migrate the 20 portfolio repos to the published middleware | L | REGULATED tier first |
+| 6c | Extract `coordination/sdk/` → `@caistech/coordination-sdk`; leave coordination repo for Supabase | M | — |
+| 7.9a | Publish the 9 new packages from §7.6 + §7.9 (abn-lookup, corporate-components, db-schema, extractors, ghl-client, mapbox, nudge-core, platform-trust-middleware, property-services-sdk) | XS each | — |
+| 7.9b | Fix pre-existing strict-mode type errors in `@caistech/extractors/src/profile-extractor.ts` (LLM response typing) | XS | — |
+| 7.9c | Add `@types/node` + `@types/react` to the workspace root devDependencies so all TS packages resolve | XS | — |
+| 7.9d | Delete the source `nudge-core/` repo now that its code is folded into `@caistech/nudge-core` — or keep as reference? | XS | decision |
