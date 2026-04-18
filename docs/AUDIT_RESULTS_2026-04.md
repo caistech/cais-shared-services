@@ -231,4 +231,61 @@ Pre-delete verification: corp-ai-common had exactly ONE commit ("Initial commit 
 - **Item 3 (property-services/sdk extraction — M):** not started.
 - **Item 4 (abn-lookup / corporate-components / ghl-client extraction — M × 3):** not started.
 - **Item 5 (platform-trust-middleware extraction + 20-repo migration — L):** not started.
-- **Item 6 (@gbta/\* scope decision):** undecided. Current disposition per 2026-04-18 conversation: *"Fold `nudge-core`, `property-analysis-sdk`, `coordination` into `@caistech/*`. For `gbta-openclaw`, answer the question 'is GBTA a brand I'm keeping?' first — if yes, leave all four under `@gbta/*`."* Awaiting Dennis.
+- **Item 6 (@gbta/\* scope decision):** Dennis confirmed GBTA = Global BuildTech Australia, no brand reason to keep the scope. Proceeding to retire.
+
+### 7.6 Items 3, 4, 5 (local extraction) executed 2026-04-18
+
+Local code moves completed. Publishing and cross-repo consumer swaps are deferred to a later session. Six commits on `main`:
+
+| Commit | Subject |
+|---|---|
+| `2d5f9b2` | `docs: add consolidation audit results + execution log` (also swept the queued `git mv` renames for items 4a-c) |
+| `f990548` | `feat(abn-lookup): new @caistech/abn-lookup package` |
+| `c25cf4e` | `feat(corporate-components): new @caistech/corporate-components package` |
+| `c271397` | `feat(ghl-client): new @caistech/ghl-client package` |
+| `cbfd00b` | `feat(property-services-sdk): new @caistech/property-services-sdk package` |
+| `619cd7e` | `feat(platform-trust-middleware): new @caistech/platform-trust-middleware package` |
+
+Hub root legacy dirs eliminated in the process: `lib/abn.ts`, `lib/abr-client.ts` → `@caistech/abn-lookup`; all of `components/`, `styles/`, and `tailwind-brand-colors.js` → `@caistech/corporate-components`; all of `integrations/` → `@caistech/ghl-client`. Remaining at hub root: `lib/{mapbox-types.ts, mapbox.ts, profile-extractor.ts, social-extractor.ts}`, `migrations/org-multi-agent.sql` — these await a future extraction session (not scoped for today).
+
+Known issue to note: the hub workspace has never had `npm install` run at root. Hub packages with React deps (`@caistech/property-services-sdk`, `@caistech/corporate-components`) fail `tsc --noEmit` today purely because `@types/react` isn't resolved. Non-React packages (`abn-lookup`, `nudge-core`) typecheck clean. Running `npm install` at root after next push will resolve.
+
+### 7.7 Item 6 — @gbta scope retirement: findings and per-repo disposition
+
+Inspected all four repos. Revised dispositions based on what was actually inside:
+
+**a. `nudge-core`** (was `@gbta/nudge-core`@0.1.0)
+- Clean single-package library — cron-handler, email-builder, frequency-cap, evaluator registry, types.
+- **Folded into hub** as `@caistech/nudge-core` (commit `e207e43`). `resend` peerDep kept as optional.
+- Next steps: decide whether to delete the source `nudge-core/` repo (zero external consumers per grep) — deferred.
+
+**b. `property-analysis-sdk`** (was `@gbta/property-analysis`@1.0.0)
+- **Duplicate of `property-services/sdk`.** Both claim in their `index.ts` header: *"Used by: F2K-Checkpoint, DealFindrs, MMC Build"*. Both export `ZoningInfo`, `SubdivisionAnalysis` types and React property components. Keywords overlap exactly (zoning, subdivision, LGA, mapbox).
+- The two appear to be parallel lineages — property-analysis-sdk looks like the older/predecessor implementation that was superseded when property-services was split into service + SDK.
+- Also includes hand-copied `src/lib/platform-trust.ts` and `src/lib/security-gate.ts` (the classic consumer copy-paste pattern), confirming it's a downstream artefact, not canonical.
+- **Recommendation: deprecate, don't fold.** `@caistech/property-services-sdk` is the canonical future.
+- **Decision needed from Dennis (blocker):** delete `property-analysis-sdk/` outright, or keep it archived for reference?
+
+**c. `coordination`** (was `@gbta/coordination`@0.1.0)
+- Mirror of the property-services pattern: `supabase/` (edge functions + migrations) + `src/lib/` + `sdk/src/` + `sdk/src/server/{actions, ai-pipeline, magic-links, evaluators/coord-01..06}` + `sdk/src/hooks/`.
+- Same class-B+C split as property-services — the `sdk/` portion is portable; the rest deploys.
+- **Fold recommended:** extract `sdk/` into hub as `@caistech/coordination-sdk`; leave the repo for the Supabase-deployed service. Effort: M. **Deferred** to a next session (too much for today given everything else that moved).
+
+**d. `gbta-openclaw`**
+- Package name is actually `easyopenclaw-wrapper`, NOT `@gbta/*` — no scope to rename. My audit §1 classified it as a library; on inspection it's actually a deployed product (has `apps/frontend/`, `infrastructure/`, `integrations/`, a PDF of a Pubguard report, Python CLI).
+- **Removed from item-6 scope.** It's class C, deployed. Not a shared-services candidate.
+
+### 7.8 Remaining work (for next session)
+
+| Item | Subject | Effort | Blocker |
+|---|---|---|---|
+| 3b | Publish `@caistech/property-services-sdk` to GitHub Packages | XS | — |
+| 3c | Swap consumer copies in DealFindrs, MMCBuild, F2K-Checkpoint-Latest | M | per-repo commits |
+| 4d | Run `npm install` at hub root so workspace packages resolve React types | XS | — |
+| 5b | Publish `@caistech/platform-trust-middleware` | XS | — |
+| 5c | Rewrite `platform-trust/scripts/portfolio-trust-middleware.ts` to generate an import stub instead of a template | S | — |
+| 5d | Migrate the 20 portfolio repos to the published package | L | per-repo; tier REGULATED first (mmcbuild, platform-trust, ndissda-automate, f2k-checkpoint, f2k-fund-tokenisation) |
+| 6b | Deprecate or delete `property-analysis-sdk` | XS after decision | **Decision: delete or archive?** |
+| 6c | Extract `coordination/sdk/` → `@caistech/coordination-sdk`; leave coordination repo for Supabase | M | — |
+| Mapbox / profile / social extractors | Extract `lib/{mapbox*, profile-extractor, social-extractor}.ts` into a 4th hub package (proposed: `@caistech/mapbox` + `@caistech/extractors` OR bundle) | S | scope decision — single or two packages? |
+| `migrations/org-multi-agent.sql` | Decide: stay at hub root, move into `@caistech/agents` package, or delete? | XS | decision only |
