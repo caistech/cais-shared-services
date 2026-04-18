@@ -1,0 +1,26 @@
+{
+  "name": "@caistech/nudge-core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Generic nudge/notification infrastructure — evaluator registry, frequency caps, email builder, cron handler.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0",
+    "resend": "^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "resend": {
+      "optional": true
+    }
+  },
+  "files": ["src/"],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "license": "PRIVATE"
+}
