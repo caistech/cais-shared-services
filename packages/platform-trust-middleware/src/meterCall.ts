@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js'
-import { calculateCost } from '../../lib/pricing'
+import { calculateCost } from './pricing'
 
 export interface MeterCallInput {
   project_id: string
