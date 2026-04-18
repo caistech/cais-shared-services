@@ -429,3 +429,54 @@ The published `@caistech/platform-trust-middleware@0.1.0` exports the **primitiv
 This keeps REGULATED-tier risk low: no call-site changes mean compliance logic is byte-identical in behaviour, just sourced from a shared package rather than 20 hand-copies.
 
 **Blocker:** not proceeding with the 20-repo migration until Dennis confirms the compat-shim v0.2.0 approach (vs. the alternative of rewriting every consumer to call the primitives directly).
+
+### 7.16 Shim published + REGULATED migration (2026-04-18 cont.)
+
+Approved and executed. Shim added + v0.2.0 published + REGULATED tier migrated.
+
+**Shim (`@caistech/platform-trust-middleware@0.2.0`):**
+- New file `src/trust-gate.ts` — byte-for-byte behaviour match for the hand-copied template (rate-limit → permission → audit pipeline; allow-by-default on permission to match template, not deny-by-default like the primitives).
+- `src/index.ts` now exports `trustGate`, `trustLog`, `trustMeter`, `TrustContext`, `TrustGateResult` alongside the existing primitives.
+- Published to GitHub Packages at v0.2.0. Commit `2e07fa0`.
+
+**Flagged for later:** the template (and therefore the shim) is **allow-by-default** on permission — an agent/scope/operation tuple with no policy row returns `allowed: true`. The primitive `checkPermission` is deny-by-default. Tightening consumer behaviour is a separate decision per consumer; for now the shim preserves the current posture.
+
+**REGULATED-tier migration — actual scope was 2 repos, not 6.**
+
+Survey of the 6 REGULATED consumers vs what actually had a `lib/platform-trust.ts`:
+
+| Repo | Template present? | Migration outcome |
+|---|---|---|
+| MMCBuild | yes (`src/lib/platform-trust.ts`, 218 lines) | **Migrated** (commit `630fb59`, its main) |
+| F2K-Checkpoint-Latest | yes (`src/lib/platform-trust.ts`, 317 lines) | **Migrated** (commit `2f542a46`, its main) |
+| NDISSDAAutomate | orphan (`src/lib/platform-trust.ts` exists but root has no package.json; the real Node project is under `pf-platform/` and doesn't import it) | Skipped — no active consumer |
+| F2K-Fund-Tokenisation | no | Skipped — nothing to migrate (already has a `.npmrc` with `@caistech:registry` for future use) |
+| R-and-D-Tax-Eligibility-Work-Recording | no | Skipped — nothing to migrate |
+| DisasterSupport | no | Skipped — nothing to migrate |
+
+**Migration pattern applied to both live consumers:**
+1. New `.npmrc` at repo root: `@caistech:registry=https://npm.pkg.github.com`
+2. Added `@caistech/platform-trust-middleware: ^0.2.0` to `package.json`
+3. Replaced 218/317-line template `src/lib/platform-trust.ts` with a 22-line header + re-export:
+   ```ts
+   export { trustGate, trustLog, trustMeter } from '@caistech/platform-trust-middleware';
+   export type { TrustContext, TrustGateResult } from '@caistech/platform-trust-middleware';
+   ```
+4. Both repos use `pnpm` — ran `pnpm add @caistech/platform-trust-middleware@^0.2.0`
+5. `npx tsc --noEmit` passes clean on both after migration
+6. Call-site verification:
+   - MMCBuild: 0 active call sites (template generated but never wired into the app) — migration is strictly code-hygiene
+   - F2K-Checkpoint-Latest: 1 active call site in `src/middleware.ts` — `trustGate(ctx)` resolves through the shim, zero behaviour change
+7. Targeted `git add` of only the 4 migration files (leaving unrelated WIP in each repo untouched)
+
+**Not yet done:** STANDARD-tier migration (the other ~14 consumers that `portfolio-trust-middleware.ts` targets: Kira, Connexions, LaunchReady, DealFindrs, Tenderwatch, HouseSitAgent, LeadSpark, SmartBoard, RaiseReady, RaiseReadyTemplate, raiseready-core, universal-interviews, easy-claude-code, storefront-mcp, agentic-os). Pattern is established; safe to batch.
+
+### 7.17 Remaining work
+
+| Item | Subject | Effort |
+|---|---|---|
+| 3c | Swap 3 consumer copies of `property-services` SDK (DealFindrs, MMCBuild, F2K-Checkpoint-Latest `src/lib/property-services/` → `@caistech/property-services-sdk`) | M |
+| 4b | STANDARD-tier consumer migration for `@caistech/platform-trust-middleware` (~14 repos) | M (batched) |
+| 5c | Rewrite `platform-trust/scripts/portfolio-trust-middleware.ts` to emit the re-export stub for new repos instead of the 218-line template | S |
+| Future | Optional: tighten consumers from the allow-by-default shim to the deny-by-default primitive API once every agent/scope/operation has an explicit policy row | review |
+| Future | Residual `@gbta/coordination` mentions in `coordination-sdk/src/client.ts` error strings | XS |
