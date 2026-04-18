@@ -480,3 +480,38 @@ Survey of the 6 REGULATED consumers vs what actually had a `lib/platform-trust.t
 | 5c | Rewrite `platform-trust/scripts/portfolio-trust-middleware.ts` to emit the re-export stub for new repos instead of the 218-line template | S |
 | Future | Optional: tighten consumers from the allow-by-default shim to the deny-by-default primitive API once every agent/scope/operation has an explicit policy row | review |
 | Future | Residual `@gbta/coordination` mentions in `coordination-sdk/src/client.ts` error strings | XS |
+
+### 7.18 STANDARD-tier migration done (2026-04-18 cont.)
+
+All remaining `platform-trust.ts` consumers migrated. 14 more repos on top of the 2 REGULATED from §7.16, for 16 total. Commits landed on each repo's `main` branch.
+
+| Repo | Path | PM | Callsites | Commits |
+|---|---|---|---|---|
+| MMCBuild | `src/lib/` | pnpm | 0 | `630fb59` |
+| F2K-Checkpoint-Latest | `src/lib/` | pnpm | 1 | `2f542a46` |
+| Kira | `src/lib/` | npm | 0 | `9be3ff6`, `2931710` (install fixup) |
+| SmartBoard | `src/lib/` | npm | 0 | `1fc1e92`, `7222255` (install fixup) |
+| coordination | `src/lib/` | npm | 0 | `43675ad`, `ceaa184` (install fixup) |
+| gbta-openclaw | `src/lib/` | npm | 0 | `ab834c6`, `0654eb1` (install fixup) |
+| Connexions | `lib/` | npm | 0 | `a3232cd` |
+| LaunchReady | `lib/` | npm | 0 | `db8d4cd` |
+| RaiseReadyTemplate | `lib/` | npm | 0 | `ed02fda`, `fe206c5` (manual dep — pre-existing `raiseready-core@^1.0.0` 404 blocks npm install) |
+| storefront-mcp | `lib/` | npm | 1 | `21b143c` |
+| DealFindrs | `src/lib/` | npm | 1 | `ffbc581`, `a1ba5f2` (TrustOperation type fix) |
+| property-services | `src/lib/` | npm | 0 | `8be73a9` |
+| raiseready-core | `src/lib/` | npm | 0 | `67858fa` |
+| universal-interviews | `src/lib/` | npm | 0 | `36a538b` |
+| LeadSpark | `src/lib/` | pnpm workspace | 0 | `3564a6e`, `eee6b58` (needed `pnpm add -w` for root) |
+| easy-claude-code | `apps/frontend/lib/` | npm | 0 | `eb58e8d` |
+
+**Skipped** (surveyed but nothing to migrate): HouseSitAgent, NDISSDAAutomate, Tenderwatch, agentic-os (no `package.json` at the expected root — orphan template files only). F2K-Fund-Tokenisation, R-and-D-Tax, DisasterSupport (never had the template).
+
+**Fixups surfaced during batching:**
+- First pass used `npm install --registry=https://npm.pkg.github.com --save` which hit ERESOLVE (peer-dep conflicts) and one 404. Corrected to `npm install --legacy-peer-deps` with scope resolution via each repo's new `.npmrc` — worked on all subsequent runs.
+- RaiseReadyTemplate's `package.json` declares a pre-existing non-published `raiseready-core@^1.0.0` — blocks `npm install` there regardless of this migration. Worked around by declaring `@caistech/platform-trust-middleware` in `package.json` manually; the shim is in place, but `npm install` still needs `raiseready-core` resolved separately (pre-existing issue).
+- DealFindrs had a `TrustOperation` type import not covered by the package's shim exports. Added a local type alias in DealFindrs's own shim rather than republishing v0.3.0 for one consumer. Other 15 repos don't import `TrustOperation`.
+- LeadSpark is a `pnpm` workspace root — `pnpm add` refused without `-w`; fixed.
+
+**Verified clean:** `npx tsc --noEmit` passes on F2K-Checkpoint-Latest, storefront-mcp, DealFindrs (post fix) — the 3 repos with active call sites. Other 13 have 0 call sites so there's nothing to break.
+
+**Hub state:** `main` is now +22 commits ahead of origin. Nothing pushed. Consumer repos each have their migration commits on their own `main` branches, unpushed.
