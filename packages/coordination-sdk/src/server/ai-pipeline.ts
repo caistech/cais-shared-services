@@ -82,8 +82,8 @@ export async function sendTailoredUpdate(
   // Build context string for Claude
   const contextStr = buildIssueContext(
     issue,
-    (commentsRes.data ?? []) as any[],
-    (activityRes.data ?? []) as any[],
+    (commentsRes.data ?? []) as unknown as { content: string; participant: { name: string; role: string } }[],
+    (activityRes.data ?? []) as unknown as IssueActivityLog[],
     customMessage
   );
 
