@@ -1,0 +1,20 @@
+{
+  "name": "@caistech/agent-trust-score",
+  "version": "0.1.0",
+  "description": "Agent trust-score scanner, grader, and badge generator. Static + behavioural checks across security, correctness, observability, and reliability dimensions.",
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@supabase/supabase-js": "^2.49.4",
+    "typescript": ">=5.0.0"
+  },
+  "files": ["checkers/", "badge.ts", "criteria.ts", "grader.ts", "index.ts", "scanner.ts", "types.ts"],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "license": "PRIVATE"
+}
