@@ -1,0 +1,34 @@
+{
+  "name": "@caistech/report-generator",
+  "version": "0.1.0",
+  "description": "Markdown → branded PDF renderer for factory products. Brand + disclaimer + watermark + page numbers.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@react-pdf/renderer": "^4.0.0",
+    "marked": "^12.0.0"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "typescript": ">=5.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "pdf-parse": "^1.1.1",
+    "react": "^19.0.0",
+    "vitest": "^1.6.0"
+  },
+  "files": [
+    "src/",
+    "README.md"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "license": "PRIVATE"
+}

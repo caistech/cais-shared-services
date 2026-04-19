@@ -13,6 +13,7 @@ Shared services for Corporate AI Solutions projects. npm workspace monorepo.
 | `@caistech/stt-noise-filter` | Filter ambient noise from STT transcriptions | Mova, TourLingo |
 | `@caistech/agents` | Agent provisioning, prompt templates, secure gateway (JS) | Corporate-AI-Solutions |
 | `@caistech/security` | Permissions, PII classifier, audit logger, consent, retention (JS) | Corporate-AI-Solutions |
+| `@caistech/report-generator` | Markdown → branded PDF renderer (brand, disclaimer, watermark, page numbers) | F2K |
 
 ## Consuming from a project
 
