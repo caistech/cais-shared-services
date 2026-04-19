@@ -515,3 +515,41 @@ All remaining `platform-trust.ts` consumers migrated. 14 more repos on top of th
 **Verified clean:** `npx tsc --noEmit` passes on F2K-Checkpoint-Latest, storefront-mcp, DealFindrs (post fix) — the 3 repos with active call sites. Other 13 have 0 call sites so there's nothing to break.
 
 **Hub state:** `main` is now +22 commits ahead of origin. Nothing pushed. Consumer repos each have their migration commits on their own `main` branches, unpushed.
+
+### 7.19 Session 2026-04-19 — consolidation continuation
+
+**Completed:**
+- Rewrote `platform-trust/scripts/portfolio-trust-middleware.ts` to emit a re-export stub instead of a 218-line template (§7.17 item 5c). Commit `a3abe61`.
+- **@gbta/* → @caistech/* rename done.** `coordination` package renamed; published `@caistech/coordination-sdk@0.2.0` with F2K's Next.js env-inline fix + tighter types. F2K migrated (12 import sites, 30 vendored files deleted, 2 tsconfig aliases removed). DealFindrs middleware.ts brought up to TrustContext API. property-services/sdk/ renamed.
+- **security-gate + agent-trust-score moved to hub** as `@caistech/security-gate@0.1.0` and `@caistech/agent-trust-score@0.1.0`. platform-trust repo now consumes them externally — deleted 44 local workspace-package files. Commit `47ea39f` (hub), `6377f28` (platform-trust).
+- **coordination repo absorbed into hub** at `services/coordination/` (supabase migrations + scripts + CLAUDE.md). The standalone repo is now an archive candidate — it had no GitHub remote.
+- **Hub pushed to origin** — all session work is on `main` at `github.com/caistech/cais-shared-services`. DealFindrs, F2K-Checkpoint-Latest, property-services, platform-trust also pushed.
+
+**Hand-copy audit findings — accuracy correction.** A broader audit found 9 "hand-copies" but on closer inspection most have real divergence and are NOT simple hand-copies:
+
+| Repo | What | Status |
+|---|---|---|
+| MMCBuild | `src/lib/mapbox.ts` + `mapbox-types.ts` | True hand-copy (0-diff). **Migrating** to `@caistech/mapbox`. |
+| F2K-Checkpoint-Latest | no `mapbox.ts` — inlines fetch in AddressAutocomplete | Not a hand-copy. No migration needed. |
+| F2K-Checkpoint-Latest | `src/components/common/AddressAutocomplete.tsx` | Divergent — richer API (`AddressSelection` with structured street/suburb/state/postcode parse). Not a true hand-copy. Leave. |
+| DealFindrs | `AddressAutocomplete.tsx` | Needs divergence check. Deferred. |
+| MMCBuild | `address-autocomplete.tsx` | Needs divergence check. Deferred. |
+| universal-interviews | `CorporateHeader/Footer.tsx` | 133/127-line diff from hub — real per-product branding divergence. Not a simple migration. Deferred. |
+| DealFindrs | `CorporateHeader/Footer.tsx` | Same divergence pattern as universal-interviews (likely shared template). Deferred. |
+| easy-claude-code | `CorporateHeader/Footer.tsx` | **0-diff** — true hand-copy. **BLOCKED** by pre-existing merge conflict in `apps/frontend/package.json` (HEAD vs commit `eb58e8d` from §7.18 migration). Needs resolution first. |
+| R-and-D-Tax-Eligibility-Work-Recording | `CorporateHeader/Footer.tsx` | 81/72-line diff — real divergence. Deferred. |
+| F2K-Checkpoint-Latest | `CorporateHeader/Footer.tsx` | 133/68-line diff — real divergence. Deferred. |
+| 4 repos | `/api/abn-lookup/route.ts` | Needs divergence check. Deferred. |
+
+**Conclusion:** the "9 audit-driven migrations" was overstated. Real hand-copies worth migrating: MMCBuild mapbox (now migrating), easy-claude-code CorporateHeader/Footer (blocked by merge conflict). The other "hand-copies" are genuine product-specific divergence — migrating them requires enhancing the hub components to accept customisation props, not a simple import swap.
+
+**Recommended follow-up (not attempted in this session):**
+1. Enhance `@caistech/corporate-components` to accept branding props (logo, nav items, footer links), republish, then migrate the 4 divergent consumers.
+2. Audit the 4 ABN route hand-copies for divergence; if identical, extract to `@caistech/abn-lookup` exports + migrate.
+3. Resolve `easy-claude-code/apps/frontend/package.json` merge conflict, then migrate its 0-diff CorporateHeader/Footer.
+
+**Still pending from original audit:**
+- Task #7: extract `property-services/supabase/functions/_shared/` (11 files — `derive-bal`, `derive-climate`, `derive-council`, `derive-wind`, `lga-lookup`, `lga-resolve`, `state-router`, `supabase`, `types`, `cors`, `portals/`) into `@caistech/property-intelligence-core`. Requires Deno-compatible packaging + refactoring `supabase/functions/{derive,assess}/` to wrap the hub package. Deferred — substantial runtime-risk work.
+- Task #10: test-regime shared service + runtime tests per repo (dev-server smoke test of `@caistech/*` resolution). Deferred.
+
+**Global guardrail update:** Added "@caistech shared-services first rule" to `~/.claude/CLAUDE.md`. Before writing any new utility in a project, Claude must check the hub for an existing `@caistech/*` package.
