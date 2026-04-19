@@ -1,5 +1,5 @@
 /**
- * @gbta/property-services SDK
+ * @caistech/property-services-sdk
  *
  * Shared property intelligence for F2K-Checkpoint, DealFindrs, MMC Build.
  */
