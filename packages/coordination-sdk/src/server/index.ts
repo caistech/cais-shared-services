@@ -1,4 +1,4 @@
-// @gbta/coordination/server — Server-side exports
+// @caistech/coordination-sdk/server — Server-side exports
 export {
   createProject,
   getProjects,

@@ -1,4 +1,4 @@
-// @gbta/coordination — Core Types
+// @caistech/coordination-sdk — Core Types
 
 export type ParticipantRole =
   | "admin"

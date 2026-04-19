@@ -1,5 +1,5 @@
 /**
- * @gbta/property-analysis SDK types.
+ * @caistech/property-services-sdk types.
  * Mirror of the edge function types for TypeScript consumers.
  */
 

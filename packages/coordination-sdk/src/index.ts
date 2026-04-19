@@ -1,4 +1,4 @@
-// @gbta/coordination — Main exports
+// @caistech/coordination-sdk — Main exports
 
 // Types
 export type {

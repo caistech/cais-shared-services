@@ -1,4 +1,4 @@
-// @gbta/coordination — Server-side actions (run in consuming project's Next.js runtime)
+// @caistech/coordination-sdk — Server-side actions (run in consuming project's Next.js runtime)
 // All mutations go through service role client
 
 import { getCoordinationServiceClient } from "../client";

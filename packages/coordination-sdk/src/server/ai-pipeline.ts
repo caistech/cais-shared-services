@@ -1,4 +1,4 @@
-// @gbta/coordination — AI-tailored communication pipeline
+// @caistech/coordination-sdk — AI-tailored communication pipeline
 // Generates role-specific emails per participant using Claude
 // Parallel calls, retry with fallback to generic template
 
