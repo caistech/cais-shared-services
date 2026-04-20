@@ -1,6 +1,6 @@
 {
   "name": "@caistech/security-gate",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Shared security gate — CaMeL pipeline, prompt-injection guardrails, red-team probes, kill switch, anomaly detection. Used by all agentic AI systems in the Corporate AI Solutions portfolio.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
