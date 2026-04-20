@@ -1,6 +1,6 @@
 {
   "name": "@caistech/mapbox",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Mapbox Geocoding API v5 wrapper — forward/reverse search, coordinate parsing, static map URLs. Australia-biased defaults.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
