@@ -1,6 +1,6 @@
 {
   "name": "@caistech/extractors",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "LLM-powered content extractors — business profile from websites, business signals from LinkedIn/Facebook/Instagram. Framework-agnostic (inject any LLM).",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
