@@ -1,6 +1,6 @@
 {
   "name": "@caistech/coordination-sdk",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Cross-project issue tracking + multi-party coordination SDK. Supabase-backed, with evaluators, magic links, and React hooks. Wraps the coordination repo's deployed Supabase instance.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
