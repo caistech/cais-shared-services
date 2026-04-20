@@ -20,6 +20,15 @@ jobs:
           scope: '@caistech'
       - name: Install workspace deps
         run: npm ci
+      # Build foundation packages first so downstream workspaces can resolve
+      # their @caistech/* type imports (npm run --workspaces runs alphabetically
+      # and does not honour the dependency graph — coordination-sdk imports
+      # @caistech/nudge-core, agent-trust-score imports @caistech/security-gate).
+      # TODO: migrate to turborepo / pnpm for topological builds once monorepo grows.
+      - name: Build foundation packages first
+        run: |
+          npm run build --workspace=@caistech/nudge-core
+          npm run build --workspace=@caistech/security-gate
       - name: Build all workspaces
         run: npm run build --workspaces --if-present
       - name: Publish all workspaces
