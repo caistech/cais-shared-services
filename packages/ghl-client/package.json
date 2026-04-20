@@ -7,5 +7,10 @@
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/ghl-client"
+  },
   "license": "PRIVATE"
 }

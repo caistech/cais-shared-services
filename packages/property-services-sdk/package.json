@@ -1,12 +1,13 @@
 {
   "name": "@caistech/property-services-sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Shared property intelligence SDK — derive, assess, onboard. Wraps the property-services Supabase edge functions.",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
@@ -15,9 +16,17 @@
   "devDependencies": {
     "@types/react": "^19.0.0"
   },
-  "files": ["src/"],
+  "files": [
+    "dist/"
+  ],
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
-  "license": "PRIVATE"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/property-services-sdk"
+  },
+  "license": "PRIVATE",
+  "type": "module"
 }

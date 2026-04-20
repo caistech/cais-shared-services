@@ -1,13 +1,19 @@
 {
   "name": "@caistech/db-schema",
   "version": "0.1.0",
-  "description": "Shared Supabase schema migrations — multi-tenancy, agents, audit, consent, storefront. Cross-cutting SQL that underpins @caistech/agents and @caistech/security.",
+  "private": true,
+  "description": "Shared Supabase schema migrations — multi-tenancy, agents, audit, consent, storefront. Cross-cutting SQL that underpins @caistech/agents and @caistech/security. NOT YET READY FOR PUBLISH — no migrations/ directory exists. Flip private:false once populated.",
   "files": [
     "migrations/",
     "README.md"
   ],
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/db-schema"
   },
   "license": "PRIVATE"
 }

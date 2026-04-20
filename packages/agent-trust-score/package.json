@@ -1,20 +1,38 @@
 {
   "name": "@caistech/agent-trust-score",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Agent trust-score scanner, grader, and badge generator. Static + behavioural checks across security, correctness, observability, and reliability dimensions.",
-  "main": "index.ts",
-  "types": "index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
     "@supabase/supabase-js": "^2.49.4",
+    "@caistech/security-gate": "*",
     "typescript": ">=5.0.0"
   },
-  "files": ["checkers/", "badge.ts", "criteria.ts", "grader.ts", "index.ts", "scanner.ts", "types.ts"],
+  "peerDependenciesMeta": {
+    "@caistech/security-gate": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@caistech/security-gate": "*"
+  },
+  "files": [
+    "dist/"
+  ],
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
-  "license": "PRIVATE"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/agent-trust-score"
+  },
+  "license": "PRIVATE",
+  "type": "module"
 }

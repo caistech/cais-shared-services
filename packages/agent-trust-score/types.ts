@@ -112,7 +112,7 @@ export interface ScanConfig {
   /** Run behavioural probes (Layer 2)? Default: false (static only) */
   runBehavioural?: boolean;
   /** Model call function for behavioural probes */
-  modelCallFn?: import("../security-gate/types").ModelCallFn;
+  modelCallFn?: import("@caistech/security-gate").ModelCallFn;
   /** Base URL for badge/report links */
   baseUrl?: string;
 }

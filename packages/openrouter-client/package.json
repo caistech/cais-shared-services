@@ -16,5 +16,10 @@
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/openrouter-client"
+  },
   "license": "PRIVATE"
 }

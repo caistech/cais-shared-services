@@ -1,20 +1,29 @@
 {
   "name": "@caistech/security-gate",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Shared security gate — CaMeL pipeline, prompt-injection guardrails, red-team probes, kill switch, anomaly detection. Used by all agentic AI systems in the Corporate AI Solutions portfolio.",
-  "main": "index.ts",
-  "types": "index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
     "@supabase/supabase-js": "^2.49.4",
     "typescript": ">=5.0.0"
   },
-  "files": ["camel/", "guardrails/", "red-team/", "runtime/", "gate.ts", "index.ts", "types.ts", "USAGE.md"],
+  "files": [
+    "dist/"
+  ],
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
-  "license": "PRIVATE"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/security-gate"
+  },
+  "license": "PRIVATE",
+  "type": "module"
 }

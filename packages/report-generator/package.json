@@ -2,12 +2,13 @@
   "name": "@caistech/report-generator",
   "version": "0.1.0",
   "description": "Markdown → branded PDF renderer for factory products. Brand + disclaimer + watermark + page numbers.",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "lint": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.0.0",
@@ -24,11 +25,17 @@
     "vitest": "^1.6.0"
   },
   "files": [
-    "src/",
+    "dist/",
     "README.md"
   ],
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
-  "license": "PRIVATE"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/report-generator"
+  },
+  "license": "PRIVATE",
+  "type": "module"
 }

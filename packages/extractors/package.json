@@ -2,18 +2,27 @@
   "name": "@caistech/extractors",
   "version": "0.1.0",
   "description": "LLM-powered content extractors — business profile from websites, business signals from LinkedIn/Facebook/Instagram. Framework-agnostic (inject any LLM).",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
     "typescript": ">=5.0.0"
   },
-  "files": ["src/"],
+  "files": [
+    "dist/"
+  ],
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
-  "license": "PRIVATE"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/extractors"
+  },
+  "license": "PRIVATE",
+  "type": "module"
 }

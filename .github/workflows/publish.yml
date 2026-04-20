@@ -18,6 +18,10 @@ jobs:
           node-version: '20'
           registry-url: 'https://npm.pkg.github.com'
           scope: '@caistech'
+      - name: Install workspace deps
+        run: npm ci
+      - name: Build all workspaces
+        run: npm run build --workspaces --if-present
       - name: Publish all workspaces
         run: npm publish --workspaces --access restricted
         env:
