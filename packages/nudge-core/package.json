@@ -1,6 +1,6 @@
 {
   "name": "@caistech/nudge-core",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Generic nudge/notification infrastructure — evaluator registry, frequency caps, email builder, cron handler.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
