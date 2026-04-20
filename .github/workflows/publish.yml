@@ -31,7 +31,28 @@ jobs:
           npm run build --workspace=@caistech/security-gate
       - name: Build all workspaces
         run: npm run build --workspaces --if-present
-      - name: Publish all workspaces
-        run: npm publish --workspaces --access restricted
+      # Per-workspace publish loop with "skip if already-published" check.
+      # Needed for the bootstrap phase where we republish orphaned packages
+      # one at a time — each tag after the first would otherwise fail on the
+      # already-published packages. Halts on the first TRUE publish failure
+      # (e.g. a not-yet-relinked orphan's 403), preserving per-round gating.
+      - name: Publish workspaces (skip already-published)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          for manifest in packages/*/package.json; do
+            pkg=$(node -p "require('./${manifest}').name")
+            version=$(node -p "require('./${manifest}').version")
+            is_private=$(node -p "require('./${manifest}').private || false")
+            if [ "$is_private" = "true" ]; then
+              echo "SKIP $pkg@$version (private)"
+              continue
+            fi
+            if npm view "$pkg@$version" version --registry=https://npm.pkg.github.com > /dev/null 2>&1; then
+              echo "SKIP $pkg@$version (already published)"
+              continue
+            fi
+            echo "PUBLISH $pkg@$version"
+            npm publish --workspace="$pkg" --access restricted
+          done
