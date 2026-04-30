@@ -1,0 +1,76 @@
+# @caistech/portfolio-env-sync — example manifest
+#
+# Single source of truth for which env vars MUST exist on each portfolio
+# project's Vercel deploy target. Copy this to manifest.yaml and customise.
+#
+# Bindings:
+#   - Shorthand (literal value):
+#       MY_VAR: "literal-value-here"
+#   - Object form (more control):
+#       MY_VAR:
+#         value: "literal-value-here"
+#         targets: [production, preview]   # default: all three
+#
+# Inheritance:
+#   - List shared keys under `inherit_shared:` to pull them into a project
+#   - Project-specific entries under `envs:` override inherited bindings of the same name
+
+team_id: "team_hwN7IFtd2Fo3DCj9C67ZwI1t"  # Corporate AI Solutions
+
+shared:
+  # Same value across every consumer that uses platform-trust
+  PLATFORM_TRUST_SUPABASE_URL: "https://ggwveltavnvvscgqekhy.supabase.co"
+  # Audit-only mode (v0) doesn't read the value — only checks key presence per env
+  PLATFORM_TRUST_SERVICE_KEY: { ref: "$secret:platform_trust_service_key" }
+  # GH Packages PAT — needed for npm install of @caistech/* deps
+  GITHUB_PACKAGES_TOKEN: { ref: "$secret:github_packages_token" }
+
+projects:
+  - name: f2k-checkpoint-new
+    vercel_project_id: "prj_XPELCzoIwOY5NoHGJxd4Ah6w59G9"
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
+    envs:
+      PLATFORM_TRUST_PROJECT_ID: "b3cbd7d5-f3af-4ae1-acbe-c905235cd676"
+      NEXT_PUBLIC_SUPABASE_URL: { from_supabase: "url" }
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: { from_supabase: "anon_key" }
+      SUPABASE_SERVICE_ROLE_KEY: { from_supabase: "service_role_key" }
+      ANTHROPIC_API_KEY: { ref: "$secret:anthropic_api_key" }
+      STOREFRONT_MCP_TOKEN: { ref: "$secret:storefront_mcp_token" }
+
+  - name: easy-claude-code
+    vercel_project_id: "prj_sedjiKhnHUBginSeK2jP555u4wAp"
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
+    envs:
+      PLATFORM_TRUST_PROJECT_ID: "89e8f37f-ed84-443f-9463-d454d40ef1a6"
+      ANTHROPIC_API_KEY: { ref: "$secret:anthropic_api_key" }
+
+  - name: connexions
+    vercel_project_id: "prj_pG5gak2uSAQQCKLvf39G72wcaqnG"
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
+    envs:
+      PLATFORM_TRUST_PROJECT_ID: "d8bbc568-91f8-4d31-977c-c2d3e03dc164"
+
+  - name: launchready
+    vercel_project_id: "prj_DQS8A4CW2yVam1eJycDTiIZbGYUl"
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
+    envs:
+      # PLATFORM_TRUST_PROJECT_ID needs to be set — known gap, task #13
+
+  - name: deal-findrs
+    vercel_project_id: "prj_B0pKJM1fTAD5FtbZudh4kUEhaqQM"
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
