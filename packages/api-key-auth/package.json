@@ -1,6 +1,6 @@
 {
   "name": "@caistech/api-key-auth",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "B2B public API authentication: opaque API keys, monthly quota with calendar rollover, X-RateLimit headers, Stripe billing webhook. Deno-first; runs on Supabase Edge Functions and Node.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -23,7 +23,7 @@
     "@supabase/supabase-js": "^2.49.4"
   },
   "peerDependencies": {
-    "stripe": "^17.0.0",
+    "stripe": ">=17.0.0",
     "typescript": ">=5.0.0"
   },
   "peerDependenciesMeta": {
