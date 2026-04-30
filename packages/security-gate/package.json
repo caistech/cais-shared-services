@@ -1,9 +1,27 @@
 {
   "name": "@caistech/security-gate",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Shared security gate — CaMeL pipeline, prompt-injection guardrails, red-team probes, kill switch, anomaly detection. Used by all agentic AI systems in the Corporate AI Solutions portfolio.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js"
+    },
+    "./red-team": {
+      "types": "./dist/red-team/index.d.ts",
+      "import": "./dist/red-team/index.js"
+    },
+    "./red-team/types": {
+      "types": "./dist/red-team/types.d.ts",
+      "import": "./dist/red-team/types.js"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "lint": "tsc --noEmit",
