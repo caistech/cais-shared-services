@@ -21,7 +21,9 @@ npm run build --workspace=@caistech/portfolio-env-sync
 
 # Generate a Vercel personal token: https://vercel.com/account/tokens
 # Scope: full account, or per-team. The team_id in manifest.yaml is checked.
-export VERCEL_TOKEN=...
+# Provide it one of two ways:
+#   (a) export VERCEL_TOKEN=...                    # per-shell
+#   (b) echo 'TOKEN' > ~/.vercel-token && chmod 600 ~/.vercel-token   # persistent
 
 # Copy the example manifest and customise
 cp packages/portfolio-env-sync/manifest.yaml.example portfolio-manifest.yaml

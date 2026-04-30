@@ -1,9 +1,12 @@
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import type { VercelEnvVar, VercelTarget } from "./types.js";
 
 const VERCEL_API = "https://api.vercel.com";
 
 export interface VercelClientOptions {
-  /** Bearer token. Read from VERCEL_TOKEN env var if not passed. */
+  /** Bearer token. Falls back to VERCEL_TOKEN env, then ~/.vercel-token. */
   token?: string;
   teamId: string;
 }
@@ -15,15 +18,25 @@ export class VercelAuthError extends Error {
   }
 }
 
+function readTokenFile(): string | undefined {
+  try {
+    const path = join(homedir(), ".vercel-token");
+    const contents = readFileSync(path, "utf8").trim();
+    return contents.length > 0 ? contents : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export class VercelClient {
   private readonly token: string;
   private readonly teamId: string;
 
   constructor(opts: VercelClientOptions) {
-    const token = opts.token ?? process.env.VERCEL_TOKEN;
+    const token = opts.token ?? process.env.VERCEL_TOKEN ?? readTokenFile();
     if (!token) {
       throw new VercelAuthError(
-        "VERCEL_TOKEN env var is required. Generate one at https://vercel.com/account/tokens"
+        "Vercel token not found. Set VERCEL_TOKEN env var or write the token to ~/.vercel-token. Generate one at https://vercel.com/account/tokens"
       );
     }
     this.token = token;
