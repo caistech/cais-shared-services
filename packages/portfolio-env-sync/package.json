@@ -1,0 +1,39 @@
+{
+  "name": "@caistech/portfolio-env-sync",
+  "version": "0.0.1",
+  "description": "Manifest-driven portfolio env audit for Vercel projects. v0 = read-only audit; v0.5+ = apply, Supabase, .env.local generation.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "bin": {
+    "portfolio-env-sync": "dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "audit": "node dist/index.js",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "yaml": "^2.6.1"
+  },
+  "files": [
+    "dist/",
+    "manifest.yaml.example"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/portfolio-env-sync"
+  },
+  "license": "PRIVATE"
+}
