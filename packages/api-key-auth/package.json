@@ -1,0 +1,51 @@
+{
+  "name": "@caistech/api-key-auth",
+  "version": "0.1.0",
+  "description": "B2B public API authentication: opaque API keys, monthly quota with calendar rollover, X-RateLimit headers, Stripe billing webhook. Deno-first; runs on Supabase Edge Functions and Node.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./stripe": {
+      "types": "./dist/stripe/index.d.ts",
+      "import": "./dist/stripe/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.4"
+  },
+  "peerDependencies": {
+    "stripe": "^17.0.0",
+    "typescript": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "stripe": {
+      "optional": true
+    }
+  },
+  "files": [
+    "dist/",
+    "migrations/"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/api-key-auth"
+  },
+  "license": "PRIVATE",
+  "type": "module",
+  "devDependencies": {
+    "stripe": "^17.7.0"
+  }
+}
