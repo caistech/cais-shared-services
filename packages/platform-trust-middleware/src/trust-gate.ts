@@ -18,6 +18,17 @@
  * - Migration path for consumers that want tighter security: switch from
  *   this shim to the primitive API after confirming every production
  *   agent/scope/operation has an explicit policy row.
+ *
+ * UNCONFIGURED-ENVIRONMENT BEHAVIOUR (changed in 0.4.0):
+ * - Read operations: allowed (warning logged). Backward-compatible.
+ * - Write/delete operations: DENIED. Returns allowed=false with a
+ *   denial_reason that names the missing env vars. This closes the
+ *   anti-pattern flagged in storefront-mcp/agent-attack.md (FINDING-02
+ *   step 5, FINDING-04 step 2, FINDING-05 step 5) and Connexions/CLAUDE.md.
+ * - Local-dev escape hatch: set PLATFORM_TRUST_DEV_OVERRIDE to the literal
+ *   string "allow-unconfigured-writes" to restore the pre-0.4.0 fail-open
+ *   behaviour. Loud warning is logged on every gate call when the override
+ *   is active. Production environments must NEVER set this var.
  */
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
@@ -175,13 +186,50 @@ async function shimLogAudit(
 
 // ── Public API ──────────────────────────────────────────────────
 
+const DEV_OVERRIDE_TOKEN = 'allow-unconfigured-writes'
+
+function devOverrideActive(): boolean {
+  return process.env.PLATFORM_TRUST_DEV_OVERRIDE === DEV_OVERRIDE_TOKEN
+}
+
 /**
  * Run the full trust pipeline: rate limit → permission check → audit log.
  * Call BEFORE executing any operation.
+ *
+ * Unconfigured behaviour (no env vars):
+ *   read           → allowed, warning logged
+ *   write / delete → DENIED with denial_reason naming the missing env vars,
+ *                    UNLESS PLATFORM_TRUST_DEV_OVERRIDE='allow-unconfigured-writes'
+ *                    is set, in which case allowed with a loud warning.
  */
 export async function trustGate(ctx: TrustContext): Promise<TrustGateResult> {
   if (!isConfigured()) {
-    console.warn('[platform-trust] Not configured, skipping trust checks')
+    const isMutation = ctx.operation_type === 'write' || ctx.operation_type === 'delete'
+
+    if (isMutation && !devOverrideActive()) {
+      console.error(
+        `[platform-trust] DENIED ${ctx.operation_type} on scope="${ctx.scope}" tool="${ctx.tool_name}": ` +
+        'platform-trust env vars unset. Set PLATFORM_TRUST_SUPABASE_URL, PLATFORM_TRUST_SERVICE_KEY, ' +
+        'PLATFORM_TRUST_PROJECT_ID. To temporarily allow unconfigured writes in local dev, set ' +
+        `PLATFORM_TRUST_DEV_OVERRIDE='${DEV_OVERRIDE_TOKEN}' (never in production).`
+      )
+      return {
+        allowed: false,
+        requires_approval: false,
+        denial_reason:
+          'Platform Trust not configured: write/delete denied. Set PLATFORM_TRUST_SUPABASE_URL, ' +
+          'PLATFORM_TRUST_SERVICE_KEY, PLATFORM_TRUST_PROJECT_ID.',
+      }
+    }
+
+    if (isMutation) {
+      console.warn(
+        `[platform-trust] DEV-OVERRIDE active: allowing unconfigured ${ctx.operation_type} on ` +
+        `scope="${ctx.scope}". This must NEVER fire in production.`
+      )
+    } else {
+      console.warn('[platform-trust] Not configured, allowing read operation')
+    }
     return { allowed: true, requires_approval: false }
   }
 

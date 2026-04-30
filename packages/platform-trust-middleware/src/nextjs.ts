@@ -30,6 +30,28 @@ function getClient(): SupabaseClient | null {
   return _client
 }
 
+const DEV_OVERRIDE_TOKEN = 'allow-unconfigured-writes'
+
+function devOverrideActive(): boolean {
+  return process.env.PLATFORM_TRUST_DEV_OVERRIDE === DEV_OVERRIDE_TOKEN
+}
+
+function unconfiguredDenialResponse(operation: string, scope: string, toolName: string): NextResponse {
+  console.error(
+    `[platform-trust] DENIED ${operation} on scope="${scope}" tool="${toolName}": ` +
+    'platform-trust env vars unset. Set PLATFORM_TRUST_SUPABASE_URL, PLATFORM_TRUST_SERVICE_KEY, ' +
+    'PLATFORM_TRUST_PROJECT_ID. To temporarily allow unconfigured writes in local dev, set ' +
+    `PLATFORM_TRUST_DEV_OVERRIDE='${DEV_OVERRIDE_TOKEN}' (never in production).`
+  )
+  return NextResponse.json(
+    {
+      error: 'Platform Trust not configured: write/delete denied',
+      missing_env: ['PLATFORM_TRUST_SUPABASE_URL', 'PLATFORM_TRUST_SERVICE_KEY', 'PLATFORM_TRUST_PROJECT_ID'],
+    },
+    { status: 503 }
+  )
+}
+
 function hashData(data: unknown): string | null {
   if (data === undefined || data === null) return null
   const json = typeof data === 'string' ? data : JSON.stringify(data)
@@ -129,13 +151,22 @@ export function withTrust(
 ): RouteHandler {
   return async (request: NextRequest, context?: unknown) => {
     const client = getClient()
-    if (!client) {
-      // Trust layer not configured — pass through
-      return handler(request, context)
-    }
-
     const agentId = request.headers.get(options?.agentIdHeader || 'x-agent-id') || 'anonymous'
     const toolName = new URL(request.url).pathname
+
+    if (!client) {
+      const isMutation = operation === 'write' || operation === 'delete'
+      if (isMutation && !devOverrideActive()) {
+        return unconfiguredDenialResponse(operation, scope, toolName)
+      }
+      if (isMutation) {
+        console.warn(
+          `[platform-trust] DEV-OVERRIDE active: allowing unconfigured ${operation} on ` +
+          `scope="${scope}" (${toolName}). This must NEVER fire in production.`
+        )
+      }
+      return handler(request, context)
+    }
 
     // 1. Rate limit
     const rateResult = await checkRateLimit(client, agentId)
@@ -194,8 +225,6 @@ export interface ScopeRule {
 export function createTrustMiddleware(rules: ScopeRule[]) {
   return async (request: NextRequest) => {
     const client = getClient()
-    if (!client) return NextResponse.next()
-
     const pathname = new URL(request.url).pathname
     const method = request.method
 
@@ -210,6 +239,20 @@ export function createTrustMiddleware(rules: ScopeRule[]) {
     // Determine operation from method if rule doesn't specify
     const operation = rule.operation || (method === 'GET' ? 'read' : 'write')
     const agentId = request.headers.get('x-agent-id') || 'anonymous'
+
+    if (!client) {
+      const isMutation = operation === 'write' || operation === 'delete'
+      if (isMutation && !devOverrideActive()) {
+        return unconfiguredDenialResponse(operation, rule.scope, pathname)
+      }
+      if (isMutation) {
+        console.warn(
+          `[platform-trust] DEV-OVERRIDE active: allowing unconfigured ${operation} on ` +
+          `scope="${rule.scope}" (${pathname}). This must NEVER fire in production.`
+        )
+      }
+      return NextResponse.next()
+    }
 
     // Rate limit
     const rateResult = await checkRateLimit(client, agentId)
