@@ -60,6 +60,33 @@ export interface VercelEnvVar {
   type: "plain" | "encrypted" | "system" | "secret" | "sensitive";
 }
 
+/**
+ * One Vercel env-var *record* including its id. v0.5 apply needs ids
+ * to PATCH existing entries. Unlike VercelEnvVar (which collapses by
+ * key), this is the raw row — multiple rows per key are possible if
+ * Vercel split values across targets.
+ */
+export interface VercelEnvRecord {
+  id: string;
+  key: string;
+  target: VercelTarget[];
+  type: VercelEnvVar["type"];
+}
+
+/** Result of one apply action against one (project, key) pair. */
+export type ApplyAction =
+  | { kind: "skipped"; key: string; reason: string }
+  | { kind: "created"; key: string; targets: VercelTarget[] }
+  | { kind: "updated"; key: string; added_targets: VercelTarget[] }
+  | { kind: "error"; key: string; error: string };
+
+/** Apply result for one project. */
+export interface ProjectApplyResult {
+  project: string;
+  vercel_project_id: string;
+  actions: ApplyAction[];
+}
+
 /** Result of auditing one env var on one project. */
 export type EnvStatus =
   | { kind: "ok"; targets: VercelTarget[] }

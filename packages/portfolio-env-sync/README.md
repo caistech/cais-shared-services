@@ -1,10 +1,12 @@
 # @caistech/portfolio-env-sync
 
-Manifest-driven Vercel env audit for the Corporate AI Solutions portfolio.
+Manifest-driven Vercel env audit + apply for the Corporate AI Solutions portfolio.
 
-> v0 = read-only audit. v0.5+ planned: `--apply` writes, Supabase Management
-> API integration, `.env.local` generation, onboarding wizard. See **Roadmap**
-> below.
+> **v0.5** ships `--apply` (create missing keys, PATCH targets for partials)
+> and **v0.6** ships Supabase Management API resolution for `from_supabase:`
+> bindings. v0.7 (`.env.local` generation) and v0.8 (onboard wizard) are
+> tracked in [Issues #5](https://github.com/caistech/cais-shared-services/issues/5)
+> and [#6](https://github.com/caistech/cais-shared-services/issues/6).
 
 ## Why
 
@@ -44,13 +46,65 @@ node packages/portfolio-env-sync/dist/index.js \
 # JSON output for piping into other tools
 node packages/portfolio-env-sync/dist/index.js \
   --manifest portfolio-manifest.yaml --json
+
+# Apply: create missing keys; PATCH targets for partials
+node packages/portfolio-env-sync/dist/index.js \
+  --manifest portfolio-manifest.yaml \
+  --repo hair-stylist-ai \
+  --apply
 ```
 
 Exit codes:
 
-- `0` — every project clean
-- `1` — drift detected (`missing` or `needs_attention` rows)
-- `2` — config error (invalid manifest, missing `VERCEL_TOKEN`, project not found)
+- `0` — every project clean (or every action successful in apply mode)
+- `1` — drift detected, OR any apply action errored
+- `2` — config error (invalid manifest, missing token, project not found)
+
+### `--apply` behaviour
+
+For each `missing` row, the apply step CREATES a new env entry on the
+manifest's expected targets. For each `needs_attention` row (key set on
+some targets, missing on others), it PATCHes the existing entry to add
+the missing targets without touching the value.
+
+`ok` and `extra` rows are no-ops.
+
+Resolution order for the value sent to Vercel:
+
+1. `value: "literal"` — literal value
+2. `from_supabase: "url" | "anon_key" | "service_role_key"` — resolved
+   via Supabase Management API (requires `SUPABASE_MANAGEMENT_TOKEN`)
+3. `ref: "$secret:..."` — currently SKIPPED with a clear reason
+   (secret-store integration is tracked in a future release)
+
+If a binding can't be resolved, the row is reported as `skipped` and
+the apply continues. Re-running the audit afterward shows whether any
+resolvable drift remains.
+
+### Supabase Management API resolution
+
+Add `supabase_project_ref:` to a project entry, then declare bindings
+with `from_supabase:`:
+
+```yaml
+- name: hair-stylist-ai
+  vercel_project_id: "prj_..."
+  supabase_project_ref: "pkzbpzzgrxjebdmwfsmg"
+  envs:
+    NEXT_PUBLIC_SUPABASE_URL:       { from_supabase: "url" }
+    NEXT_PUBLIC_SUPABASE_ANON_KEY:  { from_supabase: "anon_key" }
+    SUPABASE_SERVICE_ROLE_KEY:      { from_supabase: "service_role_key" }
+```
+
+When `--apply` encounters one of these on a `missing` row, it queries
+`https://api.supabase.com/v1/projects/<ref>/api-keys` to resolve the
+value. The Supabase client is constructed lazily — projects whose
+`from_supabase:` bindings are already satisfied won't require
+`SUPABASE_MANAGEMENT_TOKEN` to be set.
+
+Generate a Supabase token at https://supabase.com/dashboard/account/tokens
+(scope: projects:read minimum). Provide it via `SUPABASE_MANAGEMENT_TOKEN`
+env var or `~/.supabase-token` file.
 
 ## Output
 
@@ -106,24 +160,25 @@ ignored. The audit answers "is this key set on these targets?", not
 
 ## Roadmap
 
-- **v0** (this release): manifest schema, Vercel env audit, drift report
-- **v0.5**: `--apply` flag — push missing/wrong keys to Vercel via API
-- **v0.6**: Supabase Management API — audit Edge Function secrets in
-  `secrets:` block of project entries
-- **v0.7**: `.env.local` generation — mirror Vercel state to local file with
-  comment-preserving rewrite
-- **v0.8**: `onboard <repo-name>` interactive wizard — pick Vercel project,
-  pick Supabase project, generate manifest entry
-- **v1**: 1Password CLI integration for `$secret:` resolution; CI weekly
-  audit; pre-deploy gate
+- **v0** — manifest schema, Vercel env audit, drift report
+- **v0.5** ✓ shipped — `--apply` flag (create + PATCH)
+- **v0.6** ✓ shipped — Supabase Management API for `from_supabase:` bindings
+- **v0.7** — `.env.local` generation from Vercel state
+  ([Issue #5](https://github.com/caistech/cais-shared-services/issues/5))
+- **v0.8** — `onboard <repo>` interactive wizard
+  ([Issue #6](https://github.com/caistech/cais-shared-services/issues/6))
+- **v1** — secret-store integration (1Password / vault) for `$secret:` refs;
+  CI weekly audit; pre-deploy gate
 
-## Known limitations (v0)
+## Known limitations (v0.6)
 
-- No Supabase audit. `supabase_project_ref` is parsed but unused.
-- No value resolution. `ref`/`from_supabase` are parsed but ignored.
+- `ref: "$secret:..."` bindings are skipped during apply. A real secret-store
+  integration is the v1 milestone.
+- `--apply` only acts on `missing` and `needs_attention` rows. Divergent
+  values on `ok` rows aren't detected (audit only checks key presence,
+  not value equality).
 - No `.env.local` audit. Local file state isn't checked.
-- No `--apply`. Read-only.
-- No team/scope multi-tenancy. One manifest = one Vercel team.
+- One manifest = one Vercel team. No team multi-tenancy.
 
 ## Testing locally
 

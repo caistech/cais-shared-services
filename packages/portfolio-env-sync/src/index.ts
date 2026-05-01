@@ -1,29 +1,42 @@
 #!/usr/bin/env node
 /**
- * @caistech/portfolio-env-sync — v0 read-only audit CLI
+ * @caistech/portfolio-env-sync — manifest-driven Vercel env tooling
+ *
+ * v0   audit-only:  read Vercel state, compare to manifest, report drift
+ * v0.5 --apply:     create missing keys; PATCH targets for partials
+ * v0.6 from_supabase: resolve via Supabase Management API
  *
  * Usage:
- *   portfolio-env-sync                          # audit all projects in manifest
+ *   portfolio-env-sync                          # audit all projects
  *   portfolio-env-sync --repo NAME              # audit one project
  *   portfolio-env-sync --manifest path/to.yaml  # alternate manifest path
- *   portfolio-env-sync --json                   # JSON output for piping
+ *   portfolio-env-sync --json                   # JSON output
+ *   portfolio-env-sync --apply                  # create / patch missing keys
  *
  * Exit codes:
- *   0 — every project clean
- *   1 — drift detected (missing or needs_attention)
+ *   0 — every project clean (or every action successful in apply mode)
+ *   1 — drift detected (or any apply action errored)
  *   2 — config error (manifest invalid, token missing, project not found)
  */
 
 import { resolve } from "node:path";
 import { loadManifest } from "./manifest.js";
 import { VercelClient, VercelAuthError } from "./vercel.js";
+import { SupabaseManagementClient, SupabaseAuthError } from "./supabase.js";
+import { applyProject } from "./apply.js";
 import { auditProject, summarise, type ProjectSummary } from "./diff.js";
-import type { ProjectAudit, AuditRow } from "./types.js";
+import type {
+  ApplyAction,
+  AuditRow,
+  ProjectApplyResult,
+  ProjectAudit,
+} from "./types.js";
 
 interface CliArgs {
   manifest: string;
   repo?: string;
   json: boolean;
+  apply: boolean;
   help: boolean;
 }
 
@@ -31,6 +44,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
   const args: CliArgs = {
     manifest: "manifest.yaml",
     json: false,
+    apply: false,
     help: false,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -38,6 +52,7 @@ function parseArgs(argv: readonly string[]): CliArgs {
     if (a === "--manifest") args.manifest = argv[++i] ?? args.manifest;
     else if (a === "--repo") args.repo = argv[++i];
     else if (a === "--json") args.json = true;
+    else if (a === "--apply") args.apply = true;
     else if (a === "--help" || a === "-h") args.help = true;
     else if (a !== undefined && a.startsWith("-"))
       throw new Error(`Unknown flag: ${a}`);
@@ -46,21 +61,23 @@ function parseArgs(argv: readonly string[]): CliArgs {
 }
 
 const HELP = `
-@caistech/portfolio-env-sync — Vercel env audit (v0)
+@caistech/portfolio-env-sync — Vercel env audit + apply
 
 Usage:
   portfolio-env-sync [options]
 
 Options:
   --manifest PATH   Path to portfolio manifest YAML (default: manifest.yaml)
-  --repo NAME       Audit a single project by manifest 'name'
+  --repo NAME       Operate on a single project by manifest 'name'
   --json            Emit JSON instead of pretty output
+  --apply           Create missing keys; PATCH targets for partials
   --help            Show this message
 
 Required env:
-  VERCEL_TOKEN      https://vercel.com/account/tokens
+  VERCEL_TOKEN              https://vercel.com/account/tokens
+  SUPABASE_MANAGEMENT_TOKEN (only if any project uses 'from_supabase:')
 
-Exit codes: 0 = clean, 1 = drift, 2 = config error
+Exit codes: 0 = clean, 1 = drift / apply errors, 2 = config error
 `;
 
 async function main(argv: readonly string[]): Promise<number> {
@@ -84,13 +101,30 @@ async function main(argv: readonly string[]): Promise<number> {
     return 2;
   }
 
-  let client: VercelClient;
+  let vercel: VercelClient;
   try {
-    client = new VercelClient({ teamId: manifest.team_id });
+    vercel = new VercelClient({ teamId: manifest.team_id });
   } catch (err) {
     process.stderr.write(`${(err as Error).message}\n`);
     return 2;
   }
+
+  // Construct the Supabase client lazily — only on first resolution
+  // attempt — so projects whose `from_supabase:` bindings are already
+  // satisfied don't require SUPABASE_MANAGEMENT_TOKEN to be set.
+  let supabase: SupabaseManagementClient | undefined;
+  let supabaseAttempted = false;
+  const supabaseFactory = (): SupabaseManagementClient => {
+    if (supabase) return supabase;
+    if (supabaseAttempted) {
+      throw new SupabaseAuthError(
+        "Supabase client previously failed to initialise"
+      );
+    }
+    supabaseAttempted = true;
+    supabase = new SupabaseManagementClient();
+    return supabase;
+  };
 
   const projects = args.repo
     ? manifest.projects.filter((p) => p.name === args.repo)
@@ -106,7 +140,7 @@ async function main(argv: readonly string[]): Promise<number> {
   const audits: ProjectAudit[] = [];
   for (const project of projects) {
     try {
-      const live = await client.listEnv(project.vercel_project_id);
+      const live = await vercel.listEnv(project.vercel_project_id);
       audits.push(auditProject(manifest, project, live));
     } catch (err) {
       if (err instanceof VercelAuthError) {
@@ -122,25 +156,81 @@ async function main(argv: readonly string[]): Promise<number> {
     }
   }
 
-  if (args.json) {
-    process.stdout.write(JSON.stringify({ audits }, null, 2) + "\n");
-  } else {
-    renderPretty(audits);
+  if (!args.apply) {
+    // Audit-only mode — original v0 behaviour
+    if (args.json) {
+      process.stdout.write(JSON.stringify({ audits }, null, 2) + "\n");
+    } else {
+      renderAuditPretty(audits);
+    }
+    return hasAuditDrift(audits) ? 1 : 0;
   }
 
-  // Exit 1 if any project has missing or needs_attention rows; project errors
-  // (e.g. project not found) also trip exit 1 to surface immediately.
-  const hasDrift = audits.some(
+  // Apply mode — also print the audit first, then apply, then a final
+  // re-audit isn't done (would double the API time); user can re-run.
+  if (!args.json) {
+    renderAuditPretty(audits);
+    process.stdout.write("\n");
+  }
+
+  const applyResults: ProjectApplyResult[] = [];
+  for (let i = 0; i < projects.length; i++) {
+    const project = projects[i]!;
+    const audit = audits[i]!;
+    if (audit.error) {
+      applyResults.push({
+        project: project.name,
+        vercel_project_id: project.vercel_project_id,
+        actions: [
+          { kind: "skipped", key: "<all>", reason: `audit failed: ${audit.error}` },
+        ],
+      });
+      continue;
+    }
+    try {
+      const result = await applyProject(
+        manifest,
+        project,
+        audit,
+        vercel,
+        supabaseFactory
+      );
+      applyResults.push(result);
+    } catch (err) {
+      if (err instanceof VercelAuthError || err instanceof SupabaseAuthError) {
+        process.stderr.write(`${err.message}\n`);
+        return 2;
+      }
+      throw err;
+    }
+  }
+
+  if (args.json) {
+    process.stdout.write(
+      JSON.stringify({ audits, applyResults }, null, 2) + "\n"
+    );
+  } else {
+    renderApplyPretty(applyResults);
+  }
+
+  return hasApplyErrors(applyResults) ? 1 : 0;
+}
+
+function hasAuditDrift(audits: ProjectAudit[]): boolean {
+  return audits.some(
     (a) =>
       a.error !== undefined ||
       a.rows.some(
         (r) => r.status.kind === "missing" || r.status.kind === "needs_attention"
       )
   );
-  return hasDrift ? 1 : 0;
 }
 
-function renderPretty(audits: ProjectAudit[]): void {
+function hasApplyErrors(results: ProjectApplyResult[]): boolean {
+  return results.some((r) => r.actions.some((a) => a.kind === "error"));
+}
+
+function renderAuditPretty(audits: ProjectAudit[]): void {
   const out = process.stdout;
   out.write(`Auditing ${audits.length} project(s)\n`);
   out.write(`${"─".repeat(60)}\n\n`);
@@ -178,6 +268,38 @@ function renderPretty(audits: ProjectAudit[]): void {
   );
 }
 
+function renderApplyPretty(results: ProjectApplyResult[]): void {
+  const out = process.stdout;
+  out.write(`Applying changes\n`);
+  out.write(`${"─".repeat(60)}\n\n`);
+
+  let totalCreated = 0;
+  let totalUpdated = 0;
+  let totalSkipped = 0;
+  let totalErrored = 0;
+
+  for (const result of results) {
+    out.write(`${result.project}  (${result.vercel_project_id})\n`);
+    if (result.actions.length === 0) {
+      out.write(`  · no changes needed\n\n`);
+      continue;
+    }
+    for (const action of result.actions) {
+      out.write(formatAction(action));
+      if (action.kind === "created") totalCreated++;
+      else if (action.kind === "updated") totalUpdated++;
+      else if (action.kind === "skipped") totalSkipped++;
+      else if (action.kind === "error") totalErrored++;
+    }
+    out.write("\n");
+  }
+
+  out.write(`${"─".repeat(60)}\n`);
+  out.write(
+    `Total: ${totalCreated} created, ${totalUpdated} updated, ${totalSkipped} skipped, ${totalErrored} errored\n`
+  );
+}
+
 function formatRow(row: AuditRow): string {
   const key = row.key.padEnd(40);
   switch (row.status.kind) {
@@ -189,6 +311,20 @@ function formatRow(row: AuditRow): string {
       return `  ✗ ${key} MISSING\n`;
     case "extra":
       return `  · ${key} (extra: ${row.status.present_in.join(", ")})\n`;
+  }
+}
+
+function formatAction(action: ApplyAction): string {
+  const key = action.key.padEnd(40);
+  switch (action.kind) {
+    case "created":
+      return `  + ${key} created on [${action.targets.join(", ")}]\n`;
+    case "updated":
+      return `  ~ ${key} added targets [${action.added_targets.join(", ")}]\n`;
+    case "skipped":
+      return `  · ${key} skipped: ${action.reason}\n`;
+    case "error":
+      return `  ✗ ${key} ERROR: ${action.error}\n`;
   }
 }
 

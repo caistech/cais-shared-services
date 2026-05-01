@@ -1,7 +1,7 @@
 {
   "name": "@caistech/portfolio-env-sync",
-  "version": "0.0.1",
-  "description": "Manifest-driven portfolio env audit for Vercel projects. v0 = read-only audit; v0.5+ = apply, Supabase, .env.local generation.",
+  "version": "0.5.0",
+  "description": "Manifest-driven portfolio env audit + apply for Vercel projects. v0.5 adds --apply (create/PATCH); v0.6 adds Supabase Management API resolution for from_supabase: bindings.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
