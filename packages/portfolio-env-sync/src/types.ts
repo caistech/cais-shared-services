@@ -53,6 +53,9 @@ export interface AuthConfig {
   mailer_otp_exp?: number;
   /** OTP digit length. */
   mailer_otp_length?: number;
+  /** Per-recipient cooldown in seconds. Default 60 — too long for rapid
+   * dev testing of magic-link flows. Drop to 1 in dev / 30–60 in prod. */
+  smtp_max_frequency?: number;
 }
 
 /** A single project's manifest entry. */

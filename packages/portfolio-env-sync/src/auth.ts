@@ -27,6 +27,9 @@ function manifestToSupabaseFields(
   if (desired.mailer_otp_length !== undefined) {
     out.mailer_otp_length = desired.mailer_otp_length;
   }
+  if (desired.smtp_max_frequency !== undefined) {
+    out.smtp_max_frequency = desired.smtp_max_frequency;
+  }
   return out;
 }
 

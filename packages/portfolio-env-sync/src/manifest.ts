@@ -202,6 +202,12 @@ function validateAuthConfig(context: string, raw: unknown): AuthConfig {
     }
     out.mailer_otp_length = a.mailer_otp_length;
   }
+  if (a.smtp_max_frequency !== undefined) {
+    if (typeof a.smtp_max_frequency !== "number" || a.smtp_max_frequency < 1) {
+      throw new Error(`${context}.smtp_max_frequency: must be a number ≥ 1 (seconds)`);
+    }
+    out.smtp_max_frequency = a.smtp_max_frequency;
+  }
 
   if (Object.keys(out).length === 0) {
     throw new Error(`${context}: at least one field must be specified`);

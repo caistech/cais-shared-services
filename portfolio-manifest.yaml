@@ -216,6 +216,10 @@ projects:
       rate_limit_email_sent: 30
       mailer_otp_exp: 3600
       mailer_otp_length: 8
+      # Per-recipient cooldown in seconds. Default is 60, which makes
+      # rapid magic-link retesting impossible (3 clicks → 2 throttled).
+      # 1 = effectively no throttle; tighten to 30–60 for production.
+      smtp_max_frequency: 1
 
 # -----------------------------------------------------------------------------
 # Vercel projects in the Corporate AI Solutions team that are NOT in the
