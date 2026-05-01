@@ -17,6 +17,17 @@
 team_id: "team_hwN7IFtd2Fo3DCj9C67ZwI1t"  # Corporate AI Solutions
 
 # -----------------------------------------------------------------------------
+# Secret resolution — maps $secret:NAME refs in shared/projects to their
+# real source. Currently supports `from_supabase`. Future: from_env, from_op
+# (1Password). Apply mode looks up these entries when it encounters a ref.
+# -----------------------------------------------------------------------------
+secrets:
+  platform_trust_service_key:
+    from_supabase:
+      project_ref: "ggwveltavnvvscgqekhy"
+      field: "service_role_key"
+
+# -----------------------------------------------------------------------------
 # Shared bindings — included via `inherit_shared:` in each project below.
 # -----------------------------------------------------------------------------
 shared:

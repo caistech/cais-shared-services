@@ -43,12 +43,29 @@ export interface ProjectConfig {
   envs?: Record<string, EnvBinding>;
 }
 
+/**
+ * A `secrets:` block entry — describes how to resolve a `$secret:NAME`
+ * ref. The reference `ref: "$secret:platform_trust_service_key"` looks
+ * up `secrets.platform_trust_service_key` and resolves via the shape
+ * declared there.
+ *
+ * Currently supported: from_supabase. Future: from_env, from_op (1Password).
+ */
+export interface SecretSource {
+  from_supabase?: {
+    project_ref: string;
+    field: "url" | "anon_key" | "service_role_key";
+  };
+}
+
 /** Top-level manifest schema. */
 export interface Manifest {
   team_id: string;
   /** Env vars common to multiple projects. Project entries opt in via
    * `inherit_shared: [VAR_NAME, ...]`. */
   shared: Record<string, EnvBinding>;
+  /** Optional. Resolution sources for `ref: "$secret:NAME"` placeholders. */
+  secrets?: Record<string, SecretSource>;
   projects: ProjectConfig[];
 }
 

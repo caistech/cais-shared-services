@@ -1,7 +1,13 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parse as parseYaml } from "yaml";
-import type { EnvBinding, Manifest, ProjectConfig, VercelTarget } from "./types.js";
+import type {
+  EnvBinding,
+  Manifest,
+  ProjectConfig,
+  SecretSource,
+  VercelTarget,
+} from "./types.js";
 import { VERCEL_TARGETS } from "./types.js";
 
 /**
@@ -25,6 +31,7 @@ export function loadManifest(path: string): Manifest {
   }
 
   const shared = validateBindings("shared", m.shared);
+  const secrets = validateSecrets("secrets", m.secrets);
   const projectsRaw = m.projects;
   if (!Array.isArray(projectsRaw)) {
     throw new Error(`Manifest ${path}: 'projects' must be a list`);
@@ -43,7 +50,70 @@ export function loadManifest(path: string): Manifest {
     }
   }
 
-  return { team_id: m.team_id, shared, projects };
+  return { team_id: m.team_id, shared, secrets, projects };
+}
+
+/**
+ * Look up a $secret:NAME reference in the manifest's secrets block.
+ * Returns undefined if the secret name is not declared.
+ */
+export function lookupSecret(
+  manifest: Manifest,
+  secretRef: string
+): SecretSource | undefined {
+  const match = /^\$secret:(.+)$/.exec(secretRef);
+  if (!match) return undefined;
+  return manifest.secrets?.[match[1]!];
+}
+
+function validateSecrets(
+  context: string,
+  raw: unknown
+): Record<string, SecretSource> | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error(`${context}: must be a mapping of NAME -> source`);
+  }
+  const out: Record<string, SecretSource> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    out[key] = validateSecretSource(`${context}.${key}`, value);
+  }
+  return out;
+}
+
+function validateSecretSource(context: string, raw: unknown): SecretSource {
+  if (!raw || typeof raw !== "object") {
+    throw new Error(`${context}: must be a mapping`);
+  }
+  const s = raw as Record<string, unknown>;
+  const out: SecretSource = {};
+
+  if (s.from_supabase !== undefined) {
+    if (!s.from_supabase || typeof s.from_supabase !== "object") {
+      throw new Error(`${context}.from_supabase: must be a mapping`);
+    }
+    const fs = s.from_supabase as Record<string, unknown>;
+    if (typeof fs.project_ref !== "string" || !fs.project_ref) {
+      throw new Error(`${context}.from_supabase.project_ref: required string`);
+    }
+    if (
+      typeof fs.field !== "string" ||
+      !["url", "anon_key", "service_role_key"].includes(fs.field)
+    ) {
+      throw new Error(
+        `${context}.from_supabase.field: must be 'url', 'anon_key', or 'service_role_key'`
+      );
+    }
+    out.from_supabase = {
+      project_ref: fs.project_ref,
+      field: fs.field as "url" | "anon_key" | "service_role_key",
+    };
+  }
+
+  if (Object.keys(out).length === 0) {
+    throw new Error(`${context}: no recognised source field (need from_supabase)`);
+  }
+  return out;
 }
 
 function validateProject(raw: unknown, idx: number): ProjectConfig {

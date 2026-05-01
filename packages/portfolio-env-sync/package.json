@@ -1,7 +1,7 @@
 {
   "name": "@caistech/portfolio-env-sync",
-  "version": "0.5.0",
-  "description": "Manifest-driven portfolio env audit + apply for Vercel projects. v0.5 adds --apply (create/PATCH); v0.6 adds Supabase Management API resolution for from_supabase: bindings.",
+  "version": "0.7.0",
+  "description": "Manifest-driven portfolio env audit + apply for Vercel projects. v0.5 --apply; v0.6 from_supabase resolution; v0.7 secrets: block (resolves $secret:NAME refs via top-level lookup, supports SUPABASE_ACCESS_TOKEN env var).",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",

@@ -7,7 +7,7 @@ import type {
   ProjectConfig,
   VercelEnvRecord,
 } from "./types.js";
-import { resolveProjectEnvs } from "./manifest.js";
+import { lookupSecret, resolveProjectEnvs } from "./manifest.js";
 import { VercelAuthError, type VercelClient } from "./vercel.js";
 import { SupabaseAuthError, type SupabaseManagementClient } from "./supabase.js";
 
@@ -60,7 +60,12 @@ export async function applyProject(
     }
 
     if (row.status.kind === "missing") {
-      const resolution = await resolveValue(binding, project, supabaseFactory);
+      const resolution = await resolveValue(
+        binding,
+        project,
+        manifest,
+        supabaseFactory
+      );
       if (resolution.kind === "unresolvable") {
         actions.push({ kind: "skipped", key: row.key, reason: resolution.reason });
         continue;
@@ -149,6 +154,7 @@ type Resolution =
 async function resolveValue(
   binding: EnvBinding,
   project: ProjectConfig,
+  manifest: Manifest,
   supabaseFactory: () => SupabaseManagementClient
 ): Promise<Resolution> {
   if (binding.value !== undefined) {
@@ -162,35 +168,26 @@ async function resolveValue(
         reason: `from_supabase: '${binding.from_supabase}' but project has no supabase_project_ref`,
       };
     }
-    let supabase: SupabaseManagementClient;
-    try {
-      supabase = supabaseFactory();
-    } catch (err) {
-      if (err instanceof SupabaseAuthError) throw err;
-      return {
-        kind: "unresolvable",
-        reason: `Supabase client init failed: ${(err as Error).message}`,
-      };
-    }
-    try {
-      const value = await supabase.resolveBinding(
-        project.supabase_project_ref,
-        binding.from_supabase
-      );
-      return { kind: "resolved", value };
-    } catch (err) {
-      if (err instanceof SupabaseAuthError) throw err;
-      return {
-        kind: "unresolvable",
-        reason: `Supabase resolution failed: ${(err as Error).message}`,
-      };
-    }
+    return await resolveFromSupabase(
+      project.supabase_project_ref,
+      binding.from_supabase,
+      supabaseFactory
+    );
   }
 
   if (binding.ref) {
+    // Try to resolve $secret:NAME via the manifest's secrets: block
+    const source = lookupSecret(manifest, binding.ref);
+    if (source?.from_supabase) {
+      return await resolveFromSupabase(
+        source.from_supabase.project_ref,
+        source.from_supabase.field,
+        supabaseFactory
+      );
+    }
     return {
       kind: "unresolvable",
-      reason: `ref: '${binding.ref}' — secret store integration not yet implemented`,
+      reason: `ref: '${binding.ref}' — no matching entry in manifest 'secrets:' block`,
     };
   }
 
@@ -198,4 +195,31 @@ async function resolveValue(
     kind: "unresolvable",
     reason: "binding has no value, from_supabase, or ref",
   };
+}
+
+async function resolveFromSupabase(
+  projectRef: string,
+  field: "url" | "anon_key" | "service_role_key",
+  supabaseFactory: () => SupabaseManagementClient
+): Promise<Resolution> {
+  let supabase: SupabaseManagementClient;
+  try {
+    supabase = supabaseFactory();
+  } catch (err) {
+    if (err instanceof SupabaseAuthError) throw err;
+    return {
+      kind: "unresolvable",
+      reason: `Supabase client init failed: ${(err as Error).message}`,
+    };
+  }
+  try {
+    const value = await supabase.resolveBinding(projectRef, field);
+    return { kind: "resolved", value };
+  } catch (err) {
+    if (err instanceof SupabaseAuthError) throw err;
+    return {
+      kind: "unresolvable",
+      reason: `Supabase resolution failed: ${(err as Error).message}`,
+    };
+  }
 }

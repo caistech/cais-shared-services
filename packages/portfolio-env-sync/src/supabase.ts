@@ -48,10 +48,18 @@ export class SupabaseManagementClient {
   private readonly cache = new Map<string, CachedProject>();
 
   constructor(token?: string) {
-    const t = token ?? process.env.SUPABASE_MANAGEMENT_TOKEN ?? readTokenFile();
+    // SUPABASE_ACCESS_TOKEN is the standard name used by the Supabase
+    // CLI; SUPABASE_MANAGEMENT_TOKEN is a more explicit synonym we
+    // also honour. ~/.supabase-token (chmod 600) is the persistent
+    // file fallback, mirroring the ~/.vercel-token pattern.
+    const t =
+      token ??
+      process.env.SUPABASE_ACCESS_TOKEN ??
+      process.env.SUPABASE_MANAGEMENT_TOKEN ??
+      readTokenFile();
     if (!t) {
       throw new SupabaseAuthError(
-        "Supabase management token not found. Set SUPABASE_MANAGEMENT_TOKEN env var or write the token to ~/.supabase-token. Generate one at https://supabase.com/dashboard/account/tokens"
+        "Supabase access token not found. Set SUPABASE_ACCESS_TOKEN env var or write the token to ~/.supabase-token. Generate one at https://supabase.com/dashboard/account/tokens"
       );
     }
     this.token = t;
