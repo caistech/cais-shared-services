@@ -69,6 +69,14 @@ fi
 
 TEAM="team_hwN7IFtd2Fo3DCj9C67ZwI1t"
 
+# Resolve Supabase Management API token (env first, then ~/.supabase-token)
+if [ -z "${SUPABASE_MANAGEMENT_TOKEN:-}" ] && [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+  SUPABASE_MANAGEMENT_TOKEN="$SUPABASE_ACCESS_TOKEN"
+fi
+if [ -z "${SUPABASE_MANAGEMENT_TOKEN:-}" ] && [ -f "$HOME/.supabase-token" ]; then
+  SUPABASE_MANAGEMENT_TOKEN=$(cat "$HOME/.supabase-token" | tr -d '[:space:]')
+fi
+
 # 1. Verify Vercel project exists
 echo "== Verifying Vercel project '$VERCEL_SLUG' =="
 proj_resp=$(curl -sS \
@@ -118,6 +126,111 @@ if [ -n "$SUPABASE_REF" ]; then
   fi
 fi
 
+# 2b. Configure Supabase Auth (Site URL, redirect URLs, anon sign-in,
+#     custom SMTP via Resend, raised rate limit). Idempotent — safe to
+#     re-run when the same SUPABASE_REF is already configured.
+#
+#     Prevents two recurring class of bug:
+#       (a) Magic-link redirects rejected because the deploy URL isn't
+#           on the Supabase allow-list.
+#       (b) The default Supabase SMTP capping at 2 sends/hour mid-build,
+#           silently failing magic links once the cap is hit.
+#
+#     The block is best-effort: if RESEND_API_KEY isn't available or
+#     no verified Resend domain exists, we still set Site URL + allow
+#     list + anon (the SMTP swap is the only optional piece).
+if [ -n "$SUPABASE_REF" ] && [ -n "${SUPABASE_MANAGEMENT_TOKEN:-}" ]; then
+  echo ""
+  echo "== Configuring Supabase Auth for '$SUPABASE_REF' =="
+
+  # Resolve a Resend API key. Prefer env, then sibling .env.local files.
+  RESEND_KEY="${RESEND_API_KEY:-}"
+  if [ -z "$RESEND_KEY" ]; then
+    for sibling in F2K-Checkpoint-Latest DealFindrs investorpilot PartnerPilot; do
+      p="$HOME/PycharmProjects/$sibling/.env.local"
+      [ -f "$p" ] || continue
+      RESEND_KEY=$(grep '^RESEND_API_KEY=' "$p" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'")
+      [ -n "$RESEND_KEY" ] && break
+    done
+  fi
+
+  # Resolve a verified Resend domain (first match)
+  RESEND_DOMAIN=""
+  if [ -n "$RESEND_KEY" ]; then
+    RESEND_DOMAIN=$(curl -sS -H "Authorization: Bearer $RESEND_KEY" \
+      "https://api.resend.com/domains" 2>/dev/null \
+      | python -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    for x in d.get('data') or []:
+        if x.get('status') == 'verified':
+            print(x['name']); break
+except Exception:
+    pass
+" 2>/dev/null)
+  fi
+
+  PROD_URL="https://${VERCEL_SLUG}-corporate-ai-solutions.vercel.app"
+  ALLOW_LIST="http://localhost:3000/api/auth/callback,${PROD_URL}/api/auth/callback,https://*-corporate-ai-solutions.vercel.app/api/auth/callback"
+  SENDER_NAME=$(echo "$GH_REPO" | sed 's/-/ /g')
+
+  if [ -n "$RESEND_KEY" ] && [ -n "$RESEND_DOMAIN" ]; then
+    echo "  Resend domain detected ($RESEND_DOMAIN) — wiring custom SMTP"
+    AUTH_PAYLOAD=$(SITE_URL="$PROD_URL" ALLOW_LIST="$ALLOW_LIST" \
+      SMTP_PASS="$RESEND_KEY" ADMIN_EMAIL="noreply@$RESEND_DOMAIN" \
+      SENDER_NAME="$SENDER_NAME" \
+      python -c "
+import os, json
+print(json.dumps({
+  'site_url': os.environ['SITE_URL'],
+  'uri_allow_list': os.environ['ALLOW_LIST'],
+  'external_anonymous_users_enabled': True,
+  'smtp_host': 'smtp.resend.com',
+  'smtp_port': '465',
+  'smtp_user': 'resend',
+  'smtp_pass': os.environ['SMTP_PASS'],
+  'smtp_admin_email': os.environ['ADMIN_EMAIL'],
+  'smtp_sender_name': os.environ['SENDER_NAME'],
+  'rate_limit_email_sent': 30,
+}))")
+  else
+    echo "  ⚠ No verified Resend domain — setting Site URL + allow list + anon only"
+    echo "    (SMTP rate limit will stay at default 2/hr — magic-link testing will burn through it)"
+    AUTH_PAYLOAD=$(SITE_URL="$PROD_URL" ALLOW_LIST="$ALLOW_LIST" \
+      python -c "
+import os, json
+print(json.dumps({
+  'site_url': os.environ['SITE_URL'],
+  'uri_allow_list': os.environ['ALLOW_LIST'],
+  'external_anonymous_users_enabled': True,
+}))")
+  fi
+
+  auth_resp_file=$(mktemp 2>/dev/null || echo "/tmp/sb-auth-resp.$$")
+  http=$(curl -sS -X PATCH "https://api.supabase.com/v1/projects/$SUPABASE_REF/config/auth" \
+    -H "Authorization: Bearer $SUPABASE_MANAGEMENT_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "$AUTH_PAYLOAD" \
+    -o "$auth_resp_file" -w '%{http_code}')
+
+  if [ "$http" = "200" ]; then
+    echo "  ✓ site_url + uri_allow_list + anonymous sign-in"
+    if [ -n "$RESEND_DOMAIN" ]; then
+      echo "  ✓ SMTP via Resend; rate_limit_email_sent = 30/hr"
+    fi
+  else
+    echo "  ✗ Auth config PATCH failed (HTTP $http)"
+    head -c 400 "$auth_resp_file" | sed 's/^/    /'
+    echo ""
+  fi
+  rm -f "$auth_resp_file"
+elif [ -n "$SUPABASE_REF" ]; then
+  echo ""
+  echo "== Skipping Supabase Auth config — no SUPABASE_MANAGEMENT_TOKEN =="
+  echo "  Set one of: SUPABASE_MANAGEMENT_TOKEN, SUPABASE_ACCESS_TOKEN, ~/.supabase-token"
+fi
+
 # 3. Append to portfolio-manifest.yaml
 echo ""
 echo "== Updating portfolio-manifest.yaml =="
@@ -155,18 +268,14 @@ cat <<EOF
      Vercel envs (uses the existing script):
        bash scripts/set-caistech-token.sh \$GH_PAT \$VERCEL_TOKEN
 
-  3. If the project uses Supabase, set Auth Site URL + Redirect URLs
-     on the Supabase dashboard (or via Management API).
-     Tracked: Issue #11.
-
-  4. Set portfolio-wide secrets (OPENAI_API_KEY, ANTHROPIC_API_KEY,
+  3. Set portfolio-wide secrets (OPENAI_API_KEY, ANTHROPIC_API_KEY,
      RESEND_API_KEY) on Vercel manually until Issue #10 lands.
 
-  5. Run a full audit to confirm zero drift:
+  4. Run a full audit to confirm zero drift:
        export VERCEL_TOKEN=\$(cat ~/.vercel-token)
        node packages/portfolio-env-sync/dist/index.js --manifest portfolio-manifest.yaml
 
-  6. Commit and push:
+  5. Commit and push:
        git add portfolio-manifest.yaml scripts/
        git commit -m "feat(onboard): add $VERCEL_SLUG"
        git push
