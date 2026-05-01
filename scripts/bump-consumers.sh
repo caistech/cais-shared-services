@@ -19,6 +19,7 @@ ENTRIES=(
   "RaiseReadyTemplate|package.json"
   "gbta-openclaw|package.json"
   "easy-claude-code|apps/frontend/package.json"
+  "HairStylistAI|package.json"
 )
 
 for entry in "${ENTRIES[@]}"; do

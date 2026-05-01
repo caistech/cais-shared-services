@@ -19,6 +19,7 @@ ENTRIES=(
   "RaiseReadyTemplate|."
   "gbta-openclaw|."
   "easy-claude-code|apps/frontend"
+  "HairStylistAI|."
 )
 
 COMMIT_MSG='chore(deps): bump @caistech/* to compiled-dist versions
