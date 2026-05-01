@@ -31,8 +31,6 @@ SLUGS=(
   smart-board
   storefront-mcp
   raiseready-template
-  raiseready-core
-  leadspark
   gbta-openclaw
   easy-claude-code
 )

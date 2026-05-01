@@ -42,8 +42,6 @@ REPOS=(
   SmartBoard
   storefront-mcp
   RaiseReadyTemplate
-  raiseready-core
-  LeadSpark
   gbta-openclaw
   easy-claude-code
   HairStylistAI
@@ -63,8 +61,6 @@ declare -A VERCEL_SLUG=(
   [SmartBoard]=smart-board
   [storefront-mcp]=storefront-mcp
   [RaiseReadyTemplate]=raiseready-template
-  [raiseready-core]=raiseready-core
-  [LeadSpark]=leadspark
   [gbta-openclaw]=gbta-openclaw
   [easy-claude-code]=easy-claude-code
   [HairStylistAI]=hair-stylist-ai

@@ -16,10 +16,8 @@ ENTRIES=(
   "LaunchReady|package.json"
   "storefront-mcp|package.json"
   "universal-interviews|package.json"
-  "raiseready-core|package.json"
   "RaiseReadyTemplate|package.json"
   "gbta-openclaw|package.json"
-  "LeadSpark|package.json"
   "easy-claude-code|apps/frontend/package.json"
 )
 

@@ -16,7 +16,6 @@ ENTRIES=(
   "LaunchReady|."
   "storefront-mcp|."
   "universal-interviews|."
-  "raiseready-core|."
   "RaiseReadyTemplate|."
   "gbta-openclaw|."
   "easy-claude-code|apps/frontend"

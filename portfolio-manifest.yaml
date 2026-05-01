@@ -1,0 +1,227 @@
+# Corporate AI Solutions — portfolio env-var manifest
+#
+# Single source of truth for which env vars MUST exist on each portfolio
+# project's Vercel deploy target. Consumed by:
+#   - @caistech/portfolio-env-sync (audit + apply)
+#   - scripts/onboard-new-project.sh (new-project onboarding)
+#   - scripts/set-caistech-token.sh (eventually — see Issue #4)
+#
+# v0 of portfolio-env-sync is audit-only and checks key NAMES per target,
+# not values. `value: "TBD"` and `ref: "$secret:..."` are accepted but
+# treated as opaque — they only become meaningful in v0.5+ (`--apply`).
+#
+# To run the audit:
+#   export VERCEL_TOKEN=$(cat ~/.vercel-token)
+#   node packages/portfolio-env-sync/dist/index.js --manifest portfolio-manifest.yaml
+
+team_id: "team_hwN7IFtd2Fo3DCj9C67ZwI1t"  # Corporate AI Solutions
+
+# -----------------------------------------------------------------------------
+# Shared bindings — included via `inherit_shared:` in each project below.
+# -----------------------------------------------------------------------------
+shared:
+  # Platform-trust shared infra (one Supabase project for trust events
+  # across the whole portfolio).
+  PLATFORM_TRUST_SUPABASE_URL: "https://ggwveltavnvvscgqekhy.supabase.co"
+  PLATFORM_TRUST_SERVICE_KEY: { ref: "$secret:platform_trust_service_key" }
+
+  # GH Packages PAT — needed for `npm install` of @caistech/* during build.
+  # Propagated by scripts/set-caistech-token.sh.
+  GITHUB_PACKAGES_TOKEN: { ref: "$secret:github_packages_token" }
+
+  # Common LLM provider keys — present in most consumer apps.
+  ANTHROPIC_API_KEY: { ref: "$secret:anthropic_api_key" }
+  OPENAI_API_KEY: { ref: "$secret:openai_api_key" }
+
+# -----------------------------------------------------------------------------
+# Projects currently managed by the @caistech hub workflow.
+# Slugs match Vercel project names; inherit_shared lists which shared keys
+# apply; envs declares project-specific bindings.
+# -----------------------------------------------------------------------------
+projects:
+
+  - name: mmcbuild
+    vercel_project_id: "prj_qKKLAkGGGVH5KocDfoGZQOqIZGvj"
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
+      - ANTHROPIC_API_KEY
+    envs:
+      PLATFORM_TRUST_PROJECT_ID: { ref: "$secret:platform_trust_project_id_mmcbuild" }
+      NEXT_PUBLIC_SUPABASE_URL: { from_supabase: "url" }
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: { from_supabase: "anon_key" }
+      SUPABASE_SERVICE_ROLE_KEY: { from_supabase: "service_role_key" }
+
+  - name: deal-findrs
+    vercel_project_id: "prj_B0pKJM1fTAD5FtbZudh4kUEhaqQM"
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
+    envs:
+      PLATFORM_TRUST_PROJECT_ID: { ref: "$secret:platform_trust_project_id_deal_findrs" }
+
+  - name: f2k-checkpoint-new
+    vercel_project_id: "prj_XPELCzoIwOY5NoHGJxd4Ah6w59G9"
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
+      - ANTHROPIC_API_KEY
+    envs:
+      PLATFORM_TRUST_PROJECT_ID: "b3cbd7d5-f3af-4ae1-acbe-c905235cd676"
+      NEXT_PUBLIC_SUPABASE_URL: { from_supabase: "url" }
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: { from_supabase: "anon_key" }
+      SUPABASE_SERVICE_ROLE_KEY: { from_supabase: "service_role_key" }
+      STOREFRONT_MCP_TOKEN: { ref: "$secret:storefront_mcp_token" }
+
+  - name: property-services
+    vercel_project_id: "prj_bzS0HfyExXQXMsQAK9bH6SkrwQb0"
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
+    envs:
+      PLATFORM_TRUST_PROJECT_ID: { ref: "$secret:platform_trust_project_id_property_services" }
+
+  - name: platform-trust
+    vercel_project_id: "prj_NTvBNN6cBAoAOoIgp84dYvxZCNtf"
+    inherit_shared:
+      - GITHUB_PACKAGES_TOKEN
+    envs:
+      # platform-trust IS the trust service — it owns the keys, not consumes them
+      NEXT_PUBLIC_SUPABASE_URL: { from_supabase: "url" }
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: { from_supabase: "anon_key" }
+      SUPABASE_SERVICE_ROLE_KEY: { from_supabase: "service_role_key" }
+
+  - name: universal-interviews
+    vercel_project_id: "prj_j9Xv0a6A0eU7naa8Ciw3jprYKlnL"
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
+      - ANTHROPIC_API_KEY
+      - OPENAI_API_KEY
+    envs:
+      PLATFORM_TRUST_PROJECT_ID: { ref: "$secret:platform_trust_project_id_universal_interviews" }
+
+  - name: launchready
+    vercel_project_id: "prj_DQS8A4CW2yVam1eJycDTiIZbGYUl"
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
+    envs:
+      # PLATFORM_TRUST_PROJECT_ID is a known gap — see Issue #4
+      PLATFORM_TRUST_PROJECT_ID: { ref: "$secret:platform_trust_project_id_launchready" }
+
+  - name: connexions
+    vercel_project_id: "prj_pG5gak2uSAQQCKLvf39G72wcaqnG"
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
+    envs:
+      PLATFORM_TRUST_PROJECT_ID: "d8bbc568-91f8-4d31-977c-c2d3e03dc164"
+
+  - name: kira
+    vercel_project_id: "prj_itVurDE9CD77K9rGWEQZNDmn33yz"
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
+      - ANTHROPIC_API_KEY
+    envs:
+      PLATFORM_TRUST_PROJECT_ID: { ref: "$secret:platform_trust_project_id_kira" }
+
+  - name: smart-board
+    vercel_project_id: "prj_BUzAZzsnUyARewFEpO6OpXV7zqac"
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
+    envs:
+      PLATFORM_TRUST_PROJECT_ID: { ref: "$secret:platform_trust_project_id_smart_board" }
+
+  - name: storefront-mcp
+    vercel_project_id: "prj_7fXPw71NH0cwx5xHHov1OM5dhAr3"
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
+      - ANTHROPIC_API_KEY
+    envs:
+      PLATFORM_TRUST_PROJECT_ID: { ref: "$secret:platform_trust_project_id_storefront_mcp" }
+      STOREFRONT_MCP_TOKEN: { ref: "$secret:storefront_mcp_token" }
+
+  - name: raiseready-template
+    vercel_project_id: "prj_fKuIr7tWjKyWTgXDMCJYuhKQIylD"
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
+    envs:
+      PLATFORM_TRUST_PROJECT_ID: { ref: "$secret:platform_trust_project_id_raiseready_template" }
+
+  - name: gbta-openclaw
+    vercel_project_id: "prj_OxAM6WpIyT3oUQ4fSrJSuBoiUcvM"
+    inherit_shared:
+      - GITHUB_PACKAGES_TOKEN
+      - ANTHROPIC_API_KEY
+
+  - name: easy-claude-code
+    vercel_project_id: "prj_sedjiKhnHUBginSeK2jP555u4wAp"
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
+      - ANTHROPIC_API_KEY
+    envs:
+      PLATFORM_TRUST_PROJECT_ID: "89e8f37f-ed84-443f-9463-d454d40ef1a6"
+
+  - name: hair-stylist-ai
+    vercel_project_id: "prj_sJ6UwGIaO05WnortzlLP5cIx9Azi"
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
+      - OPENAI_API_KEY
+    envs:
+      PLATFORM_TRUST_PROJECT_ID: { ref: "$secret:platform_trust_project_id_hair_stylist_ai" }
+      NEXT_PUBLIC_SUPABASE_URL: { from_supabase: "url" }
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: { from_supabase: "anon_key" }
+      SUPABASE_SERVICE_ROLE_KEY: { from_supabase: "service_role_key" }
+      NEXT_PUBLIC_APP_URL: "https://hair-stylist-ai-corporate-ai-solutions.vercel.app"
+
+# -----------------------------------------------------------------------------
+# Vercel projects in the Corporate AI Solutions team that are NOT in the
+# bash-script lists. These should be either onboarded properly (added above
+# with inherit_shared keys) or explicitly excluded. Tracked in Issue: TBD.
+# As of 2026-05-01 audit:
+# -----------------------------------------------------------------------------
+unaudited_vercel_projects:
+  - corporate-ai-solutions
+  - disaster-support
+  - f2-k-fund-tokenisation
+  - f2-k-fund-tokenisation-admin-console
+  - f2-k-offshore-modular
+  - investor-pilot
+  - investorpilot
+  - lingo-pure-ai
+  - longtail-ai-venture-studio
+  - mova
+  - ndissda-automate
+  - outreach-ready
+  - partner-pilot
+  - r-and-d-tax-eligibility-work-recording
+  - raiseready-impact
+  - rehearsals-ai
+  - story-verse
+  - tenderwatch
+  - tourlingo-operator
+  - tourlingo-web
+  - universal-lingo-admin
+  - universal-lingo-guest
+  - universal-lingo-host
+  - universal-lingo-marketing
