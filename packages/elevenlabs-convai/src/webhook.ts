@@ -4,7 +4,7 @@
 // in its own route handler (Next.js, Express, etc).
 
 import crypto from 'crypto';
-import type { ElevenLabsPostCallPayload, ConvAIWebhookEvent } from './types';
+import type { ElevenLabsPostCallPayload, ConvAIWebhookEvent } from './types.js';
 
 // =============================================================================
 // SIGNATURE VERIFICATION

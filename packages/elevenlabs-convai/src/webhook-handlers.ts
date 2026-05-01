@@ -12,7 +12,7 @@
 // If your project uses different table names (e.g., Kira uses kira_agents),
 // pass `tableNames` to override.
 
-import type { MemoryType } from './types';
+import type { MemoryType } from './types.js';
 
 // =============================================================================
 // TABLE NAME CONFIG

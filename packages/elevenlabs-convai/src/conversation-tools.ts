@@ -7,7 +7,7 @@
 // Wire the returned tool definitions into your agent config.
 // Implement the webhook handlers in your project's API routes.
 
-import type { ConvAITool } from './types';
+import type { ConvAITool } from './types.js';
 
 // =============================================================================
 // TOOL FACTORY

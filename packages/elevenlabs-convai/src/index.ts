@@ -22,7 +22,7 @@ export type {
   MemoryType,
   MemoryEntry,
   VoiceWidgetProps,
-} from './types';
+} from './types.js';
 
 // Agent CRUD (server-side)
 export {
@@ -32,7 +32,7 @@ export {
   getAgent,
   getConversationHistory,
   defaultVoiceModelFor,
-} from './agent-client';
+} from './agent-client.js';
 
 // Webhook utilities (server-side)
 export {
@@ -41,7 +41,7 @@ export {
   parseWebhookEvent,
   extractConversationData,
   extractMessages,
-} from './webhook';
+} from './webhook.js';
 
 // Webhook handlers (server-side, Supabase)
 export {
@@ -51,11 +51,11 @@ export {
   handleRecallMemory,
   handleSaveMemory,
   handlePostCallWebhook,
-} from './webhook-handlers';
-export type { TableNames } from './webhook-handlers';
+} from './webhook-handlers.js';
+export type { TableNames } from './webhook-handlers.js';
 
 // Conversation tools (agent config)
 export {
   createConversationTools,
   conversationContinuityPrompt,
-} from './conversation-tools';
+} from './conversation-tools.js';

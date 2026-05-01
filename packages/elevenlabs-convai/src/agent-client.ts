@@ -3,7 +3,7 @@
 // CRUD operations for agents via the ElevenLabs API.
 // No project-specific imports — pass config and API key at call site.
 
-import type { ConvAIAgentConfig, ElevenLabsAgentConfig, ConvAITool } from './types';
+import type { ConvAIAgentConfig, ElevenLabsAgentConfig, ConvAITool } from './types.js';
 
 const ELEVENLABS_API = 'https://api.elevenlabs.io/v1/convai';
 
