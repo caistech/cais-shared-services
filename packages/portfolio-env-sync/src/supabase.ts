@@ -128,6 +128,64 @@ export class SupabaseManagementClient {
 
     throw new Error(`Unknown from_supabase kind: ${kind}`);
   }
+
+  /**
+   * Read the live Supabase Auth config for a project. Returns the full
+   * /v1/projects/<ref>/config/auth response — caller picks which fields
+   * to compare/diff.
+   */
+  async getAuthConfig(ref: string): Promise<Record<string, unknown>> {
+    const url = `${SUPABASE_API}/v1/projects/${encodeURIComponent(ref)}/config/auth`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${this.token}` },
+    });
+    if (res.status === 401 || res.status === 403) {
+      throw new SupabaseAuthError(
+        `SUPABASE_ACCESS_TOKEN rejected (${res.status}) — check token scope`
+      );
+    }
+    if (res.status === 404) {
+      throw new Error(`Supabase project '${ref}' not found`);
+    }
+    if (!res.ok) {
+      const body = await safeText(res);
+      throw new Error(
+        `Supabase auth-config GET ${res.status} for ${ref}: ${body.slice(0, 200)}`
+      );
+    }
+    return (await res.json()) as Record<string, unknown>;
+  }
+
+  /**
+   * PATCH the Supabase Auth config for a project. Only the fields in
+   * `body` are changed; other Auth config fields are untouched.
+   */
+  async patchAuthConfig(
+    ref: string,
+    body: Record<string, unknown>
+  ): Promise<Record<string, unknown>> {
+    const url = `${SUPABASE_API}/v1/projects/${encodeURIComponent(ref)}/config/auth`;
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    if (res.status === 401 || res.status === 403) {
+      throw new SupabaseAuthError(
+        `SUPABASE_ACCESS_TOKEN rejected (${res.status})`
+      );
+    }
+    if (!res.ok) {
+      const text = await safeText(res);
+      throw new Error(
+        `Supabase auth-config PATCH ${res.status} for ${ref}: ${text.slice(0, 300)}`
+      );
+    }
+    return (await res.json()) as Record<string, unknown>;
+  }
 }
 
 async function safeText(res: Response): Promise<string> {

@@ -31,6 +31,30 @@ export interface EnvBinding {
   from_supabase?: "url" | "anon_key" | "service_role_key";
 }
 
+/**
+ * Supabase Auth configuration for a project. Optional. When present,
+ * `--apply` PATCHes these fields on the project's Supabase Auth config
+ * via `/v1/projects/<ref>/config/auth`.
+ *
+ * All fields are optional; only declared fields are applied. Other Auth
+ * config fields on Supabase are left untouched.
+ */
+export interface AuthConfig {
+  /** Supabase Auth Site URL — where magic links and OAuth redirect after
+   * the auth flow completes. Must match the project's deployed domain. */
+  site_url?: string;
+  /** Allowed redirect URLs (incl. wildcards). Translated to Supabase's
+   * comma-joined `uri_allow_list`. */
+  redirect_urls?: string[];
+  /** Auth emails per hour per IP. Supabase free SMTP: typical ceiling 4.
+   * Setting too low (e.g. 2) silently blocks magic-link retries. */
+  rate_limit_email_sent?: number;
+  /** OTP / magic-link expiry in seconds. */
+  mailer_otp_exp?: number;
+  /** OTP digit length. */
+  mailer_otp_length?: number;
+}
+
 /** A single project's manifest entry. */
 export interface ProjectConfig {
   name: string;
@@ -41,6 +65,9 @@ export interface ProjectConfig {
   inherit_shared?: string[];
   /** Project-specific env vars. */
   envs?: Record<string, EnvBinding>;
+  /** Optional. Supabase Auth config to push when --apply runs. Requires
+   * supabase_project_ref to be set. */
+  auth_config?: AuthConfig;
 }
 
 /**
@@ -103,6 +130,13 @@ export interface ProjectApplyResult {
   vercel_project_id: string;
   actions: ApplyAction[];
 }
+
+/** Result of applying Supabase Auth config to one project. */
+export type AuthApplyAction =
+  | { kind: "no_change"; reason: string }
+  | { kind: "patched"; fields: string[] }
+  | { kind: "skipped"; reason: string }
+  | { kind: "error"; error: string };
 
 /** Result of auditing one env var on one project. */
 export type EnvStatus =

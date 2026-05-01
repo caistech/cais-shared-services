@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parse as parseYaml } from "yaml";
 import type {
+  AuthConfig,
   EnvBinding,
   Manifest,
   ProjectConfig,
@@ -148,7 +149,64 @@ function validateProject(raw: unknown, idx: number): ProjectConfig {
     result.envs = validateBindings(`projects[${idx}].envs`, p.envs);
   }
 
+  if (p.auth_config !== undefined) {
+    result.auth_config = validateAuthConfig(
+      `projects[${idx}] (${p.name}).auth_config`,
+      p.auth_config
+    );
+  }
+
   return result;
+}
+
+function validateAuthConfig(context: string, raw: unknown): AuthConfig {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error(`${context}: must be a mapping`);
+  }
+  const a = raw as Record<string, unknown>;
+  const out: AuthConfig = {};
+
+  if (a.site_url !== undefined) {
+    if (typeof a.site_url !== "string" || !a.site_url) {
+      throw new Error(`${context}.site_url: must be a non-empty string`);
+    }
+    out.site_url = a.site_url;
+  }
+  if (a.redirect_urls !== undefined) {
+    if (!Array.isArray(a.redirect_urls)) {
+      throw new Error(`${context}.redirect_urls: must be a list of strings`);
+    }
+    const urls = a.redirect_urls.filter(
+      (u): u is string => typeof u === "string" && u.length > 0
+    );
+    if (urls.length !== a.redirect_urls.length) {
+      throw new Error(`${context}.redirect_urls: all entries must be strings`);
+    }
+    out.redirect_urls = urls;
+  }
+  if (a.rate_limit_email_sent !== undefined) {
+    if (typeof a.rate_limit_email_sent !== "number" || a.rate_limit_email_sent < 0) {
+      throw new Error(`${context}.rate_limit_email_sent: must be a non-negative number`);
+    }
+    out.rate_limit_email_sent = a.rate_limit_email_sent;
+  }
+  if (a.mailer_otp_exp !== undefined) {
+    if (typeof a.mailer_otp_exp !== "number" || a.mailer_otp_exp < 0) {
+      throw new Error(`${context}.mailer_otp_exp: must be a non-negative number (seconds)`);
+    }
+    out.mailer_otp_exp = a.mailer_otp_exp;
+  }
+  if (a.mailer_otp_length !== undefined) {
+    if (typeof a.mailer_otp_length !== "number" || a.mailer_otp_length < 4) {
+      throw new Error(`${context}.mailer_otp_length: must be a number ≥ 4`);
+    }
+    out.mailer_otp_length = a.mailer_otp_length;
+  }
+
+  if (Object.keys(out).length === 0) {
+    throw new Error(`${context}: at least one field must be specified`);
+  }
+  return out;
 }
 
 function validateBindings(

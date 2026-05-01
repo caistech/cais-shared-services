@@ -24,10 +24,12 @@ import { loadManifest } from "./manifest.js";
 import { VercelClient, VercelAuthError } from "./vercel.js";
 import { SupabaseManagementClient, SupabaseAuthError } from "./supabase.js";
 import { applyProject } from "./apply.js";
+import { applyAuthConfig } from "./auth.js";
 import { auditProject, summarise, type ProjectSummary } from "./diff.js";
 import type {
   ApplyAction,
   AuditRow,
+  AuthApplyAction,
   ProjectApplyResult,
   ProjectAudit,
 } from "./types.js";
@@ -205,15 +207,35 @@ async function main(argv: readonly string[]): Promise<number> {
     }
   }
 
+  // Apply Supabase Auth config for any project that declares auth_config:
+  const authResults: { project: string; action: AuthApplyAction }[] = [];
+  for (const project of projects) {
+    if (!project.auth_config) continue;
+    try {
+      const action = await applyAuthConfig(project, supabaseFactory);
+      authResults.push({ project: project.name, action });
+    } catch (err) {
+      if (err instanceof VercelAuthError || err instanceof SupabaseAuthError) {
+        process.stderr.write(`${err.message}\n`);
+        return 2;
+      }
+      throw err;
+    }
+  }
+
   if (args.json) {
     process.stdout.write(
-      JSON.stringify({ audits, applyResults }, null, 2) + "\n"
+      JSON.stringify({ audits, applyResults, authResults }, null, 2) + "\n"
     );
   } else {
     renderApplyPretty(applyResults);
+    if (authResults.length > 0) renderAuthApplyPretty(authResults);
   }
 
-  return hasApplyErrors(applyResults) ? 1 : 0;
+  const hasAnyErr = hasApplyErrors(applyResults) || authResults.some(
+    (r) => r.action.kind === "error"
+  );
+  return hasAnyErr ? 1 : 0;
 }
 
 function hasAuditDrift(audits: ProjectAudit[]): boolean {
@@ -312,6 +334,47 @@ function formatRow(row: AuditRow): string {
     case "extra":
       return `  · ${key} (extra: ${row.status.present_in.join(", ")})\n`;
   }
+}
+
+function renderAuthApplyPretty(
+  results: { project: string; action: AuthApplyAction }[]
+): void {
+  const out = process.stdout;
+  out.write(`\nApplying Supabase Auth config\n`);
+  out.write(`${"─".repeat(60)}\n\n`);
+
+  let patched = 0;
+  let unchanged = 0;
+  let skipped = 0;
+  let errored = 0;
+
+  for (const r of results) {
+    out.write(`${r.project}\n`);
+    switch (r.action.kind) {
+      case "patched":
+        out.write(`  ~ patched: ${r.action.fields.join(", ")}\n`);
+        patched++;
+        break;
+      case "no_change":
+        out.write(`  · ${r.action.reason}\n`);
+        unchanged++;
+        break;
+      case "skipped":
+        out.write(`  · skipped: ${r.action.reason}\n`);
+        skipped++;
+        break;
+      case "error":
+        out.write(`  ✗ ERROR: ${r.action.error}\n`);
+        errored++;
+        break;
+    }
+    out.write("\n");
+  }
+
+  out.write(`${"─".repeat(60)}\n`);
+  out.write(
+    `Auth config: ${patched} patched, ${unchanged} unchanged, ${skipped} skipped, ${errored} errored\n`
+  );
 }
 
 function formatAction(action: ApplyAction): string {

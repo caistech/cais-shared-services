@@ -193,6 +193,7 @@ projects:
 
   - name: hair-stylist-ai
     vercel_project_id: "prj_sJ6UwGIaO05WnortzlLP5cIx9Azi"
+    supabase_project_ref: "pkzbpzzgrxjebdmwfsmg"
     inherit_shared:
       - PLATFORM_TRUST_SUPABASE_URL
       - PLATFORM_TRUST_SERVICE_KEY
@@ -204,6 +205,17 @@ projects:
       NEXT_PUBLIC_SUPABASE_ANON_KEY: { from_supabase: "anon_key" }
       SUPABASE_SERVICE_ROLE_KEY: { from_supabase: "service_role_key" }
       NEXT_PUBLIC_APP_URL: "https://hair-stylist-ai-corporate-ai-solutions.vercel.app"
+    auth_config:
+      site_url: "https://hair-stylist-ai-corporate-ai-solutions.vercel.app"
+      redirect_urls:
+        - "https://hair-stylist-ai-corporate-ai-solutions.vercel.app/api/auth/callback"
+        - "https://*-corporate-ai-solutions.vercel.app/api/auth/callback"
+        - "http://localhost:3000/api/auth/callback"
+      # Default of 2/hour was burning users on a 3rd magic-link retry.
+      # 30/hour matches Supabase Pro defaults; safe ceiling for testing.
+      rate_limit_email_sent: 30
+      mailer_otp_exp: 3600
+      mailer_otp_length: 8
 
 # -----------------------------------------------------------------------------
 # Vercel projects in the Corporate AI Solutions team that are NOT in the
