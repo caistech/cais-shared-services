@@ -1,0 +1,31 @@
+{
+  "name": "@caistech/sanctions-screen",
+  "version": "0.2.0",
+  "description": "Multi-list sanctions screening: OFAC SDN, UN consolidated, AU DFAT, UK HM Treasury, EU. Provider pattern with built-in fetchers + caching + fuzzy name matching. Used by F2K CMPP G6 and portfolio-wide compliance.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "files": [
+    "dist/"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/sanctions-screen"
+  },
+  "license": "PRIVATE",
+  "type": "module"
+}

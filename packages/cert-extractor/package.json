@@ -1,0 +1,28 @@
+{
+  "name": "@caistech/cert-extractor",
+  "version": "0.1.0",
+  "description": "OCR + structured entity extraction for certificates and licences (ISO 9001, business licences, CodeMark, JAS-ANZ, mill certs, test reports). Bilingual original + EN translation. Framework-agnostic — inject any vision-capable LLM.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "files": [
+    "dist/"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/cert-extractor"
+  },
+  "license": "PRIVATE",
+  "type": "module"
+}

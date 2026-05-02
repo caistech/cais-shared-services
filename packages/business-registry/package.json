@@ -1,0 +1,28 @@
+{
+  "name": "@caistech/business-registry",
+  "version": "0.1.0",
+  "description": "Multi-country business registry lookup. Provider pattern — built-in deterministic validators for CN/VN/MY/AU registration number formats; pluggable third-party API providers for live lookup. Used by F2K CMPP G1 identity verification.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "files": [
+    "dist/"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/business-registry"
+  },
+  "license": "PRIVATE",
+  "type": "module"
+}
