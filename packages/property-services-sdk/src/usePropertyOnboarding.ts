@@ -10,9 +10,13 @@
  * Usage in F2K-Checkpoint:
  *   const { derive, assess, profile, assessment, loading } = usePropertyOnboarding({
  *     supabaseUrl: process.env.NEXT_PUBLIC_PROPERTY_SERVICES_URL!,
- *     supabaseAnonKey: process.env.NEXT_PUBLIC_PROPERTY_SERVICES_ANON_KEY!,
+ *     apiKey:      process.env.NEXT_PUBLIC_PROPERTY_SERVICES_API_KEY!,
  *     product: 'f2k',
  *   })
+ *
+ * `apiKey` is issued from the property-services Supabase `api_keys` table
+ * (one per consuming product). Functions are deployed `--no-verify-jwt`
+ * since 2026-04-30, so the Supabase anon key is no longer required.
  *
  *   // In your existing AddressAutocomplete onSelect:
  *   async function handleAddressSelect(address, coords) {

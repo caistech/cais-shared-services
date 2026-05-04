@@ -20,7 +20,7 @@ export type {
 } from './types'
 
 // Client
-export { PropertyServicesClient } from './client'
+export { PropertyServicesClient, PropertyServicesError, createPropertyServices } from './client'
 export type { PropertyServicesConfig } from './client'
 
 // React hook

@@ -44,6 +44,15 @@ shared:
   ANTHROPIC_API_KEY: { ref: "$secret:anthropic_api_key" }
   OPENAI_API_KEY: { ref: "$secret:openai_api_key" }
 
+  # Property-services shared infra (one Supabase project + edge functions
+  # for property intelligence across F2K, mmcbuild, deal-findrs).
+  # As of 2026-04-30 the /derive and /assess functions are deployed
+  # `--no-verify-jwt` and require an X-API-Key (issued per-consumer from
+  # the property-services Supabase api_keys table). The anon key is kept
+  # in shared for transition; new consumers should rely on apiKey only.
+  NEXT_PUBLIC_PROPERTY_SERVICES_URL: "https://qppddipgixhinprliyxh.supabase.co"
+  NEXT_PUBLIC_PROPERTY_SERVICES_ANON_KEY: { ref: "$secret:property_services_anon_key" }
+
 # -----------------------------------------------------------------------------
 # Projects currently managed by the @caistech hub workflow.
 # Slugs match Vercel project names; inherit_shared lists which shared keys
@@ -58,11 +67,14 @@ projects:
       - PLATFORM_TRUST_SERVICE_KEY
       - GITHUB_PACKAGES_TOKEN
       - ANTHROPIC_API_KEY
+      - NEXT_PUBLIC_PROPERTY_SERVICES_URL
+      - NEXT_PUBLIC_PROPERTY_SERVICES_ANON_KEY
     envs:
       PLATFORM_TRUST_PROJECT_ID: { ref: "$secret:platform_trust_project_id_mmcbuild" }
       NEXT_PUBLIC_SUPABASE_URL: { from_supabase: "url" }
       NEXT_PUBLIC_SUPABASE_ANON_KEY: { from_supabase: "anon_key" }
       SUPABASE_SERVICE_ROLE_KEY: { from_supabase: "service_role_key" }
+      NEXT_PUBLIC_PROPERTY_SERVICES_API_KEY: { ref: "$secret:property_services_api_key_mmcbuild" }
 
   - name: deal-findrs
     vercel_project_id: "prj_B0pKJM1fTAD5FtbZudh4kUEhaqQM"
@@ -70,8 +82,11 @@ projects:
       - PLATFORM_TRUST_SUPABASE_URL
       - PLATFORM_TRUST_SERVICE_KEY
       - GITHUB_PACKAGES_TOKEN
+      - NEXT_PUBLIC_PROPERTY_SERVICES_URL
+      - NEXT_PUBLIC_PROPERTY_SERVICES_ANON_KEY
     envs:
       PLATFORM_TRUST_PROJECT_ID: { ref: "$secret:platform_trust_project_id_deal_findrs" }
+      NEXT_PUBLIC_PROPERTY_SERVICES_API_KEY: { ref: "$secret:property_services_api_key_deal_findrs" }
 
   - name: f2k-checkpoint-new
     vercel_project_id: "prj_XPELCzoIwOY5NoHGJxd4Ah6w59G9"
@@ -80,12 +95,15 @@ projects:
       - PLATFORM_TRUST_SERVICE_KEY
       - GITHUB_PACKAGES_TOKEN
       - ANTHROPIC_API_KEY
+      - NEXT_PUBLIC_PROPERTY_SERVICES_URL
+      - NEXT_PUBLIC_PROPERTY_SERVICES_ANON_KEY
     envs:
       PLATFORM_TRUST_PROJECT_ID: "b3cbd7d5-f3af-4ae1-acbe-c905235cd676"
       NEXT_PUBLIC_SUPABASE_URL: { from_supabase: "url" }
       NEXT_PUBLIC_SUPABASE_ANON_KEY: { from_supabase: "anon_key" }
       SUPABASE_SERVICE_ROLE_KEY: { from_supabase: "service_role_key" }
       STOREFRONT_MCP_TOKEN: { ref: "$secret:storefront_mcp_token" }
+      NEXT_PUBLIC_PROPERTY_SERVICES_API_KEY: { ref: "$secret:property_services_api_key_f2k_checkpoint" }
 
   - name: property-services
     vercel_project_id: "prj_bzS0HfyExXQXMsQAK9bH6SkrwQb0"

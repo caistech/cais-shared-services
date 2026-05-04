@@ -7,10 +7,33 @@ import type { PropertyProfile, SuitabilityAssessment, DeriveResponse, AssessResp
 export interface PropertyServicesConfig {
   /** Supabase project URL for property-services */
   supabaseUrl: string
-  /** Supabase anon key */
-  supabaseAnonKey: string
+  /**
+   * Property-services API key (issued from the property-services Supabase
+   * `api_keys` table). Required for any function deployed with
+   * `--no-verify-jwt` (i.e. all functions from 2026-04-30 onward). Sent as
+   * the `X-API-Key` header.
+   */
+  apiKey?: string
+  /**
+   * Supabase anon key. Optional — only needed for legacy deployments where
+   * `verify_jwt = true`. From the 2026-04-30 release onward, functions are
+   * deployed `--no-verify-jwt` and authenticate via `apiKey` instead.
+   * Kept for backwards compatibility during transition.
+   */
+  supabaseAnonKey?: string
   /** Which product is calling (for tailored AI assessment) */
   product?: 'f2k' | 'dealfindrs' | 'mmcbuild'
+}
+
+export class PropertyServicesError extends Error {
+  status: number
+  body: unknown
+  constructor(status: number, message: string, body: unknown) {
+    super(message)
+    this.name = 'PropertyServicesError'
+    this.status = status
+    this.body = body
+  }
 }
 
 export class PropertyServicesClient {
@@ -21,11 +44,18 @@ export class PropertyServicesClient {
   constructor(config: PropertyServicesConfig) {
     this.baseUrl = `${config.supabaseUrl}/functions/v1`
     this.product = config.product
-    this.headers = {
+
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${config.supabaseAnonKey}`,
-      apikey: config.supabaseAnonKey,
     }
+    if (config.apiKey) {
+      headers['X-API-Key'] = config.apiKey
+    }
+    if (config.supabaseAnonKey) {
+      headers['Authorization'] = `Bearer ${config.supabaseAnonKey}`
+      headers['apikey'] = config.supabaseAnonKey
+    }
+    this.headers = headers
   }
 
   /**
@@ -40,12 +70,7 @@ export class PropertyServicesClient {
     state?: string
     postcode?: string
   }): Promise<DeriveResponse> {
-    const res = await fetch(`${this.baseUrl}/derive`, {
-      method: 'POST',
-      headers: this.headers,
-      body: JSON.stringify(params),
-    })
-    return res.json()
+    return this.request<DeriveResponse>('/derive', params)
   }
 
   /**
@@ -56,16 +81,42 @@ export class PropertyServicesClient {
     profile?: PropertyProfile
     useCase: string
   }): Promise<AssessResponse> {
-    const res = await fetch(`${this.baseUrl}/assess`, {
+    return this.request<AssessResponse>('/assess', {
+      ...params,
+      product: this.product,
+    })
+  }
+
+  private async request<T>(path: string, body: unknown): Promise<T> {
+    const res = await fetch(`${this.baseUrl}${path}`, {
       method: 'POST',
       headers: this.headers,
-      body: JSON.stringify({
-        ...params,
-        product: this.product,
-      }),
+      body: JSON.stringify(body),
     })
-    return res.json()
+
+    if (!res.ok) {
+      let parsed: unknown = null
+      let raw = ''
+      try {
+        raw = await res.text()
+        parsed = raw ? JSON.parse(raw) : null
+      } catch {
+        parsed = raw
+      }
+      const message = extractMessage(parsed) ?? `${res.status} ${res.statusText}`
+      throw new PropertyServicesError(res.status, message, parsed)
+    }
+
+    return (await res.json()) as T
   }
+}
+
+function extractMessage(body: unknown): string | null {
+  if (!body || typeof body !== 'object') return null
+  const b = body as Record<string, unknown>
+  if (typeof b.message === 'string') return b.message
+  if (typeof b.error === 'string') return b.error
+  return null
 }
 
 /**
