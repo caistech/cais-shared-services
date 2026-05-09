@@ -14,3 +14,5 @@ export type {
   MapboxContext,
   GeocodedAddress,
 } from './mapbox-types';
+
+export type { MapboxStaticStyle, StaticMapUrlOptions } from './mapbox';
