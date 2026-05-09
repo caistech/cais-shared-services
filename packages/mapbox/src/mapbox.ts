@@ -125,21 +125,59 @@ export function featureToGeocodedAddress(
   };
 }
 
+export type MapboxStaticStyle =
+  | "streets-v12"
+  | "satellite-v9"
+  | "satellite-streets-v12";
+
+export interface StaticMapUrlOptions {
+  width?: number;
+  height?: number;
+  zoom?: number;
+  style?: MapboxStaticStyle;
+  /**
+   * When true, request `@2x` retina tiles. Default true (preserves the
+   * pre-0.2.0 behaviour). Mapbox Static Images caps each dimension at 1280px;
+   * with retina enabled, the request is internally doubled, so the helper
+   * throws if `width * 2 > 1280` or `height * 2 > 1280` to surface 422s
+   * before they happen at runtime.
+   */
+  retina?: boolean;
+  /** Optional explicit token override (otherwise falls back to env). */
+  token?: string;
+}
+
 /**
  * Generate a Mapbox Static Map URL for a given lat/lng.
- * Uses the server-side secret token if available, falls back to public.
+ * Token resolution order: explicit `options.token` → `MAPBOX_SECRET_TOKEN`
+ * (server-only) → `NEXT_PUBLIC_MAPBOX_TOKEN`. Returns "" if no token resolves.
+ *
+ * Note: any token rendered into an `<img src>` ends up in HTML output and is
+ * NOT secret on the wire. Prefer URL-scope-restricting the public token in the
+ * Mapbox dashboard rather than relying on the secret-token path for image use.
  */
 export function getStaticMapUrl(
   lat: number,
   lng: number,
-  options?: { width?: number; height?: number; zoom?: number }
+  options?: StaticMapUrlOptions
 ): string {
-  const token = process.env.MAPBOX_SECRET_TOKEN || MAPBOX_TOKEN;
+  const token =
+    options?.token ?? process.env.MAPBOX_SECRET_TOKEN ?? MAPBOX_TOKEN;
   if (!token) return "";
 
   const w = options?.width ?? 600;
   const h = options?.height ?? 300;
   const z = options?.zoom ?? 15;
+  const style = options?.style ?? "streets-v12";
+  const retina = options?.retina ?? true;
 
-  return `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+ef4444(${lng},${lat})/${lng},${lat},${z},0/${w}x${h}@2x?access_token=${token}`;
+  if (retina && (w * 2 > 1280 || h * 2 > 1280)) {
+    throw new Error(
+      `getStaticMapUrl: retina=true requires width*2 ≤ 1280 and height*2 ≤ 1280 (got ${w}x${h}); pass retina:false or shrink dimensions.`
+    );
+  }
+
+  const retinaSuffix = retina ? "@2x" : "";
+
+  return `https://api.mapbox.com/styles/v1/mapbox/${style}/static/pin-s+ef4444(${lng},${lat})/${lng},${lat},${z},0/${w}x${h}${retinaSuffix}?access_token=${token}`;
 }
