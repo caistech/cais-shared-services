@@ -171,26 +171,44 @@ function createGHLClient(apiKey, locationId) {
      * Create a new contact (lead) in GHL.
      *
      * @param {object} data
-     * @param {string} data.name - Full name (will be split into first/last)
+     * @param {string} [data.name] - Full name (will be split). Use this OR firstName/lastName.
+     * @param {string} [data.firstName]
+     * @param {string} [data.lastName]
      * @param {string} [data.email]
      * @param {string} [data.phone]
      * @param {string} [data.company]
      * @param {string} [data.source]
+     * @param {string[]} [data.tags] - Tag names to attach on creation.
+     * @param {Array<{id?: string, key?: string, value: any}>} [data.customFields]
+     *   Custom fields. Each item must have `id` (GHL field ID) OR `key`
+     *   (field name as it appears in GHL admin), plus `value`.
      * @returns {Promise<Contact>}
      */
     async createContact(data) {
-      if (!data || !data.name) throw new Error('Contact name is required');
+      if (!data) throw new Error('Contact data is required');
+      if (!data.name && !data.firstName && !data.lastName && !data.email) {
+        throw new Error('Contact name or email is required');
+      }
 
-      const nameParts = data.name.trim().split(/\s+/);
-      const payload = {
-        firstName: nameParts[0] || '',
-        lastName: nameParts.slice(1).join(' ') || '',
-        locationId,
-      };
+      const payload = { locationId };
+      if (data.name) {
+        const nameParts = data.name.trim().split(/\s+/);
+        payload.firstName = nameParts[0] || '';
+        payload.lastName = nameParts.slice(1).join(' ') || '';
+      } else {
+        if (data.firstName) payload.firstName = data.firstName;
+        if (data.lastName) payload.lastName = data.lastName;
+      }
       if (data.email) payload.email = data.email;
       if (data.phone) payload.phone = data.phone;
       if (data.company) payload.companyName = data.company;
       if (data.source) payload.source = data.source;
+      if (Array.isArray(data.tags) && data.tags.length > 0) {
+        payload.tags = data.tags;
+      }
+      if (Array.isArray(data.customFields) && data.customFields.length > 0) {
+        payload.customFields = data.customFields;
+      }
 
       const resp = await ghlFetch(apiKey, 'POST', '/contacts/', { body: payload });
       return resp.contact || resp;
@@ -200,7 +218,8 @@ function createGHLClient(apiKey, locationId) {
      * Update an existing contact.
      *
      * @param {string} contactId
-     * @param {object} data - Fields to update (firstName, lastName, email, phone, etc.)
+     * @param {object} data - Fields to update (firstName, lastName, email, phone,
+     *   tags, customFields, etc.)
      * @returns {Promise<Contact>}
      */
     async updateContact(contactId, data) {
@@ -209,6 +228,104 @@ function createGHLClient(apiKey, locationId) {
 
       const resp = await ghlFetch(apiKey, 'PUT', `/contacts/${contactId}`, { body: data });
       return resp.contact || resp;
+    },
+
+    /**
+     * Upsert a contact by email — looks up by email first, updates if found,
+     * creates if not. Idempotent for backfills and registration side-effects.
+     *
+     * @param {object} data - Same shape as createContact
+     * @returns {Promise<{contact: Contact, created: boolean}>}
+     */
+    async upsertContact(data) {
+      if (!data || !data.email) {
+        throw new Error('email is required for upsertContact');
+      }
+      // Search by email — GHL's /contacts/search/duplicate endpoint matches
+      // exact email. Fall back to query search if duplicate-search 404s.
+      let existing = null;
+      try {
+        const dup = await ghlFetch(apiKey, 'GET', '/contacts/search/duplicate', {
+          params: { locationId, email: data.email },
+        });
+        if (dup && dup.contact && dup.contact.id) {
+          existing = dup.contact;
+        }
+      } catch (err) {
+        if (!(err instanceof GHLError) || (err.status !== 404 && err.status !== 400)) {
+          throw err;
+        }
+      }
+      if (!existing) {
+        // Fallback: text search
+        const list = await ghlFetch(apiKey, 'GET', '/contacts/', {
+          params: { locationId, query: data.email, limit: 5 },
+        });
+        const contacts = list.contacts || [];
+        existing = contacts.find(
+          (c) => c.email && c.email.toLowerCase() === data.email.toLowerCase()
+        );
+      }
+
+      if (existing) {
+        const updates = {};
+        if (data.firstName !== undefined) updates.firstName = data.firstName;
+        if (data.lastName !== undefined) updates.lastName = data.lastName;
+        else if (data.name) {
+          const parts = data.name.trim().split(/\s+/);
+          updates.firstName = parts[0] || '';
+          updates.lastName = parts.slice(1).join(' ') || '';
+        }
+        if (data.phone !== undefined) updates.phone = data.phone;
+        if (data.source !== undefined) updates.source = data.source;
+        if (Array.isArray(data.tags) && data.tags.length > 0) {
+          // GHL update with `tags` array MERGES (adds without removing existing)
+          updates.tags = data.tags;
+        }
+        if (Array.isArray(data.customFields) && data.customFields.length > 0) {
+          updates.customFields = data.customFields;
+        }
+        const updated = await this.updateContact(existing.id, updates);
+        return { contact: updated, created: false };
+      }
+      const created = await this.createContact(data);
+      return { contact: created, created: true };
+    },
+
+    /**
+     * Add tags to a contact (additive — does not remove existing tags).
+     *
+     * @param {string} contactId
+     * @param {string[]} tags
+     * @returns {Promise<{tags: string[]}>}
+     */
+    async addTags(contactId, tags) {
+      if (!contactId) throw new Error('contactId is required');
+      if (!Array.isArray(tags) || tags.length === 0) {
+        throw new Error('tags must be a non-empty array');
+      }
+      const resp = await ghlFetch(apiKey, 'POST', `/contacts/${contactId}/tags`, {
+        body: { tags },
+      });
+      return resp || {};
+    },
+
+    /**
+     * Remove tags from a contact.
+     *
+     * @param {string} contactId
+     * @param {string[]} tags
+     * @returns {Promise<{tags: string[]}>}
+     */
+    async removeTags(contactId, tags) {
+      if (!contactId) throw new Error('contactId is required');
+      if (!Array.isArray(tags) || tags.length === 0) {
+        throw new Error('tags must be a non-empty array');
+      }
+      const resp = await ghlFetch(apiKey, 'DELETE', `/contacts/${contactId}/tags`, {
+        body: { tags },
+      });
+      return resp || {};
     },
 
     /**
