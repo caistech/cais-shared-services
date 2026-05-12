@@ -1,0 +1,48 @@
+{
+  "name": "@caistech/site-intelligence",
+  "version": "0.1.0",
+  "description": "Australian site intelligence — NatHERS climate zone, AS4055 wind region, LGA/council from lat/lng via GeoJSON point-in-polygon. Storage-agnostic core + optional Supabase Storage loader.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./supabase-loader": {
+      "types": "./dist/supabase-loader.d.ts",
+      "default": "./dist/supabase-loader.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0",
+    "@supabase/supabase-js": ">=2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@supabase/supabase-js": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "vitest": "^2.0.0"
+  },
+  "files": [
+    "dist/"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/site-intelligence"
+  },
+  "license": "PRIVATE",
+  "type": "module"
+}
