@@ -2,8 +2,8 @@
  * Derive council/LGA (Local Government Area) from lat/lng via GeoJSON point-in-polygon.
  */
 
-import { findFeatureContainingPoint } from "./geo-utils";
-import type { CachedLoader } from "./loader";
+import { findFeatureContainingPoint } from "./geo-utils.js";
+import type { CachedLoader } from "./loader.js";
 
 export const COUNCIL_DATASET = "council_clean.geojson";
 

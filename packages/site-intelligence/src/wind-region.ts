@@ -3,8 +3,8 @@
  * GeoJSON-only — no fallback (wind region cannot be approximated from lat alone).
  */
 
-import { findFeatureContainingPoint } from "./geo-utils";
-import type { CachedLoader } from "./loader";
+import { findFeatureContainingPoint } from "./geo-utils.js";
+import type { CachedLoader } from "./loader.js";
 
 export const WIND_DATASET = "wind_regions.geojson";
 

@@ -10,8 +10,8 @@
  * to the same canonical number.
  */
 
-import { findFeatureContainingPoint } from "./geo-utils";
-import type { CachedLoader } from "./loader";
+import { findFeatureContainingPoint } from "./geo-utils.js";
+import type { CachedLoader } from "./loader.js";
 
 export const CLIMATE_DATASET = "climate_clean.geojson";
 

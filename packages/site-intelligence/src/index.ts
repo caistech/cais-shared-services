@@ -6,10 +6,10 @@
  * See ./supabase-loader for a Supabase Storage convenience adapter.
  */
 
-import { CachedLoader, type GeoJSONLoader } from "./loader";
-import { deriveClimateZone } from "./climate";
-import { deriveWindRegion } from "./wind-region";
-import { deriveCouncil } from "./council";
+import { CachedLoader, type GeoJSONLoader } from "./loader.js";
+import { deriveClimateZone } from "./climate.js";
+import { deriveWindRegion } from "./wind-region.js";
+import { deriveCouncil } from "./council.js";
 
 export interface SiteIntelResult {
   climate_zone: number | null;
@@ -71,21 +71,21 @@ export {
   type GeoJSONFeature,
   type GeoJSONFeatureCollection,
   type Point,
-} from "./geo-utils";
-export { CachedLoader, type GeoJSONLoader } from "./loader";
+} from "./geo-utils.js";
+export { CachedLoader, type GeoJSONLoader } from "./loader.js";
 export {
   deriveClimateZone,
   deriveClimateZoneFromLatitude,
   CLIMATE_DATASET,
   type ClimateResult,
-} from "./climate";
+} from "./climate.js";
 export {
   deriveWindRegion,
   WIND_DATASET,
   type WindResult,
-} from "./wind-region";
+} from "./wind-region.js";
 export {
   deriveCouncil,
   COUNCIL_DATASET,
   type CouncilResult,
-} from "./council";
+} from "./council.js";

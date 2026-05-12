@@ -6,8 +6,8 @@
  * GeoJSONLoader to createSiteIntel.
  */
 
-import type { GeoJSONLoader } from "./loader";
-import type { GeoJSONFeatureCollection } from "./geo-utils";
+import type { GeoJSONLoader } from "./loader.js";
+import type { GeoJSONFeatureCollection } from "./geo-utils.js";
 
 /**
  * Minimal Supabase client shape — accepts the real `@supabase/supabase-js`

@@ -4,11 +4,11 @@ import {
   pointInMultiPolygon,
   findFeatureContainingPoint,
   type GeoJSONFeatureCollection,
-} from "./geo-utils";
-import { CachedLoader, type GeoJSONLoader } from "./loader";
-import { deriveClimateZoneFromLatitude, deriveClimateZone } from "./climate";
-import { deriveCouncil } from "./council";
-import { deriveWindRegion } from "./wind-region";
+} from "./geo-utils.js";
+import { CachedLoader, type GeoJSONLoader } from "./loader.js";
+import { deriveClimateZoneFromLatitude, deriveClimateZone } from "./climate.js";
+import { deriveCouncil } from "./council.js";
+import { deriveWindRegion } from "./wind-region.js";
 
 // Simple square polygon around Sydney CBD for testing
 // Coords roughly: lng [151.0, 151.4], lat [-34.0, -33.7]

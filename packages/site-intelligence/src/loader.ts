@@ -9,7 +9,7 @@
  * for Supabase Storage. Use a different loader for fs, fetch, S3, etc.
  */
 
-import type { GeoJSONFeatureCollection } from "./geo-utils";
+import type { GeoJSONFeatureCollection } from "./geo-utils.js";
 
 export type GeoJSONLoader = (datasetName: string) => Promise<GeoJSONFeatureCollection | null>;
 
