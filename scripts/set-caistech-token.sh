@@ -45,6 +45,9 @@ REPOS=(
   gbta-openclaw
   easy-claude-code
   HairStylistAI
+  investorpilot
+  PartnerPilot
+  omq-outreach
 )
 
 # Map GitHub repo folder → Vercel project slug (they differ in several cases)
@@ -64,6 +67,9 @@ declare -A VERCEL_SLUG=(
   [gbta-openclaw]=gbta-openclaw
   [easy-claude-code]=easy-claude-code
   [HairStylistAI]=hair-stylist-ai
+  [investorpilot]=investor-pilot
+  [PartnerPilot]=partner-pilot
+  [omq-outreach]=omq-outreach
 )
 
 # --- Step 1: write .env.local per repo ----------------------------------------
