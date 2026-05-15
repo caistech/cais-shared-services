@@ -1,0 +1,28 @@
+{
+  "name": "@caistech/ai-client",
+  "version": "0.1.0",
+  "description": "Anthropic SDK + OpenRouter routing helper — consistent Claude client init across the portfolio",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "files": [
+    "dist/"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/ai-client"
+  },
+  "license": "PRIVATE",
+  "type": "module"
+}

@@ -17,6 +17,7 @@ Shared services hub for the Corporate AI Solutions portfolio. npm workspace mono
 | Package | Purpose |
 |---------|---------|
 | `@caistech/openrouter-client` | OpenRouter LLM client with retry + streaming |
+| `@caistech/ai-client` | Anthropic SDK init + OpenRouter routing helper (consistent Claude client across the portfolio) |
 | `@caistech/agents` | Legacy JS: agent provisioning, prompt templates, secure gateway |
 
 **Voice & language**
@@ -34,6 +35,13 @@ Shared services hub for the Corporate AI Solutions portfolio. npm workspace mono
 | `@caistech/mapbox` | Mapbox geocoding + routing client |
 | `@caistech/extractors` | Structured-data extraction primitives |
 | `@caistech/db-schema` | Shared Postgres schema fragments |
+
+**Discovery & enrichment**
+| Package | Purpose |
+|---------|---------|
+| `@caistech/brave-search` | Brave Search API wrapper for prospect discovery and research |
+| `@caistech/hunter-email` | Hunter.io API wrapper — email-finder, domain-search, email-verifier |
+| `@caistech/unipile-channels` | Unipile API wrapper — LinkedIn search/profile/posts/DM/connect, Gmail/Outlook send, hosted OAuth, account management |
 
 **Domain SDKs**
 | Package | Purpose |
