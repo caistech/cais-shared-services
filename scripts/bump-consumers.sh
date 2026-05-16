@@ -7,7 +7,7 @@ BASE=/c/Users/denni/PycharmProjects
 ENTRIES=(
   "MMCBuild|package.json"
   "DealFindrs|package.json"
-  "F2K-Checkpoint-Latest|package.json"
+  "F2K-Checkpoint|package.json"
   "property-services|package.json"
   "platform-trust|package.json"
   "Connexions|package.json"

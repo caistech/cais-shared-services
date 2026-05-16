@@ -32,7 +32,7 @@ TEAM_ID="team_hwN7IFtd2Fo3DCj9C67ZwI1t"  # Corporate AI Solutions
 REPOS=(
   MMCBuild
   DealFindrs
-  F2K-Checkpoint-Latest
+  F2K-Checkpoint
   property-services
   platform-trust
   universal-interviews
@@ -54,7 +54,7 @@ REPOS=(
 declare -A VERCEL_SLUG=(
   [MMCBuild]=mmcbuild
   [DealFindrs]=deal-findrs
-  [F2K-Checkpoint-Latest]=f2k-checkpoint-new
+  [F2K-Checkpoint]=f2k-checkpoint-new
   [property-services]=property-services
   [platform-trust]=platform-trust
   [universal-interviews]=universal-interviews

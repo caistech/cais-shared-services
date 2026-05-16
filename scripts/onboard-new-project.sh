@@ -146,7 +146,7 @@ if [ -n "$SUPABASE_REF" ] && [ -n "${SUPABASE_MANAGEMENT_TOKEN:-}" ]; then
   # Resolve a Resend API key. Prefer env, then sibling .env.local files.
   RESEND_KEY="${RESEND_API_KEY:-}"
   if [ -z "$RESEND_KEY" ]; then
-    for sibling in F2K-Checkpoint-Latest DealFindrs investorpilot PartnerPilot; do
+    for sibling in F2K-Checkpoint DealFindrs investorpilot PartnerPilot; do
       p="$HOME/PycharmProjects/$sibling/.env.local"
       [ -f "$p" ] || continue
       RESEND_KEY=$(grep '^RESEND_API_KEY=' "$p" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'")

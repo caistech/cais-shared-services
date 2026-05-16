@@ -7,7 +7,7 @@ BASE=/c/Users/denni/PycharmProjects
 ENTRIES=(
   "MMCBuild|."
   "DealFindrs|."
-  "F2K-Checkpoint-Latest|."
+  "F2K-Checkpoint|."
   "property-services|."
   "platform-trust|."
   "Connexions|."
