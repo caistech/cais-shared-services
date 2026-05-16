@@ -133,13 +133,17 @@ for repo in "${REPOS[@]}"; do
   slug="${VERCEL_SLUG[$repo]}"
   [ -z "$slug" ] && { echo "  skip $repo (no Vercel slug mapped)"; continue; }
 
-  # Remove any existing entry first (silently — 404 if not present is fine)
+  # Remove any existing entry first (silently — 404 if not present is fine).
+  # `|| true` keeps the script alive under `set -euo pipefail` when grep finds
+  # no existing entry (the common case for a project that's never had the token
+  # set). Without this the loop dies silently after the Step 3 header and the
+  # token never gets propagated for any project that doesn't already have it.
   existing_id=$(curl -sS \
     -H "Authorization: Bearer $VERCEL_TOKEN" \
     "https://api.vercel.com/v9/projects/$slug/env?teamId=$TEAM_ID" 2>/dev/null \
     | grep -oE '"id"[[:space:]]*:[[:space:]]*"[^"]+"[[:space:]]*,[[:space:]]*"key"[[:space:]]*:[[:space:]]*"GITHUB_PACKAGES_TOKEN"' \
     | head -1 \
-    | grep -oE '"[^"]+"' | head -1 | tr -d '"')
+    | grep -oE '"[^"]+"' | head -1 | tr -d '"' || true)
   if [ -n "$existing_id" ]; then
     curl -sS -X DELETE \
       -H "Authorization: Bearer $VERCEL_TOKEN" \
