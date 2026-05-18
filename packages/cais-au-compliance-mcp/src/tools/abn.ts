@@ -59,17 +59,18 @@ export function registerAbnTools(server: McpServer, ctx: ToolContext): void {
     },
     async ({ abn }) => {
       const start = Date.now();
-      if (!ctx.config.abr.guid) {
+      const guid = ctx.credentials.abrGuid ?? ctx.config.abr.guid;
+      if (!guid) {
         await ctx.telemetry.recordCall({
           toolName: "lookup_abn",
           status: "error",
           durationMs: Date.now() - start,
         });
         return buildErrorResult(
-          "ABR GUID not configured on this MCP server. Set ABR_GUID env var, or use validate_abn for offline checksum validation.",
+          "ABR GUID not configured. Send 'X-ABR-Guid' header (hosted MCP) or set ABR_GUID env var, or use validate_abn for offline checksum validation.",
         );
       }
-      const result = await lookupAbn(abn, ctx.config.abr.guid);
+      const result = await lookupAbn(abn, guid);
       const isError = isAbrError(result);
       await ctx.telemetry.recordCall({
         toolName: "lookup_abn",
@@ -102,17 +103,18 @@ export function registerAbnTools(server: McpServer, ctx: ToolContext): void {
     },
     async ({ name, maxResults }) => {
       const start = Date.now();
-      if (!ctx.config.abr.guid) {
+      const guid = ctx.credentials.abrGuid ?? ctx.config.abr.guid;
+      if (!guid) {
         await ctx.telemetry.recordCall({
           toolName: "search_business_by_name",
           status: "error",
           durationMs: Date.now() - start,
         });
         return buildErrorResult(
-          "ABR GUID not configured on this MCP server. Set ABR_GUID env var.",
+          "ABR GUID not configured. Send 'X-ABR-Guid' header (hosted MCP) or set ABR_GUID env var.",
         );
       }
-      const result = await searchByName(name, ctx.config.abr.guid, maxResults ?? 8);
+      const result = await searchByName(name, guid, maxResults ?? 8);
       const isError = !Array.isArray(result) && isAbrError(result);
       await ctx.telemetry.recordCall({
         toolName: "search_business_by_name",

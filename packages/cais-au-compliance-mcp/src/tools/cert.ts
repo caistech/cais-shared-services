@@ -18,7 +18,6 @@ import type { CertType, VisionLlmCaller } from "@caistech/cert-extractor";
 
 import type { ToolContext } from "./types.js";
 import { buildToolResult, buildErrorResult } from "./result.js";
-import { readCredentialsFromEnv } from "../byok.js";
 
 const CERT_TYPES: CertType[] = [
   "iso_9001",
@@ -109,18 +108,18 @@ export function registerCertTools(server: McpServer, ctx: ToolContext): void {
     },
     async ({ image_base64, mime_type, expected_cert_type, source_language, skip_translation }) => {
       const start = Date.now();
-      const creds = readCredentialsFromEnv();
-      if (!creds.anthropicApiKey) {
+      const anthropicKey = ctx.credentials.anthropicApiKey;
+      if (!anthropicKey) {
         await ctx.telemetry.recordCall({
           toolName: "extract_cert",
           status: "error",
           durationMs: Date.now() - start,
         });
         return buildErrorResult(
-          "extract_cert requires an Anthropic API key. Set ANTHROPIC_API_KEY in the MCP session config. Your key runs vision LLM calls on your own credit and is never persisted.",
+          "extract_cert requires an Anthropic API key. Send it as the 'X-Anthropic-Api-Key' HTTP header (hosted MCP) or set ANTHROPIC_API_KEY in the environment (stdio / local dev). Your key runs vision LLM calls on your own credit and is never logged or persisted.",
         );
       }
-      const visionLlm = makeAnthropicVisionCaller(creds.anthropicApiKey);
+      const visionLlm = makeAnthropicVisionCaller(anthropicKey);
       try {
         const result = await extractCert({
           document: { imageBase64: image_base64, mimeType: mime_type },
@@ -128,7 +127,7 @@ export function registerCertTools(server: McpServer, ctx: ToolContext): void {
           sourceLanguage: source_language,
           skipTranslation: skip_translation,
           visionLlm,
-          translateLlm: skip_translation ? undefined : makeAnthropicTextCaller(creds.anthropicApiKey),
+          translateLlm: skip_translation ? undefined : makeAnthropicTextCaller(anthropicKey),
         });
         await ctx.telemetry.recordCall({
           toolName: "extract_cert",

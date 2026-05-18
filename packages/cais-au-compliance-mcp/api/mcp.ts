@@ -18,6 +18,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 // both resolve "../src/server.js" to "../src/server.ts" — the .js extension
 // is the conventional emitted-JS reference even though only .ts exists.
 import { buildServer } from "../src/server.js";
+import { readCredentialsFromHeaders } from "../src/byok.js";
 
 export const config = {
   runtime: "nodejs",
@@ -48,7 +49,8 @@ export default async function handler(
     body = await readJsonBody(req);
   }
 
-  const server = await buildServer();
+  const credentials = readCredentialsFromHeaders(req.headers);
+  const server = await buildServer({ credentials });
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,

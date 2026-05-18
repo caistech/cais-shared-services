@@ -19,23 +19,42 @@ import { registerSanctionsTools } from "./tools/sanctions.js";
 import { registerCertTools } from "./tools/cert.js";
 import { loadConfig } from "./config.js";
 import { createTelemetry } from "./telemetry.js";
+import {
+  mergeCredentials,
+  readCredentialsFromEnv,
+  type SessionCredentials,
+} from "./byok.js";
 
 export const SERVER_NAME = "cais-au-compliance";
 export const SERVER_VERSION = "0.1.0";
 
-export async function buildServer(): Promise<McpServer> {
+export interface BuildServerOptions {
+  /**
+   * Per-request credentials, typically extracted from HTTP headers by the
+   * transport adapter. When provided, take priority over env-var fallback.
+   * Pass undefined for env-only resolution (stdio mode).
+   */
+  credentials?: SessionCredentials;
+}
+
+export async function buildServer(opts: BuildServerOptions = {}): Promise<McpServer> {
   const config = loadConfig();
   const telemetry = createTelemetry(config.telemetry);
+  const credentials = mergeCredentials(
+    opts.credentials ?? { source: "none" },
+    readCredentialsFromEnv(),
+  );
 
   const server = new McpServer({
     name: SERVER_NAME,
     version: SERVER_VERSION,
   });
 
-  registerAbnTools(server, { config, telemetry });
-  registerRegistryTools(server, { config, telemetry });
-  registerSanctionsTools(server, { config, telemetry });
-  registerCertTools(server, { config, telemetry });
+  const ctx = { config, telemetry, credentials };
+  registerAbnTools(server, ctx);
+  registerRegistryTools(server, ctx);
+  registerSanctionsTools(server, ctx);
+  registerCertTools(server, ctx);
 
   return server;
 }
