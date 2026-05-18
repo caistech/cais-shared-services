@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { getServerSupabase, isUuid } from "@/lib/supabase";
-import { sendWelcomeEmail } from "@/lib/email";
+import { sendWelcomeEmail, sendOperatorNotification } from "@/lib/email";
 
 const CONNEXIONS_INTAKE_URL =
   process.env.CONNEXIONS_INTAKE_URL ?? "https://connexions-silk.vercel.app/p/platform-trust-sprint-intake";
@@ -70,8 +70,18 @@ export async function submitInterview(
     return { ok: false, error: "Couldn't save your response. Please try again in a moment." };
   }
 
-  // Fire-and-forget welcome email; don't block the redirect on Resend latency.
+  // Fire-and-forget welcome + operator notification; don't block the redirect
+  // on Resend latency.
   void sendWelcomeEmail(email, { freeText, routing, triggeredByTool });
+  void sendOperatorNotification({
+    installId,
+    respondentEmail: email,
+    routing,
+    triageLabel: triage === "for_someone_else" ? "for someone else" : "for myself",
+    freeText,
+    triggeredByTool,
+    mcp,
+  });
 
   if (routing === "connexions") {
     const params = new URLSearchParams({ source: "cais-mcp-interview", install_id: installId });
