@@ -239,6 +239,19 @@ projects:
       # 1 = effectively no throttle; tighten to 30–60 for production.
       smtp_max_frequency: 1
 
+  - name: lessonslearned
+    vercel_project_id: "prj_f6efDw4g7FfXG0hnKVGR5Mv2202n"
+    supabase_project_ref: "mrufnvmguacvutatdhan"
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
+    envs:
+      PLATFORM_TRUST_PROJECT_ID: { ref: "$secret:platform_trust_project_id_lessonslearned" }
+      NEXT_PUBLIC_SUPABASE_URL: { from_supabase: "url" }
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: { from_supabase: "anon_key" }
+      SUPABASE_SERVICE_ROLE_KEY: { from_supabase: "service_role_key" }
+
 # -----------------------------------------------------------------------------
 # Vercel projects in the Corporate AI Solutions team that are NOT in the
 # bash-script lists. These should be either onboarded properly (added above

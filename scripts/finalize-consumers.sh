@@ -20,6 +20,7 @@ ENTRIES=(
   "gbta-openclaw|."
   "easy-claude-code|apps/frontend"
   "HairStylistAI|."
+  "mmcbuild|."
 )
 
 COMMIT_MSG='chore(deps): bump @caistech/* to compiled-dist versions

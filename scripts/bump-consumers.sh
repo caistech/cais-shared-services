@@ -20,6 +20,7 @@ ENTRIES=(
   "gbta-openclaw|package.json"
   "easy-claude-code|apps/frontend/package.json"
   "HairStylistAI|package.json"
+  "mmcbuild|package.json"
 )
 
 for entry in "${ENTRIES[@]}"; do

@@ -67,7 +67,30 @@ if [ -z "${VERCEL_TOKEN:-}" ]; then
   exit 1
 fi
 
-TEAM="team_hwN7IFtd2Fo3DCj9C67ZwI1t"
+# Vercel team. Defaults to Corporate AI Solutions (CAS) — the original
+# portfolio team. Override via env when onboarding a project on a different
+# team (e.g. mmcbuild moved to its own MMC Build team for blast-radius
+# isolation):
+#   export VERCEL_TEAM_ID="team_DquayrHfy4FCoeViJMWU7fIq"
+#   export VERCEL_TEAM_SLUG="mmc-build"
+TEAM="${VERCEL_TEAM_ID:-team_hwN7IFtd2Fo3DCj9C67ZwI1t}"
+TEAM_SLUG="${VERCEL_TEAM_SLUG:-corporate-ai-solutions}"
+
+# Auth callback path. Defaults to /api/auth/callback (the historical CAS
+# pattern). Override for projects that use bare /auth/callback (e.g.
+# mmcbuild):
+#   export AUTH_CALLBACK_PATH="/auth/callback"
+CALLBACK_PATH="${AUTH_CALLBACK_PATH:-/api/auth/callback}"
+
+# Password-recovery path. Separate from the sign-in callback because
+# Supabase's URI allow list requires exact match including query strings:
+# putting `?redirect=/reset-password` on the callback URL breaks the
+# wildcard match, and Supabase falls back to the Site URL root. Use a
+# dedicated /auth/recover (or /api/auth/recover) path so the path itself
+# encodes the intent without needing query strings.
+#   export AUTH_RECOVER_PATH="/auth/recover"   (mmcbuild)
+#   export AUTH_RECOVER_PATH="/api/auth/recover"  (CAS pattern, default)
+RECOVER_PATH="${AUTH_RECOVER_PATH:-/api/auth/recover}"
 
 # Resolve Supabase Management API token (env first, then ~/.supabase-token)
 if [ -z "${SUPABASE_MANAGEMENT_TOKEN:-}" ] && [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
@@ -154,9 +177,14 @@ if [ -n "$SUPABASE_REF" ] && [ -n "${SUPABASE_MANAGEMENT_TOKEN:-}" ]; then
     done
   fi
 
-  # Resolve a verified Resend domain (first match)
-  RESEND_DOMAIN=""
-  if [ -n "$RESEND_KEY" ]; then
+  # Resolve a verified Resend domain. Try the Resend API first; fall back
+  # to the canonical CAS-verified domain from global CLAUDE.md (the bare
+  # corporateaisolutions.com is NOT verified — only the `updates.` subdomain).
+  # Without this fallback the script silently stripped SMTP whenever the
+  # Resend API call returned no data, exactly the recurring failure mode
+  # the bootstrap-automation rule was meant to eliminate.
+  RESEND_DOMAIN="${RESEND_VERIFIED_DOMAIN:-}"
+  if [ -z "$RESEND_DOMAIN" ] && [ -n "$RESEND_KEY" ]; then
     RESEND_DOMAIN=$(curl -sS -H "Authorization: Bearer $RESEND_KEY" \
       "https://api.resend.com/domains" 2>/dev/null \
       | python -c "
@@ -170,9 +198,16 @@ except Exception:
     pass
 " 2>/dev/null)
   fi
+  if [ -z "$RESEND_DOMAIN" ] && [ -n "$RESEND_KEY" ]; then
+    echo "  ⚠ Resend API returned no verified domain — falling back to canonical 'updates.corporateaisolutions.com'"
+    echo "    (override with: export RESEND_VERIFIED_DOMAIN=<your-verified-domain>)"
+    RESEND_DOMAIN="updates.corporateaisolutions.com"
+  fi
 
-  PROD_URL="https://${VERCEL_SLUG}-corporate-ai-solutions.vercel.app"
-  ALLOW_LIST="http://localhost:3000/api/auth/callback,${PROD_URL}/api/auth/callback,https://*-corporate-ai-solutions.vercel.app/api/auth/callback"
+  PROD_URL="https://${VERCEL_SLUG}-${TEAM_SLUG}.vercel.app"
+  # Allow both /auth/callback (sign-in flows) and /auth/recover (password
+  # recovery), each on localhost + prod + branch-preview-wildcard.
+  ALLOW_LIST="http://localhost:3000${CALLBACK_PATH},http://localhost:3000${RECOVER_PATH},${PROD_URL}${CALLBACK_PATH},${PROD_URL}${RECOVER_PATH},https://*-${TEAM_SLUG}.vercel.app${CALLBACK_PATH},https://*-${TEAM_SLUG}.vercel.app${RECOVER_PATH}"
   SENDER_NAME=$(echo "$GH_REPO" | sed 's/-/ /g')
 
   if [ -n "$RESEND_KEY" ] && [ -n "$RESEND_DOMAIN" ]; then
@@ -225,9 +260,25 @@ print(json.dumps({
     echo ""
   fi
   rm -f "$auth_resp_file"
+
+  # 2c. Brand the five Supabase email templates (magic link, recovery,
+  #     confirmation, invite, email change) with the project's display
+  #     name. Default Supabase templates are bare-bones "Follow this
+  #     link" copy — every project hits this. Display name derived from
+  #     GH_REPO (CamelCase → spaced, dashes → spaces).
+  DISPLAY_NAME=$(echo "$GH_REPO" | sed -e 's/-/ /g' -e 's/\([a-z]\)\([A-Z]\)/\1 \2/g')
+  echo ""
+  echo "== Branding Supabase email templates as '$DISPLAY_NAME' =="
+  if [ -f "$HUB_ROOT/scripts/configure-email-templates.sh" ]; then
+    SUPABASE_MANAGEMENT_TOKEN="$SUPABASE_MANAGEMENT_TOKEN" \
+      bash "$HUB_ROOT/scripts/configure-email-templates.sh" \
+      "$DISPLAY_NAME" "$SUPABASE_REF" 2>&1 | sed 's/^/  /'
+  else
+    echo "  ⚠ scripts/configure-email-templates.sh missing — skip"
+  fi
 elif [ -n "$SUPABASE_REF" ]; then
   echo ""
-  echo "== Skipping Supabase Auth config — no SUPABASE_MANAGEMENT_TOKEN =="
+  echo "== Skipping Supabase Auth config + email templates — no SUPABASE_MANAGEMENT_TOKEN =="
   echo "  Set one of: SUPABASE_MANAGEMENT_TOKEN, SUPABASE_ACCESS_TOKEN, ~/.supabase-token"
 fi
 

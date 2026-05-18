@@ -48,6 +48,7 @@ REPOS=(
   investorpilot
   PartnerPilot
   omq-outreach
+  mmcbuild
 )
 
 # Map GitHub repo folder → Vercel project slug (they differ in several cases)
@@ -70,6 +71,7 @@ declare -A VERCEL_SLUG=(
   [investorpilot]=investor-pilot
   [PartnerPilot]=partner-pilot
   [omq-outreach]=omq-outreach
+  [mmcbuild]=mmcbuild
 )
 
 # --- Step 1: write .env.local per repo ----------------------------------------
