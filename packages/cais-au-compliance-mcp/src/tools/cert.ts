@@ -67,7 +67,7 @@ export function registerCertTools(server: McpServer, ctx: ToolContext): void {
     },
     async () => {
       const start = Date.now();
-      await ctx.telemetry.recordCall({
+      await ctx.telemetry.recordCall(ctx.installId, {
         toolName: "list_supported_cert_types",
         status: "ok",
         durationMs: Date.now() - start,
@@ -111,7 +111,7 @@ export function registerCertTools(server: McpServer, ctx: ToolContext): void {
       const start = Date.now();
       const anthropicKey = ctx.credentials.anthropicApiKey;
       if (!anthropicKey) {
-        await ctx.telemetry.recordCall({
+        await ctx.telemetry.recordCall(ctx.installId, {
           toolName: "extract_cert",
           status: "error",
           durationMs: Date.now() - start,
@@ -131,7 +131,7 @@ export function registerCertTools(server: McpServer, ctx: ToolContext): void {
           visionLlm,
           translateLlm: skip_translation ? undefined : makeAnthropicTextCaller(anthropicKey),
         });
-        await ctx.telemetry.recordCall({
+        await ctx.telemetry.recordCall(ctx.installId, {
           toolName: "extract_cert",
           status: "ok",
           durationMs: Date.now() - start,
@@ -139,7 +139,7 @@ export function registerCertTools(server: McpServer, ctx: ToolContext): void {
         });
         return buildToolResult(ctx, "extract_cert", result);
       } catch (err) {
-        await ctx.telemetry.recordCall({
+        await ctx.telemetry.recordCall(ctx.installId, {
           toolName: "extract_cert",
           status: "error",
           durationMs: Date.now() - start,

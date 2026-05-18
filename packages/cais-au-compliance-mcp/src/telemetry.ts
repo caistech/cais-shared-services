@@ -9,6 +9,12 @@
  *
  * The Supabase backend is selected via env: TELEMETRY_BACKEND=supabase
  * plus SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY.
+ *
+ * Install identity in serverless: the install_id is owned by the *client*
+ * and supplied per-request (via the X-CAIS-Install-Id HTTP header). The
+ * server stamps rows with that id. shouldPrompt() queries the DB rather
+ * than relying on process-local counters — so the funnel threshold survives
+ * cold starts.
  */
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -23,12 +29,12 @@ export interface TelemetryEvent {
 }
 
 export interface Telemetry {
-  /** Record a tool invocation. */
-  recordCall(event: TelemetryEvent): Promise<void>;
-  /** True when the funnel threshold (N calls OR M days) has been crossed and a prompt has not yet been dismissed. */
-  shouldPrompt(): Promise<boolean>;
+  /** Record a tool invocation against the given install. */
+  recordCall(installId: string, event: TelemetryEvent): Promise<void>;
+  /** True when the funnel threshold has been crossed for this install and the cooldown has elapsed. */
+  shouldPrompt(installId: string): Promise<boolean>;
   /** Mark that the prompt has fired for this install — don't re-fire for 30 days. */
-  markPromptShown(): Promise<void>;
+  markPromptShown(installId: string): Promise<void>;
   /** Read-only snapshot for the cais://au-compliance/health resource. */
   snapshot(): {
     totalCalls: number;
@@ -73,10 +79,9 @@ function createMemoryTelemetry(): Telemetry {
   let promptShownAt: Date | null = null;
 
   return {
-    async recordCall(event): Promise<void> {
+    async recordCall(_installId, _event): Promise<void> {
       totalCalls += 1;
       if (firstCallAt === null) firstCallAt = new Date();
-      void event;
     },
     async shouldPrompt(): Promise<boolean> {
       if (totalCalls < PROMPT_AFTER_CALLS) return false;
@@ -102,11 +107,10 @@ function createMemoryTelemetry(): Telemetry {
  * Supabase-backed telemetry. Returns null when env vars aren't set so the
  * factory can fall back to memory mode (e.g. local dev without DB).
  *
- * Each Vercel request is a fresh server with a fresh telemetry instance.
- * The install_id is allocated lazily — the first recordCall in a process
- * creates one row in mcp_install (anonymous, no PII), and subsequent calls
- * append to mcp_call with that install_id. Cross-request continuity needs
- * a session cookie or similar (deferred to a future stage).
+ * Identity is client-owned: every method takes an explicit install_id. The
+ * server upserts mcp_install on first sight (idempotent) and stamps every
+ * mcp_call with the same id. Threshold checks query the DB so they survive
+ * cold starts.
  */
 function createSupabaseTelemetry(): Telemetry | null {
   const url = process.env.SUPABASE_URL;
@@ -121,33 +125,31 @@ function createSupabaseTelemetry(): Telemetry | null {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  let installId: string | null = null;
-  let firstCallAt: Date | null = null;
-  let totalCalls = 0;
-  let promptShownAt: Date | null = null;
+  // Per-process cache of install_ids we've already upserted, so warm-Lambda
+  // invocations skip the redundant upsert. Not load-bearing for correctness
+  // (the upsert is idempotent) — purely a latency optimisation.
+  const knownInstalls = new Set<string>();
 
-  async function ensureInstall(userAgent?: string): Promise<string | null> {
-    if (installId) return installId;
-    const { data, error } = await client
+  async function ensureInstall(installId: string): Promise<void> {
+    if (knownInstalls.has(installId)) return;
+    const { error } = await client
       .from("mcp_install")
-      .insert({ mcp_name: MCP_NAME, user_agent: userAgent ?? null })
-      .select("install_id")
-      .single();
-    if (error || !data) {
-      console.error("[telemetry] ensureInstall failed", error?.message);
-      return null;
+      .upsert(
+        { install_id: installId, mcp_name: MCP_NAME },
+        { onConflict: "install_id", ignoreDuplicates: true },
+      );
+    if (error) {
+      console.error("[telemetry] ensureInstall failed", error.message);
+      return;
     }
-    installId = data.install_id as string;
-    return installId;
+    knownInstalls.add(installId);
   }
 
   return {
-    async recordCall(event): Promise<void> {
-      const id = await ensureInstall();
-      totalCalls += 1;
-      if (firstCallAt === null) firstCallAt = new Date();
+    async recordCall(installId, event): Promise<void> {
+      await ensureInstall(installId);
       const { error } = await client.from("mcp_call").insert({
-        install_id: id,
+        install_id: installId,
         mcp_name: MCP_NAME,
         tool_name: event.toolName,
         duration_ms: event.durationMs,
@@ -158,9 +160,16 @@ function createSupabaseTelemetry(): Telemetry | null {
         console.error("[telemetry] recordCall failed", error.message);
       }
     },
-    async shouldPrompt(): Promise<boolean> {
-      if (totalCalls < PROMPT_AFTER_CALLS) return false;
-      if (!installId) return false;
+    async shouldPrompt(installId): Promise<boolean> {
+      const { count, error: countError } = await client
+        .from("mcp_call")
+        .select("*", { count: "exact", head: true })
+        .eq("install_id", installId);
+      if (countError) {
+        console.error("[telemetry] shouldPrompt count failed", countError.message);
+        return false;
+      }
+      if ((count ?? 0) < PROMPT_AFTER_CALLS) return false;
       const { data } = await client
         .from("mcp_engagement")
         .select("prompted_at")
@@ -171,12 +180,10 @@ function createSupabaseTelemetry(): Telemetry | null {
       const cooldownMs = PROMPT_COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
       return Date.now() - lastPrompted.getTime() > cooldownMs;
     },
-    async markPromptShown(): Promise<void> {
-      if (!installId) return;
-      promptShownAt = new Date();
+    async markPromptShown(installId): Promise<void> {
       const { error } = await client.from("mcp_engagement").upsert({
         install_id: installId,
-        prompted_at: promptShownAt.toISOString(),
+        prompted_at: new Date().toISOString(),
       });
       if (error) {
         console.error("[telemetry] markPromptShown failed", error.message);
@@ -184,9 +191,9 @@ function createSupabaseTelemetry(): Telemetry | null {
     },
     snapshot() {
       return {
-        totalCalls,
-        promptShownAt: promptShownAt ? promptShownAt.toISOString() : null,
-        firstCallAt: firstCallAt ? firstCallAt.toISOString() : null,
+        totalCalls: knownInstalls.size,
+        promptShownAt: null,
+        firstCallAt: null,
         backend: "supabase" as const,
       };
     },

@@ -35,9 +35,15 @@ export interface BuildServerOptions {
    * Pass undefined for env-only resolution (stdio mode).
    */
   credentials?: SessionCredentials;
+  /**
+   * Stable install identifier (from X-CAIS-Install-Id header). The handler
+   * generates a fresh UUID when the header is absent. Threaded into
+   * ToolContext so every tool stamps telemetry rows with the same id.
+   */
+  installId: string;
 }
 
-export async function buildServer(opts: BuildServerOptions = {}): Promise<McpServer> {
+export async function buildServer(opts: BuildServerOptions): Promise<McpServer> {
   const config = loadConfig();
   const telemetry = createTelemetry(config.telemetry);
   const credentials = mergeCredentials(
@@ -50,7 +56,7 @@ export async function buildServer(opts: BuildServerOptions = {}): Promise<McpSer
     version: SERVER_VERSION,
   });
 
-  const ctx = { config, telemetry, credentials };
+  const ctx = { config, telemetry, credentials, installId: opts.installId };
   registerAbnTools(server, ctx);
   registerRegistryTools(server, ctx);
   registerSanctionsTools(server, ctx);

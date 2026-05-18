@@ -35,7 +35,7 @@ export function registerAbnTools(server: McpServer, ctx: ToolContext): void {
       const errorMessage = validateAbn(abn);
       const formatted = formatAbn(abn);
 
-      await ctx.telemetry.recordCall({
+      await ctx.telemetry.recordCall(ctx.installId, {
         toolName: "validate_abn",
         status: errorMessage ? "error" : "ok",
         durationMs: Date.now() - start,
@@ -62,7 +62,7 @@ export function registerAbnTools(server: McpServer, ctx: ToolContext): void {
       const start = Date.now();
       const guid = ctx.credentials.abrGuid ?? ctx.config.abr.guid;
       if (!guid) {
-        await ctx.telemetry.recordCall({
+        await ctx.telemetry.recordCall(ctx.installId, {
           toolName: "lookup_abn",
           status: "error",
           durationMs: Date.now() - start,
@@ -74,7 +74,7 @@ export function registerAbnTools(server: McpServer, ctx: ToolContext): void {
       }
       const result = await lookupAbn(abn, guid);
       const isError = isAbrError(result);
-      await ctx.telemetry.recordCall({
+      await ctx.telemetry.recordCall(ctx.installId, {
         toolName: "lookup_abn",
         status: isError ? "error" : "ok",
         durationMs: Date.now() - start,
@@ -108,7 +108,7 @@ export function registerAbnTools(server: McpServer, ctx: ToolContext): void {
       const start = Date.now();
       const guid = ctx.credentials.abrGuid ?? ctx.config.abr.guid;
       if (!guid) {
-        await ctx.telemetry.recordCall({
+        await ctx.telemetry.recordCall(ctx.installId, {
           toolName: "search_business_by_name",
           status: "error",
           durationMs: Date.now() - start,
@@ -120,7 +120,7 @@ export function registerAbnTools(server: McpServer, ctx: ToolContext): void {
       }
       const result = await searchByName(name, guid, maxResults ?? 8);
       const isError = !Array.isArray(result) && isAbrError(result);
-      await ctx.telemetry.recordCall({
+      await ctx.telemetry.recordCall(ctx.installId, {
         toolName: "search_business_by_name",
         status: isError ? "error" : "ok",
         durationMs: Date.now() - start,

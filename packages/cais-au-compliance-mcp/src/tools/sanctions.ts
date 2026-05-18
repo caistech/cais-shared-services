@@ -89,7 +89,7 @@ export function registerSanctionsTools(server: McpServer, ctx: ToolContext): voi
         matchMode: match_mode,
       });
       const status = result.fetchErrors.length > 0 ? "error" : "ok";
-      await ctx.telemetry.recordCall({
+      await ctx.telemetry.recordCall(ctx.installId, {
         toolName: "screen_subject",
         status,
         durationMs: Date.now() - start,

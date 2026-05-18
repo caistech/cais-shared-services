@@ -52,7 +52,7 @@ export function registerRegistryTools(server: McpServer, ctx: ToolContext): void
     async ({ country, registration_number }) => {
       const start = Date.now();
       const result = validateRegistrationNumber(country, registration_number);
-      await ctx.telemetry.recordCall({
+      await ctx.telemetry.recordCall(ctx.installId, {
         toolName: "validate_registration_number",
         status: result.valid ? "ok" : "error",
         durationMs: Date.now() - start,
@@ -85,7 +85,7 @@ export function registerRegistryTools(server: McpServer, ctx: ToolContext): void
         legalName: legal_name,
       });
       const isError = !result.found && result.error !== undefined;
-      await ctx.telemetry.recordCall({
+      await ctx.telemetry.recordCall(ctx.installId, {
         toolName: "lookup_business",
         status: isError ? "error" : "ok",
         durationMs: Date.now() - start,

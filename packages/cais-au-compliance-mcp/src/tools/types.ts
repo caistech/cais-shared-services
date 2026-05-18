@@ -15,4 +15,12 @@ export interface ToolContext {
    * from process.env directly.
    */
   credentials: SessionCredentials;
+  /**
+   * Stable install identifier supplied by the client via X-CAIS-Install-Id.
+   * The handler generates a fresh UUID when the header is absent and echoes
+   * it back so the client can persist it across calls. All telemetry rows
+   * for this request are stamped with this id; funnel-threshold checks
+   * count mcp_call rows for this id from the DB (not process-local state).
+   */
+  installId: string;
 }

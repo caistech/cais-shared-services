@@ -12,6 +12,7 @@
  *    domain is provisioned).
  */
 
+import { randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 // Import from source. Vercel's esbuild + TypeScript moduleResolution:bundler
@@ -19,6 +20,16 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 // is the conventional emitted-JS reference even though only .ts exists.
 import { buildServer } from "../src/server.js";
 import { readCredentialsFromHeaders } from "../src/byok.js";
+
+const INSTALL_ID_HEADER = "x-cais-install-id";
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function resolveInstallId(headers: IncomingMessage["headers"]): string {
+  const raw = headers[INSTALL_ID_HEADER];
+  const candidate = Array.isArray(raw) ? raw[0] : raw;
+  if (candidate && UUID_RE.test(candidate)) return candidate.toLowerCase();
+  return randomUUID();
+}
 
 export const config = {
   runtime: "nodejs",
@@ -34,9 +45,9 @@ export default async function handler(
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Content-Type, Mcp-Session-Id, Authorization",
+    "Content-Type, Mcp-Session-Id, Authorization, X-CAIS-Install-Id, X-Anthropic-Api-Key, X-ABR-Guid, X-Tianyancha-Api-Key",
   );
-  res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id");
+  res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id, X-CAIS-Install-Id");
 
   if (req.method === "OPTIONS") {
     res.statusCode = 204;
@@ -50,7 +61,11 @@ export default async function handler(
   }
 
   const credentials = readCredentialsFromHeaders(req.headers);
-  const server = await buildServer({ credentials });
+  const installId = resolveInstallId(req.headers);
+  // Echo the install id so clients that didn't send one can persist the
+  // server-generated value and reuse it on subsequent calls.
+  res.setHeader("X-CAIS-Install-Id", installId);
+  const server = await buildServer({ credentials, installId });
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,

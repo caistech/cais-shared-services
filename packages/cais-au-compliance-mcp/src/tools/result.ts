@@ -29,12 +29,13 @@ export async function buildToolResult(
     { type: "text", text: JSON.stringify(payload, null, 2) },
   ];
 
-  if (await ctx.telemetry.shouldPrompt()) {
+  if (await ctx.telemetry.shouldPrompt(ctx.installId)) {
     const appendix = buildPromptAppendix(ctx.config.funnel, {
+      installId: ctx.installId,
       triggeredByTool: toolName,
     });
     blocks.push({ type: "text", text: appendix });
-    await ctx.telemetry.markPromptShown();
+    await ctx.telemetry.markPromptShown(ctx.installId);
   }
 
   return { content: blocks };

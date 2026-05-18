@@ -10,11 +10,19 @@
  * @vercel/mcp-adapter is wired in.
  */
 
+import { randomUUID } from "node:crypto";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { buildServer } from "./server.js";
 
 async function main(): Promise<void> {
-  const server = await buildServer();
+  // Stdio mode: one install_id per process lifetime. Honour CAIS_INSTALL_ID
+  // if set (lets the user's MCP client config pin a stable id across restarts);
+  // otherwise generate a fresh one each run.
+  const installId =
+    process.env.CAIS_INSTALL_ID && process.env.CAIS_INSTALL_ID.length > 0
+      ? process.env.CAIS_INSTALL_ID
+      : randomUUID();
+  const server = await buildServer({ installId });
   const transport = new StdioServerTransport();
   await server.connect(transport);
 
