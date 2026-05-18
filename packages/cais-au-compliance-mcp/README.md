@@ -67,5 +67,10 @@ node packages/cais-au-compliance-mcp/dist/server.js
 | `FUNNEL_PROMPT_AFTER_CALLS` | Threshold for soft funnel prompt | `10` |
 | `FUNNEL_PROMPT_AFTER_DAYS` | Or after this many days of active use | `7` |
 | `INTERVIEW_AGENT_URL` | URL the funnel prompt links to | `https://cais.com/interview` |
-| `CONNEXIONS_INTAKE_URL` | Connexions Sprint intake (set on the interview side, not the MCP) | `https://cais.com/connexions` |
-| `PRELABZ_INTAKE_URL` | prelabz onboarding (set on the interview side, not the MCP) | `https://prelabz.com/onboarding` |
+| `CONNEXIONS_INTAKE_URL` | Connexions Platform Trust Sprint intake (already live since 2026-05-14) | `https://connexions-silk.vercel.app/p/platform-trust-sprint-intake` |
+
+**On prelabz routing:** Path C decision logged 2026-05-18 — prelabz productisation
+routing is deferred for v1. The interview agent's triage question still asks
+"for someone else or yourself?", but for-yourself outcomes are captured
+data-only by the interview agent (no public productisation intake). Revisit
+once funnel data shows real demand for a productisation track.

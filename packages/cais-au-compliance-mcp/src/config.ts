@@ -25,8 +25,13 @@ export interface ServerConfig {
     /** Threshold M — or after this many days of active use, whichever first. */
     promptAfterDays: number;
     interviewUrl: string;
+    /**
+     * Connexions Platform Trust Sprint intake URL — live since 2026-05-14.
+     * For-someone-else triage outcomes route here; for-yourself outcomes are
+     * captured data-only by the interview agent (Path C, decision 2026-05-18 —
+     * prelabz routing deferred until funnel data validates demand).
+     */
     connexionsIntakeUrl: string;
-    prelabzIntakeUrl: string;
   };
 }
 
@@ -60,8 +65,10 @@ export function loadConfig(): ServerConfig {
       promptAfterCalls: envInt("FUNNEL_PROMPT_AFTER_CALLS", 10),
       promptAfterDays: envInt("FUNNEL_PROMPT_AFTER_DAYS", 7),
       interviewUrl: envOr("INTERVIEW_AGENT_URL", "https://cais.com/interview") as string,
-      connexionsIntakeUrl: envOr("CONNEXIONS_INTAKE_URL", "https://cais.com/connexions") as string,
-      prelabzIntakeUrl: envOr("PRELABZ_INTAKE_URL", "https://prelabz.com/onboarding") as string,
+      connexionsIntakeUrl: envOr(
+        "CONNEXIONS_INTAKE_URL",
+        "https://connexions-silk.vercel.app/p/platform-trust-sprint-intake",
+      ) as string,
     },
   };
 }

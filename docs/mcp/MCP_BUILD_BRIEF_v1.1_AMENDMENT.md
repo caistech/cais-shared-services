@@ -148,5 +148,6 @@ Out of scope here — covered in follow-on documents:
 
 ## Change log
 
+- **v1.1.1 (2026-05-18, evening)** — Funnel destination state confirmed by audit of `Connexions/` and `PrelabzAI/` repos. **Connexions Platform Trust Sprint intake is already live** at `https://connexions-silk.vercel.app/p/platform-trust-sprint-intake` (shipped 2026-05-14, predates this build) — MCP just points `CONNEXIONS_INTAKE_URL` at it, no Connexions-side code needed. **prelabz productisation routing deferred (Path C)** — the PrelabzAI repo serves a different product (RaiseReady-branded multi-tenant founder-screening platform), not a productisation-partnership surface. For-self triage outcomes are captured data-only by the interview agent in v1; build a real productisation intake only if funnel data shows demand. `PRELABZ_INTAKE_URL` removed from MCP config. Open Question 1 (custom domain) and pre-launch-checklist Connexions/prelabz items updated accordingly.
 - **v1.1 (2026-05-18)** — Phase 1 scope replaced with `cais-au-compliance` vertical slice. Phase model changed from linear single-server build to per-MCP vertical slices. Four themed MCPs named with tool catalogs. Hard-cut package list added. Source-of-truth posture re-stated (npm-first, MCPs import). Open questions logged.
 - **v1.0 (2026-05-18)** — Initial brief, frozen.
