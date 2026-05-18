@@ -1,0 +1,35 @@
+{
+  "name": "@caistech/cais-au-compliance-mcp",
+  "version": "0.1.0",
+  "description": "MCP server exposing Australian compliance tools — ABN lookup, multi-country business registry, sanctions screening, and certificate extraction. Thin adapter over @caistech/* packages; zero domain logic.",
+  "private": true,
+  "main": "dist/server.js",
+  "types": "dist/server.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "dev": "tsx src/bin.ts",
+    "start": "node dist/bin.js"
+  },
+  "dependencies": {
+    "@caistech/abn-lookup": "*",
+    "@caistech/business-registry": "*",
+    "@caistech/sanctions-screen": "*",
+    "@caistech/cert-extractor": "*",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/cais-au-compliance-mcp"
+  },
+  "license": "PRIVATE"
+}
