@@ -71,6 +71,7 @@ export function registerCertTools(server: McpServer, ctx: ToolContext): void {
         toolName: "list_supported_cert_types",
         status: "ok",
         durationMs: Date.now() - start,
+        credentialSource: ctx.credentials.source,
       });
       return buildToolResult(ctx, "list_supported_cert_types", {
         cert_types: CERT_TYPES,
@@ -114,6 +115,7 @@ export function registerCertTools(server: McpServer, ctx: ToolContext): void {
           toolName: "extract_cert",
           status: "error",
           durationMs: Date.now() - start,
+          credentialSource: ctx.credentials.source,
         });
         return buildErrorResult(
           "extract_cert requires an Anthropic API key. Send it as the 'X-Anthropic-Api-Key' HTTP header (hosted MCP) or set ANTHROPIC_API_KEY in the environment (stdio / local dev). Your key runs vision LLM calls on your own credit and is never logged or persisted.",
@@ -133,6 +135,7 @@ export function registerCertTools(server: McpServer, ctx: ToolContext): void {
           toolName: "extract_cert",
           status: "ok",
           durationMs: Date.now() - start,
+          credentialSource: ctx.credentials.source,
         });
         return buildToolResult(ctx, "extract_cert", result);
       } catch (err) {
@@ -140,6 +143,7 @@ export function registerCertTools(server: McpServer, ctx: ToolContext): void {
           toolName: "extract_cert",
           status: "error",
           durationMs: Date.now() - start,
+          credentialSource: ctx.credentials.source,
         });
         const message = err instanceof Error ? err.message : String(err);
         return buildErrorResult(`extract_cert failed: ${message}`);

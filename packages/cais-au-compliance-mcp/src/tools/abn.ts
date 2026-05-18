@@ -39,6 +39,7 @@ export function registerAbnTools(server: McpServer, ctx: ToolContext): void {
         toolName: "validate_abn",
         status: errorMessage ? "error" : "ok",
         durationMs: Date.now() - start,
+        credentialSource: ctx.credentials.source,
       });
 
       return buildToolResult(ctx, "validate_abn", {
@@ -65,6 +66,7 @@ export function registerAbnTools(server: McpServer, ctx: ToolContext): void {
           toolName: "lookup_abn",
           status: "error",
           durationMs: Date.now() - start,
+          credentialSource: ctx.credentials.source,
         });
         return buildErrorResult(
           "ABR GUID not configured. Send 'X-ABR-Guid' header (hosted MCP) or set ABR_GUID env var, or use validate_abn for offline checksum validation.",
@@ -76,6 +78,7 @@ export function registerAbnTools(server: McpServer, ctx: ToolContext): void {
         toolName: "lookup_abn",
         status: isError ? "error" : "ok",
         durationMs: Date.now() - start,
+        credentialSource: ctx.credentials.source,
       });
       if (isError) {
         return buildErrorResult(result.error);
@@ -109,6 +112,7 @@ export function registerAbnTools(server: McpServer, ctx: ToolContext): void {
           toolName: "search_business_by_name",
           status: "error",
           durationMs: Date.now() - start,
+          credentialSource: ctx.credentials.source,
         });
         return buildErrorResult(
           "ABR GUID not configured. Send 'X-ABR-Guid' header (hosted MCP) or set ABR_GUID env var.",
@@ -120,6 +124,7 @@ export function registerAbnTools(server: McpServer, ctx: ToolContext): void {
         toolName: "search_business_by_name",
         status: isError ? "error" : "ok",
         durationMs: Date.now() - start,
+        credentialSource: ctx.credentials.source,
       });
       if (isError) {
         return buildErrorResult((result as { error: string }).error);

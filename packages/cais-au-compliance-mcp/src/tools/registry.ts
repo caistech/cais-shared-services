@@ -56,6 +56,7 @@ export function registerRegistryTools(server: McpServer, ctx: ToolContext): void
         toolName: "validate_registration_number",
         status: result.valid ? "ok" : "error",
         durationMs: Date.now() - start,
+        credentialSource: ctx.credentials.source,
       });
       return buildToolResult(ctx, "validate_registration_number", result);
     },
@@ -88,6 +89,7 @@ export function registerRegistryTools(server: McpServer, ctx: ToolContext): void
         toolName: "lookup_business",
         status: isError ? "error" : "ok",
         durationMs: Date.now() - start,
+        credentialSource: ctx.credentials.source,
       });
       if (isError && result.error?.code === "NOT_IMPLEMENTED") {
         return buildErrorResult(

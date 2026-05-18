@@ -93,6 +93,7 @@ export function registerSanctionsTools(server: McpServer, ctx: ToolContext): voi
         toolName: "screen_subject",
         status,
         durationMs: Date.now() - start,
+        credentialSource: ctx.credentials.source,
       });
       const single = result.results[0];
       return buildToolResult(ctx, "screen_subject", {
