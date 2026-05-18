@@ -1,0 +1,29 @@
+{
+  "name": "@caistech/cais-interview-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MCP funnel interview — single-page form that captures email + triage outcome and writes mcp_engagement rows. Reached via the X-CAIS-Install-Id-aware prompt appendix that fires after 10 calls.",
+  "scripts": {
+    "dev": "next dev --port 3010",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "next": "^15.0.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "resend": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.14",
+    "typescript": "^5.3.0"
+  }
+}

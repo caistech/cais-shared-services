@@ -1,0 +1,15 @@
+# Vercel CLI local state
+.vercel
+
+# Next.js build outputs
+.next/
+out/
+build/
+
+# Local env
+.env
+.env*.local
+.env.smoke
+
+# TS incremental cache
+*.tsbuildinfo

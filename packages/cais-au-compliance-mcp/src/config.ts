@@ -64,7 +64,7 @@ export function loadConfig(): ServerConfig {
     funnel: {
       promptAfterCalls: envInt("FUNNEL_PROMPT_AFTER_CALLS", 10),
       promptAfterDays: envInt("FUNNEL_PROMPT_AFTER_DAYS", 7),
-      interviewUrl: envOr("INTERVIEW_AGENT_URL", "https://cais.com/interview") as string,
+      interviewUrl: envOr("INTERVIEW_AGENT_URL", "https://cais-interview-agent.vercel.app/interview") as string,
       connexionsIntakeUrl: envOr(
         "CONNEXIONS_INTAKE_URL",
         "https://connexions-silk.vercel.app/p/platform-trust-sprint-intake",
