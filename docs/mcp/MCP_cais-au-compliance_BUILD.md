@@ -220,7 +220,7 @@ Interview agent itself uses `@caistech/ai-client` internally for Claude calls �
 - [ ] Vercel project provisioned and added to `portfolio-manifest.yaml`
 - [ ] Env vars set on Vercel (ABR_GUID, SANCTIONS_CACHE_BACKEND, TELEMETRY_BACKEND, etc.)
 - [ ] Supabase tables (`mcp_install`, `mcp_call`, `mcp_engagement`) provisioned via migration (apply via `supabase db push`, not manually)
-- [ ] Custom domain `mcp.cais.au/compliance` provisioned and proven (or fallback to vercel.app subdomain documented)
+- [N/A] Custom domain `mcp.cais.au/compliance` — deferred for v1 per open question 1 (2026-05-18). Canonical URL: `https://cais-au-compliance-mcp.vercel.app/api/mcp`.
 - [x] Connexions Platform Trust Sprint intake form live and reachable at `CONNEXIONS_INTAKE_URL` — confirmed live at `https://connexions-silk.vercel.app/p/platform-trust-sprint-intake` (shipped 2026-05-14)
 - [N/A] prelabz onboarding flow — Path C: deferred for v1, for-self triage outcomes captured data-only
 - [ ] AI interview agent built and tested against all three triage outcomes
@@ -243,7 +243,7 @@ The MCP server itself doesn't ship an auth page — but the **interview agent's 
 
 ## Open questions logged in this plan
 
-1. **Custom domain** — `mcp.cais.au/<theme>` vs `<theme>.mcp.cais.au` vs default Vercel subdomain. Default custom subpath; confirm before launch.
+1. **Custom domain** — *Decision 2026-05-18: deferred for v1.* `cais.au` is not yet registered and demand for the custom-domain polish is unproven. Canonical URL for v1 is `https://cais-au-compliance-mcp.vercel.app/api/mcp` (also reachable at `/` and `/mcp` via rewrites). Same "wait for funnel data" logic as the Path C prelabz deferral. Revisit when install volume warrants registering `cais.au` and resolving subdomain-per-theme vs path-based routing.
 2. **Rate limit values** — 100 calls/install/day is a guess. Tune after first 100 installs.
 3. **Sanctions-list refresh cadence** — currently weekly cache; check whether the underlying `@caistech/sanctions-screen` package has a built-in refresh job or needs the MCP server to schedule one.
 4. **Interview agent location** — in-MCP (using MCP elicitation) vs hosted at `cais.com/interview`. Hosted is simpler v1; in-MCP is the dogfooding answer. Default hosted; revisit when MCP elicitation patterns settle in the ecosystem.

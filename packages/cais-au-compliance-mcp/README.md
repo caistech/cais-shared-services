@@ -34,12 +34,13 @@ republish + redeploy.
 The build plan calls for a vertical slice; this is the scaffolded code half
 of that slice. Still to do across follow-up sessions:
 
-- Vercel hosting deploy + custom domain `mcp.cais.au/compliance`
-- Supabase migration for `mcp_install` / `mcp_call` / `mcp_engagement` tables
-  (telemetry currently falls back to in-memory)
-- HTTP transport adapter (currently stdio only — works in Claude Code already)
+- ~~Vercel hosting deploy~~ — live at `https://cais-au-compliance-mcp.vercel.app/api/mcp` (Stage 1, 2026-05-18)
+- ~~Custom domain `mcp.cais.au/compliance`~~ — deferred for v1 (2026-05-18); `cais.au` unregistered + demand unproven, canonical URL is the vercel.app subdomain
+- ~~Supabase migration~~ — applied (Stage 3, 2026-05-18); telemetry writes to `mcp_install` / `mcp_call` / `mcp_engagement`
+- ~~HTTP transport adapter~~ — Streamable HTTP shipped (Stage 1)
+- ~~Funnel-prompt UX~~ — client-owned `X-CAIS-Install-Id`, DB-backed threshold, end-to-end verified (Stage 4, 2026-05-18)
 - Interview agent web frontend at `cais.com/interview`
-- Connexions Sprint + prelabz intake form wiring
+- Connexions Sprint + prelabz intake form wiring (Connexions live; prelabz deferred per Path C)
 - Marketplace listing + smoke tests under Anthropic's MCP validator
 
 ## Local development
