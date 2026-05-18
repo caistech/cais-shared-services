@@ -14,6 +14,9 @@
 
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+// Import from source. Vercel's esbuild + TypeScript moduleResolution:bundler
+// both resolve "../src/server.js" to "../src/server.ts" — the .js extension
+// is the conventional emitted-JS reference even though only .ts exists.
 import { buildServer } from "../src/server.js";
 
 export const config = {

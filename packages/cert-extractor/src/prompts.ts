@@ -10,7 +10,7 @@
  * Returns strict JSON. The extractor parses + validates.
  */
 
-import type { CertType } from './types';
+import type { CertType } from './types.js';
 
 export const VISION_SYSTEM_PROMPT = `You are a certificate verification assistant for the F2K Construction Manufacturing Pre-qualification Programme (CMPP). Your job is to look at an image of a certificate, business licence, or test report and extract structured data from it.
 

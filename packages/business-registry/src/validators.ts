@@ -5,7 +5,7 @@
  * registry API call to catch malformed input cheaply.
  */
 
-import type { ValidatorResult } from './types';
+import type { ValidatorResult } from './types.js';
 
 /**
  * China — Unified Social Credit Code (统一社会信用代码).

@@ -2,13 +2,13 @@
  * @caistech/cert-extractor — public surface.
  */
 
-export { extractCert } from './extract';
+export { extractCert } from './extract.js';
 export {
   VISION_SYSTEM_PROMPT,
   TRANSLATION_SYSTEM_PROMPT,
   buildVisionUserPrompt,
   buildTranslationPrompt,
-} from './prompts';
+} from './prompts.js';
 export type {
   CertType,
   SupportedSourceLanguage,
@@ -18,4 +18,4 @@ export type {
   CertExtractionOptions,
   CertFields,
   CertExtractionResult,
-} from './types';
+} from './types.js';

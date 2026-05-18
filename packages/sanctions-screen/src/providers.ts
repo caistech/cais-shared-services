@@ -21,7 +21,7 @@ import type {
   SanctionsList,
   SanctionsListProvider,
   SubjectType,
-} from './types';
+} from './types.js';
 
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 

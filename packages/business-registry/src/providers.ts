@@ -19,8 +19,8 @@ import type {
   BusinessLookupResult,
   CountryCode,
   RegistryProvider,
-} from './types';
-import { validateRegistrationNumber } from './validators';
+} from './types.js';
+import { validateRegistrationNumber } from './validators.js';
 
 function buildStubResult(
   providerName: string,

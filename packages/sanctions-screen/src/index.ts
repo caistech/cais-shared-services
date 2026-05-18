@@ -2,8 +2,8 @@
  * @caistech/sanctions-screen — Public surface.
  */
 
-export { createScreener } from './screener';
-export type { SanctionsScreener } from './screener';
+export { createScreener } from './screener.js';
+export type { SanctionsScreener } from './screener.js';
 export {
   createOfacSdnProvider,
   createUnConsolidatedProvider,
@@ -11,8 +11,8 @@ export {
   createAuDfatProvider,
   createEuSanctionsProvider,
   parseDfatXlsx,
-} from './providers';
-export { jaroWinkler, tokenOverlap, normaliseName } from './matching';
+} from './providers.js';
+export { jaroWinkler, tokenOverlap, normaliseName } from './matching.js';
 export type {
   SanctionsList,
   SubjectType,
@@ -24,4 +24,4 @@ export type {
   NormalisedSanctionsEntry,
   SanctionsListProvider,
   CacheAdapter,
-} from './types';
+} from './types.js';

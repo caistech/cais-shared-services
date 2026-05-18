@@ -7,13 +7,13 @@ import type {
   CertExtractionResult,
   CertFields,
   CertType,
-} from './types';
+} from './types.js';
 import {
   VISION_SYSTEM_PROMPT,
   buildVisionUserPrompt,
   TRANSLATION_SYSTEM_PROMPT,
   buildTranslationPrompt,
-} from './prompts';
+} from './prompts.js';
 
 const KNOWN_CERT_TYPES: ReadonlySet<CertType> = new Set([
   'iso_9001',

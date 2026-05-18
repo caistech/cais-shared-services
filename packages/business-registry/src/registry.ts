@@ -7,7 +7,7 @@ import type {
   BusinessLookupResult,
   RegistryProvider,
   CountryCode,
-} from './types';
+} from './types.js';
 
 export interface BusinessRegistry {
   lookup(req: BusinessLookupRequest): Promise<BusinessLookupResult>;

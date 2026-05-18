@@ -2,7 +2,7 @@
  * @caistech/sanctions-screen — Screener orchestration.
  */
 
-import { jaroWinkler, normaliseName, tokenOverlap } from './matching';
+import { jaroWinkler, normaliseName, tokenOverlap } from './matching.js';
 import type {
   NormalisedSanctionsEntry,
   SanctionsHit,
@@ -12,7 +12,7 @@ import type {
   SanctionsScreenResult,
   ScreenSubject,
   SubjectScreenResult,
-} from './types';
+} from './types.js';
 
 const FUZZY_THRESHOLD_BALANCED = 0.92;
 const FUZZY_THRESHOLD_LENIENT = 0.85;

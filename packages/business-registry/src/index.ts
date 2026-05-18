@@ -2,9 +2,9 @@
  * @caistech/business-registry — Public surface.
  */
 
-export { createRegistry } from './registry';
-export type { BusinessRegistry } from './registry';
-export { createStubProvider, createTianyanchaProvider } from './providers';
+export { createRegistry } from './registry.js';
+export type { BusinessRegistry } from './registry.js';
+export { createStubProvider, createTianyanchaProvider } from './providers.js';
 export {
   validateRegistrationNumber,
   validateUSCC,
@@ -12,7 +12,7 @@ export {
   validateSSM,
   validateABN,
   validateNIB,
-} from './validators';
+} from './validators.js';
 export type {
   CountryCode,
   RegistryStatus,
@@ -21,4 +21,4 @@ export type {
   BusinessLookupResult,
   RegistryProvider,
   ValidatorResult,
-} from './types';
+} from './types.js';
