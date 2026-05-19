@@ -27,8 +27,24 @@ jobs:
       # TODO: migrate to turborepo / pnpm for topological builds once monorepo grows.
       - name: Build foundation packages first
         run: |
+          # Leaf packages other workspaces import from. Extend this list
+          # whenever a new package becomes a dependency of an earlier
+          # alphabetical sibling — the npm --workspaces runner walks the
+          # workspace map alphabetically, not topologically.
           npm run build --workspace=@caistech/nudge-core
           npm run build --workspace=@caistech/security-gate
+          # @caistech/cais-au-compliance-mcp imports from cert-extractor + sanctions-screen
+          npm run build --workspace=@caistech/cert-extractor
+          npm run build --workspace=@caistech/sanctions-screen
+          # @caistech/email-finder imports from hunter-email
+          npm run build --workspace=@caistech/hunter-email
+          # @caistech/corporate-components consumers (most products) import from it.
+          # Building it early prevents downstream type-resolution issues if/when
+          # another @caistech package adds it as a dep.
+          npm run build --workspace=@caistech/corporate-components
+          # @caistech/portfolio-gate is now consumed by portfolio-migrator's
+          # default template; build it before migrator.
+          npm run build --workspace=@caistech/portfolio-gate
       - name: Build all workspaces
         run: npm run build --workspaces --if-present
       # Per-workspace publish loop with "skip if already-published" check.
