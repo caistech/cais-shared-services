@@ -78,6 +78,11 @@ jobs:
           fi
           echo "Preview URL: $PORTFOLIO_GATE_PREVIEW_URL"
 
+      - name: Static audits (R3 / R9 / R11 / R14 / R15)
+        run: |
+          npx --no-install portfolio-gate-audit-all \
+            --base-url "$PORTFOLIO_GATE_PREVIEW_URL"
+
       - name: Route smoke test (Portfolio Standard R13)
         run: |
           npx --no-install portfolio-gate-smoke-routes \

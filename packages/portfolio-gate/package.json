@@ -1,7 +1,7 @@
 {
   "name": "@caistech/portfolio-gate",
-  "version": "0.2.1",
-  "description": "Portfolio Standard enforcement layer — errorResponse helper (R10), route smoke test (R13), auth smoke test (R1/R4), and GitHub Action gate template. Closes the gap between rules-in-text and pipeline gates that actually fail the deploy.",
+  "version": "0.3.0",
+  "description": "Portfolio Standard enforcement layer — errorResponse helper (R10), route smoke test (R13), auth smoke test (R1/R4), seven static audits (R3/R7/R8/R9/R11/R15 + responsive-design), and a `audit-all` master runner. Closes the gap between rules-in-text and pipeline gates that actually fail the deploy.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -25,7 +25,15 @@
   },
   "bin": {
     "portfolio-gate-smoke-routes": "dist/bin/smoke-routes.js",
-    "portfolio-gate-smoke-auth": "dist/bin/smoke-auth.js"
+    "portfolio-gate-smoke-auth": "dist/bin/smoke-auth.js",
+    "portfolio-gate-audit-rls": "dist/bin/audit-rls.js",
+    "portfolio-gate-audit-vendor-leak": "dist/bin/audit-vendor-leak.js",
+    "portfolio-gate-audit-unauth-endpoints": "dist/bin/audit-unauth-endpoints.js",
+    "portfolio-gate-audit-sample-artefact": "dist/bin/audit-sample-artefact.js",
+    "portfolio-gate-audit-explanatory-header": "dist/bin/audit-explanatory-header.js",
+    "portfolio-gate-audit-trust-panel": "dist/bin/audit-trust-panel.js",
+    "portfolio-gate-audit-responsive": "dist/bin/audit-responsive.js",
+    "portfolio-gate-audit-all": "dist/bin/audit-all.js"
   },
   "scripts": {
     "build": "tsc",
@@ -36,11 +44,15 @@
   },
   "peerDependencies": {
     "next": ">=14.0.0",
-    "typescript": ">=5.0.0"
+    "typescript": ">=5.0.0",
+    "playwright": ">=1.40.0"
   },
   "peerDependenciesMeta": {
     "next": {
       "optional": false
+    },
+    "playwright": {
+      "optional": true
     }
   },
   "devDependencies": {

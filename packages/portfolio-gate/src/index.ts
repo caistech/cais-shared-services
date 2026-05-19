@@ -36,3 +36,14 @@ export type {
   AuthSmokeResult,
   AuthFailure,
 } from './smoke/auth.js'
+
+// v0.2 + v0.3 static audits.
+export { runRlsAudit } from './audit/rls.js'
+export { runVendorLeakAudit } from './audit/vendor-leak.js'
+export { runUnauthEndpointsAudit } from './audit/unauth-endpoints.js'
+export { runSampleAudit } from './audit/sample.js'
+export { runExplanatoryHeaderAudit } from './audit/explanatory-header.js'
+export { runTrustPanelAudit } from './audit/trust-panel.js'
+export { runResponsiveAudit } from './audit/responsive.js'
+export { formatAuditResult } from './audit/shared.js'
+export type { AuditResult, AuditFinding } from './audit/shared.js'
