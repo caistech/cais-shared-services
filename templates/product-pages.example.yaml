@@ -1,0 +1,60 @@
+# =============================================================================
+# product-pages.yaml — per-product copy source for the R3 backfill generator.
+#
+# How to use:
+#   1. Copy this file to <product-repo>/product-pages.yaml.
+#   2. Fill in the `product` block (one-line definitions of who/what/why).
+#   3. Add one entry per top-level page under `pages:` (path → role-specific copy).
+#   4. Run: node cais-shared-services/scripts/generate-r3-headers.mjs <repo-root>
+#      Script reads this file + walks app/, generates real <ExplanatoryHeader/>
+#      blocks for every entry point listed below, leaves nested pages alone.
+#   5. Commit + push.
+#
+# Minimum required: just the `product:` block + one entry for `/` (landing).
+# Everything else can use sensible defaults derived from `product.*` until
+# you have copy for it.
+# =============================================================================
+
+# Product positioning — one-liners that headers can reuse and extend.
+product:
+  # Short product name as the user sees it (used in headers).
+  name: "REPLACE"
+  # One-sentence noun phrase describing what it IS.
+  # Example: "agentic AI compliance and quotation tool for residential builders"
+  what: "REPLACE"
+  # One-sentence verb phrase describing what the user DOES with it.
+  # Example: "checks designs against NCC + state-codes and prices the build"
+  do: "REPLACE"
+  # One-sentence why this matters to the user's broader workflow.
+  # Example: "Catches code violations before approval and gives a Class-1 quote in minutes"
+  matters: "REPLACE"
+  # Primary persona (drives tone in defaults). Examples:
+  #   builder | architect | investor | founder | parent | claimant | operator
+  persona: "REPLACE"
+
+# Per-page overrides. Keys are repo-relative page paths.
+# Anything not listed falls back to a sensible default generated from `product`.
+pages:
+  # The landing page is always required and almost always custom.
+  "app/page.tsx":
+    what: "REPLACE — what is this page (e.g. 'MMC Build product overview')"
+    do: "REPLACE — what does the visitor do here (e.g. 'See how MMC Comply, Build, and Quote work together')"
+    matters: "REPLACE — why it matters (e.g. 'Three modules cover the full pre-construction loop')"
+
+  # Authenticated dashboard root — the operator's first stop after login.
+  "app/dashboard/page.tsx":
+    what: "REPLACE — name of the dashboard (e.g. 'Project dashboard')"
+    do: "REPLACE — primary action (e.g. 'Pick a project to work on or start a new one')"
+    matters: "REPLACE — context (e.g. 'Every project carries its own compliance, design, and quote state')"
+
+  # Optional: marketing / legal pages — these are usually fine with defaults
+  # generated from `product.*` but you can override per page if needed.
+  # "app/pricing/page.tsx":
+  #   what: "Pricing"
+  #   do: "Pick a plan that matches your monthly volume"
+  #   matters: "Plans scale by compliance runs per month — Basic 10, Pro 30, Enterprise custom"
+  #
+  # "app/about/page.tsx":
+  #   what: "About REPLACE"
+  #   do: "Read who built this and why"
+  #   matters: "Background context for prospects evaluating the tool"
