@@ -56,31 +56,18 @@ jobs:
         with:
           version: 9
 
+      # Setup Node with built-in @caistech registry auth (official pattern).
+      # Tells setup-node@v4 to write a managed .npmrc that uses
+      # `${NODE_AUTH_TOKEN}` — which IS reliably expanded by npm/pnpm (the
+      # `${GITHUB_PACKAGES_TOKEN}` substitution in a repo-local .npmrc was
+      # not).
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
           cache: ${{ steps.detect-pm.outputs.pm }}
-
-      # Write the @caistech registry auth into ~/.npmrc BEFORE install.
-      # The repo-local .npmrc uses `${GITHUB_PACKAGES_TOKEN}` syntax which is
-      # supposed to be expanded by npm/pnpm — but the expansion has been
-      # unreliable in CI (npm sends the literal placeholder string, GitHub
-      # rejects it as "unauthenticated"). Writing the literal token via bash
-      # `>>` is the robust path: bash always expands env vars; ~/.npmrc
-      # overrides nothing in the repo .npmrc and merges by precedence.
-      - name: Configure @caistech registry auth
-        run: |
-          mkdir -p ~
-          {
-            echo "@caistech:registry=https://npm.pkg.github.com"
-            echo "//npm.pkg.github.com/:_authToken=${GITHUB_PACKAGES_TOKEN}"
-          } >> ~/.npmrc
-        env:
-          # Required for @caistech/* private packages on GitHub Packages.
-          # NOTE: secret is named CAISTECH_PACKAGES_TOKEN (GitHub Actions reserves
-          # the GITHUB_ prefix).
-          GITHUB_PACKAGES_TOKEN: ${{ secrets.CAISTECH_PACKAGES_TOKEN }}
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@caistech'
 
       - name: Install dependencies
         run: |
@@ -93,7 +80,10 @@ jobs:
             npm install
           fi
         env:
-          GITHUB_PACKAGES_TOKEN: ${{ secrets.CAISTECH_PACKAGES_TOKEN }}
+          # NODE_AUTH_TOKEN is the convention setup-node@v4 wired up via the
+          # `registry-url` + `scope` inputs above. Secret is still
+          # CAISTECH_PACKAGES_TOKEN (GitHub Actions reserves GITHUB_ prefix).
+          NODE_AUTH_TOKEN: ${{ secrets.CAISTECH_PACKAGES_TOKEN }}
 
       - name: Typecheck
         run: npm run typecheck --if-present
