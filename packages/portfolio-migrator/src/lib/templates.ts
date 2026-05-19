@@ -109,7 +109,7 @@ jobs:
             npm install
           fi
         env:
-          GITHUB_PACKAGES_TOKEN: \${{ secrets.GITHUB_PACKAGES_TOKEN }}
+          GITHUB_PACKAGES_TOKEN: \${{ secrets.CAISTECH_PACKAGES_TOKEN }}
 
       - name: Typecheck
         run: npm run typecheck --if-present

@@ -157,8 +157,10 @@ The template runs typecheck + lint + build, then both smoke tests against the
 URL in `vars.PORTFOLIO_GATE_PREVIEW_URL` (set via GitHub repo settings → Actions
 → Variables) or whatever you wire from your preview-deploy step.
 
-You'll also need the `GITHUB_PACKAGES_TOKEN` secret on the repo so `@caistech/*`
-packages can install.
+You'll also need the `CAISTECH_PACKAGES_TOKEN` secret on the repo so `@caistech/*`
+packages can install. (Name `GITHUB_PACKAGES_TOKEN` is rejected by the Actions
+API — GitHub reserves the `GITHUB_` prefix. The workflow maps the secret to the
+env var `GITHUB_PACKAGES_TOKEN` so `.npmrc` continues to read it under that name.)
 
 ## Rules this package enforces
 

@@ -56,7 +56,10 @@ jobs:
           fi
         env:
           # Required for @caistech/* private packages on GitHub Packages.
-          GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_PACKAGES_TOKEN }}
+          # NOTE: secret is named CAISTECH_PACKAGES_TOKEN (GitHub Actions reserves
+          # the GITHUB_ prefix). The env var the registry reads is still
+          # GITHUB_PACKAGES_TOKEN — the rename is only in the secret store.
+          GITHUB_PACKAGES_TOKEN: ${{ secrets.CAISTECH_PACKAGES_TOKEN }}
 
       - name: Typecheck
         run: npm run typecheck --if-present

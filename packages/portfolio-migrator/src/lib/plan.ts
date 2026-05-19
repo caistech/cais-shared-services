@@ -249,7 +249,7 @@ function buildScaffoldGateWorkflowStep(): MigrationStep {
     rule: 'R13',
     title: 'Scaffold .github/workflows/gate.yml',
     description:
-      'GitHub Action template — runs typecheck + lint + build + route + auth smoke tests on PR + push to main. Requires GITHUB_PACKAGES_TOKEN secret and PORTFOLIO_GATE_PREVIEW_URL repo variable.',
+      'GitHub Action template — runs typecheck + lint + build + route + auth smoke tests on PR + push to main. Requires CAISTECH_PACKAGES_TOKEN secret and PORTFOLIO_GATE_PREVIEW_URL repo variable.',
     files: [
       {
         path: '.github/workflows/gate.yml',
