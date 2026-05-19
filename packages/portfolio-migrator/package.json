@@ -1,0 +1,40 @@
+{
+  "name": "@caistech/portfolio-migrator",
+  "version": "0.1.0",
+  "description": "Dry-run-first CLI that backfills existing products onto the Corporate AI Solutions Portfolio Standard. Inspects, plans, applies — never auto-pushes.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "portfolio-migrator": "dist/bin/portfolio-migrator.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  },
+  "files": [
+    "dist/",
+    "templates/"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/portfolio-migrator"
+  },
+  "license": "PRIVATE"
+}
