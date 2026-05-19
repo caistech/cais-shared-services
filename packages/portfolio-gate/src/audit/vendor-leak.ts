@@ -62,6 +62,36 @@ const DEFAULT_PATTERNS: VendorLeakPattern[] = [
   { name: 'operator-instagram', pattern: 'karen\\.engel2026' },
 ]
 
+/**
+ * Files that legitimately reference vendor identity for historical or
+ * documentation purposes — not customer-facing surfaces. Consumers can extend
+ * via `vendor-leak.config.ts > allowlist`. R11 is about customer-facing leak,
+ * not about pretending the operator's identity never existed.
+ */
+const DEFAULT_ALLOWLIST = [
+  // Naive-tester / audit / diagnosis docs — describe what was scrubbed.
+  'docs/NAIVE_TESTER_REMEDIATION_',
+  'docs/INNGEST_',
+  'docs/MIGRATION_',
+  // CHANGELOG / project status — reference historical state.
+  'CHANGELOG',
+  'PROJECT_STATUS',
+  // Operator-only scripts + internal briefs.
+  'scripts/',
+  '_archive/',
+  '_vite-legacy/',
+  // The internal implementation briefs Dennis writes for himself.
+  '-claude-code-brief.md',
+  // The Portfolio Standard doc itself references the operator pattern by name.
+  'foundation/PORTFOLIO_STANDARD.md',
+  // node_modules / build output — walkFiles should ignore but defence-in-depth.
+  'node_modules/',
+  'dist/',
+  '.next/',
+  'out/',
+  '.turbo/',
+]
+
 const SCAN_EXTENSIONS = [
   '.ts',
   '.tsx',
@@ -88,7 +118,7 @@ export async function runVendorLeakAudit(
     name: p.name,
     re: new RegExp(p.pattern, 'i'),
   }))
-  const allowlist = config.allowlist ?? []
+  const allowlist = [...DEFAULT_ALLOWLIST, ...(config.allowlist ?? [])]
   const findings: AuditFinding[] = []
 
   const scanDirs = (config.scanRoots ?? ['.']).map((p) => resolve(rootDir, p))
@@ -99,7 +129,8 @@ export async function runVendorLeakAudit(
   }
 
   for (const file of files) {
-    const rel = relativeTo(rootDir, file)
+    // Normalise to forward slashes for cross-platform allowlist matching.
+    const rel = relativeTo(rootDir, file).replace(/\\/g, '/')
     if (isAllowlisted(rel, allowlist)) continue
     const content = await readFileOptional(file)
     if (!content) continue
@@ -135,6 +166,16 @@ function isAllowlisted(relPath: string, allowlist: string[]): boolean {
     if (entry === relPath) return true
     if (entry.endsWith('/')) return relPath.startsWith(entry)
     if (entry.endsWith('*')) return relPath.startsWith(entry.slice(0, -1))
-    return relPath.startsWith(`${entry}/`)
+    // Bare entries are treated as prefix matches against the relative path —
+    // this handles both directory prefixes ("scripts/") and file-prefix
+    // patterns ("docs/NAIVE_TESTER_REMEDIATION_") AND filename-tail patterns
+    // ("-claude-code-brief.md") without requiring trailing punctuation.
+    if (relPath.startsWith(entry)) return true
+    if (relPath.startsWith(`${entry}/`)) return true
+    // Tail-match for filename suffix patterns like `-claude-code-brief.md`.
+    if (entry.startsWith('-') || entry.startsWith('.')) {
+      if (relPath.endsWith(entry)) return true
+    }
+    return false
   })
 }

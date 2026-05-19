@@ -78,25 +78,58 @@ export async function runRlsAudit(options: RlsAuditOptions = {}): Promise<AuditR
     }
   }
 
+  const DROP_POLICY_RE = /\bDROP\s+POLICY\b/i
+  // Lines whose content is purely an SQL line comment (`-- ...`). We do this
+  // before any policy/USING matching so audit messages can't be false-positived
+  // by documentation strings that mention USING (true).
+  const LINE_COMMENT_RE = /^\s*--/
+
   for (const file of files) {
     const content = await readFileOptional(file)
     if (!content) continue
-    const lines = content.split(/\r?\n/)
-    // Multi-line awareness: a policy block can span several lines. Track the
-    // current policy's target table from the most recent `ON <table>` token.
+    // Strip /* … */ block comments before per-line analysis. SQL block comments
+    // are rare in migrations but the noise they cause is high.
+    const stripped = content.replace(/\/\*[\s\S]*?\*\//g, (m) =>
+      m.replace(/[^\r\n]/g, ' ')
+    )
+    const lines = stripped.split(/\r?\n/)
+    // Track current statement context: are we inside a CREATE/ALTER POLICY
+    // block? If yes, what table does it apply to? Reset on every `;`. A line
+    // that contains `DROP POLICY` is excluded — those legitimately mention
+    // USING (true) when documenting the policy being removed.
+    let inCreatePolicy = false
     let currentTable: string | null = null
     for (let i = 0; i < lines.length; i += 1) {
       const line = lines[i]
-      // Reset table context when a new policy starts.
+      // Skip pure SQL line comments.
+      if (LINE_COMMENT_RE.test(line)) {
+        if (/;\s*$/.test(line)) {
+          inCreatePolicy = false
+          currentTable = null
+        }
+        continue
+      }
+      // Skip lines that DROP a policy — these legitimately echo the old USING
+      // (true) clause in their literal form for clarity.
+      if (DROP_POLICY_RE.test(line)) {
+        if (/;\s*$/.test(line)) {
+          inCreatePolicy = false
+          currentTable = null
+        }
+        continue
+      }
+      // Enter a CREATE/ALTER POLICY block.
       if (POLICY_LINE_RE.test(line)) {
+        inCreatePolicy = true
         const m = line.match(ON_TABLE_RE)
         if (m) currentTable = m[1].toLowerCase()
-      } else {
-        // The `ON <table>` clause may appear on a continuation line.
+      } else if (inCreatePolicy && currentTable === null) {
+        // `ON <table>` may appear on a continuation line of the CREATE.
         const m = line.match(ON_TABLE_RE)
-        if (m && currentTable === null) currentTable = m[1].toLowerCase()
+        if (m) currentTable = m[1].toLowerCase()
       }
-      if (USING_TRUE_RE.test(line)) {
+      // Only flag USING (true) when we are inside an active CREATE/ALTER POLICY.
+      if (inCreatePolicy && USING_TRUE_RE.test(line)) {
         const table = currentTable ?? '(unknown)'
         if (table !== '(unknown)' && !dataBearing.test(table)) continue
         if (exempt.has(table)) continue
@@ -108,8 +141,11 @@ export async function runRlsAudit(options: RlsAuditOptions = {}): Promise<AuditR
           detail: line.trim(),
         })
       }
-      // Statement terminator resets the table context.
-      if (/;\s*$/.test(line)) currentTable = null
+      // Statement terminator resets the policy + table context.
+      if (/;\s*$/.test(line)) {
+        inCreatePolicy = false
+        currentTable = null
+      }
     }
   }
 
