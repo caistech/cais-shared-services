@@ -21,6 +21,7 @@ ENTRIES=(
   "easy-claude-code|apps/frontend"
   "HairStylistAI|."
   "mmcbuild|."
+  "community-question-responder|."
 )
 
 COMMIT_MSG='chore(deps): bump @caistech/* to compiled-dist versions

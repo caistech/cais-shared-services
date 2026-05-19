@@ -21,6 +21,7 @@ ENTRIES=(
   "easy-claude-code|apps/frontend/package.json"
   "HairStylistAI|package.json"
   "mmcbuild|package.json"
+  "community-question-responder|package.json"
 )
 
 for entry in "${ENTRIES[@]}"; do

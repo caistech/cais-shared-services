@@ -14,7 +14,7 @@
 #   export VERCEL_TOKEN=$(cat ~/.vercel-token)
 #   node packages/portfolio-env-sync/dist/index.js --manifest portfolio-manifest.yaml
 
-team_id: "team_hwN7IFtd2Fo3DCj9C67ZwI1t"  # Corporate AI Solutions
+team_id: "team_hwN7IFtd2Fo3DCj9C67ZwI1t" # Corporate AI Solutions
 
 # -----------------------------------------------------------------------------
 # Secret resolution — maps $secret:NAME refs in shared/projects to their
@@ -226,7 +226,8 @@ projects:
     auth_config:
       site_url: "https://hair-stylist-ai-corporate-ai-solutions.vercel.app"
       redirect_urls:
-        - "https://hair-stylist-ai-corporate-ai-solutions.vercel.app/api/auth/callback"
+        - "https://hair-stylist-ai-corporate-ai-solutions.vercel.app/api/auth/c\
+          allback"
         - "https://*-corporate-ai-solutions.vercel.app/api/auth/callback"
         - "http://localhost:3000/api/auth/callback"
       # Default of 2/hour was burning users on a 3rd magic-link retry.
@@ -251,6 +252,22 @@ projects:
       NEXT_PUBLIC_SUPABASE_URL: { from_supabase: "url" }
       NEXT_PUBLIC_SUPABASE_ANON_KEY: { from_supabase: "anon_key" }
       SUPABASE_SERVICE_ROLE_KEY: { from_supabase: "service_role_key" }
+  - name: community-question-responder
+    vercel_project_id: prj_2VGX4tqLk3WtwSfl3Lawp2TQ6jyL
+    supabase_project_ref: vhslputasuxnxbffwcxu
+    inherit_shared:
+      - ANTHROPIC_API_KEY
+      - OPENAI_API_KEY
+      - RESEND_API_KEY
+      - GITHUB_PACKAGES_TOKEN
+    envs:
+      NEXT_PUBLIC_SUPABASE_URL:
+        from_supabase: url
+      NEXT_PUBLIC_SUPABASE_ANON_KEY:
+        from_supabase: anon_key
+      SUPABASE_SERVICE_ROLE_KEY:
+        from_supabase: service_role_key
+      RESEND_FROM_EMAIL: { value: "noreply@updates.corporateaisolutions.com" }
 
 # -----------------------------------------------------------------------------
 # Vercel projects in the Corporate AI Solutions team that are NOT in the

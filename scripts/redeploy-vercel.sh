@@ -13,7 +13,7 @@ fi
 TEAM="team_hwN7IFtd2Fo3DCj9C67ZwI1t"
 
 # Only projects that we confirmed exist in Vercel (from set-vercel-env-v2 output).
-SLUGS="mmcbuild deal-findrs f2k-checkpoint-new property-services platform-trust universal-interviews launchready connexions kira smart-board storefront-mcp raiseready-template gbta-openclaw easy-claude-code hair-stylist-ai"
+SLUGS="mmcbuild deal-findrs f2k-checkpoint-new property-services platform-trust universal-interviews launchready connexions kira smart-board storefront-mcp raiseready-template gbta-openclaw easy-claude-code hair-stylist-ai community-question-responder"
 
 echo "== Triggering Vercel redeploys =="
 

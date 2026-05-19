@@ -34,6 +34,7 @@ SLUGS=(
   gbta-openclaw
   easy-claude-code
   hair-stylist-ai
+  community-question-responder
 )
 
 echo "== Setting GITHUB_PACKAGES_TOKEN in each Vercel project =="
