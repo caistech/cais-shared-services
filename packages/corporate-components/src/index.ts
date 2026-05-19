@@ -21,6 +21,28 @@ export {
   mapSupabaseAuthError,
 } from './auth';
 
+// Portfolio Standard R3 — explanatory header for every page and panel.
+// Requires what / todo / matters at the type level — no silent omission.
+export { ExplanatoryHeader } from './headers';
+export type { ExplanatoryHeaderProps } from './headers';
+
+// Portfolio Standard R15 — trust scaffolding for REGULATED-tier products.
+// Counterparty / certification / policy disclosure with honest status badges.
+export { TrustPanel } from './trust';
+export type {
+  TrustPanelProps,
+  TrustKind,
+  CounterpartyStatus,
+  Counterparty,
+  Certification,
+  Policy,
+  RegulatedFinancialTrustPanelProps,
+  ConsumerHealthTrustPanelProps,
+  ChildrenDataTrustPanelProps,
+  CredentialInfrastructureTrustPanelProps,
+  GenericTrustPanelProps,
+} from './trust';
+
 // Copy-paste components live under:
 //   src/abn-lookup/      — ABN lookup + ABR search (requires shadcn/ui Input/Label/Badge + lucide-react + @caistech/abn-lookup)
 //   src/address-autocomplete/ — Mapbox address autocomplete (requires shadcn/ui Input + lucide-react + @caistech/mapbox)
