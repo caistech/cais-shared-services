@@ -1,0 +1,88 @@
+# Portfolio Standard gate — generated from @caistech/portfolio-gate v0.1
+#
+# Runs typecheck + lint + build, then route + auth smoke tests against the
+# preview deploy URL. Fails the action (and blocks Vercel promotion) on any
+# non-zero exit.
+#
+# Closes Portfolio Standard:
+#   R1  — Auth four-leg pattern (auth smoke step)
+#   R10 — No verbatim Postgres errors (errorResponse helper, enforced at code level)
+#   R13 — Route smoke test on every deploy (route smoke step)
+#
+# Preview URL: this template expects `PORTFOLIO_GATE_PREVIEW_URL` to be set in
+# the workflow env. Wire it via the Vercel "Deployment URL" output, the Vercel
+# GitHub integration comment scraper, or a custom preview-deploy step. If you
+# don't have a preview deploy, set the env to the production URL and accept the
+# tradeoff (smoke tests will run against prod every push).
+
+name: portfolio-gate
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      # REQUIRED — set in repo settings or replace with hard-coded production URL.
+      # Vercel users: the Vercel GitHub integration writes the preview URL into
+      # a comment. Use `amondnet/vercel-action` or pull from `vercel.json`.
+      PORTFOLIO_GATE_PREVIEW_URL: ${{ vars.PORTFOLIO_GATE_PREVIEW_URL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            corepack enable
+            pnpm install --frozen-lockfile
+          elif [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+        env:
+          # Required for @caistech/* private packages on GitHub Packages.
+          GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_PACKAGES_TOKEN }}
+
+      - name: Typecheck
+        run: npm run typecheck --if-present
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Build
+        run: npm run build --if-present
+
+      - name: Verify preview URL is set
+        run: |
+          if [ -z "$PORTFOLIO_GATE_PREVIEW_URL" ]; then
+            echo "::error::PORTFOLIO_GATE_PREVIEW_URL is not set. Wire it via repo vars or a preview-deploy step."
+            exit 1
+          fi
+          echo "Preview URL: $PORTFOLIO_GATE_PREVIEW_URL"
+
+      - name: Route smoke test (Portfolio Standard R13)
+        run: |
+          npx --no-install portfolio-gate-smoke-routes \
+            --config routes.config.json \
+            --base-url "$PORTFOLIO_GATE_PREVIEW_URL"
+
+      - name: Auth smoke test (Portfolio Standard R1/R4)
+        run: |
+          npx --no-install portfolio-gate-smoke-auth \
+            --config auth.config.json \
+            --base-url "$PORTFOLIO_GATE_PREVIEW_URL"

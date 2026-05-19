@@ -1,0 +1,64 @@
+{
+  "name": "@caistech/portfolio-gate",
+  "version": "0.1.0",
+  "description": "Portfolio Standard enforcement layer — errorResponse helper (R10), route smoke test (R13), auth smoke test (R1/R4), and GitHub Action gate template. Closes the gap between rules-in-text and pipeline gates that actually fail the deploy.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./errors": {
+      "types": "./dist/errors.d.ts",
+      "import": "./dist/errors.js"
+    },
+    "./smoke/routes": {
+      "types": "./dist/smoke/routes.d.ts",
+      "import": "./dist/smoke/routes.js"
+    },
+    "./smoke/auth": {
+      "types": "./dist/smoke/auth.d.ts",
+      "import": "./dist/smoke/auth.js"
+    }
+  },
+  "bin": {
+    "portfolio-gate-smoke-routes": "dist/bin/smoke-routes.js",
+    "portfolio-gate-smoke-auth": "dist/bin/smoke-auth.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "next": ">=14.0.0",
+    "typescript": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "next": {
+      "optional": false
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "next": "^15.0.0",
+    "typescript": "^5.3.0"
+  },
+  "files": [
+    "dist/",
+    "templates/"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/portfolio-gate"
+  },
+  "license": "PRIVATE"
+}
