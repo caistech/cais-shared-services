@@ -1,0 +1,71 @@
+# Portfolio Standard gate — pre-wired for new products from cais-build-template-v2.
+# Mirrors the @caistech/portfolio-gate template; mapping the renamed secret
+# (CAISTECH_PACKAGES_TOKEN) to the env var .npmrc reads (GITHUB_PACKAGES_TOKEN).
+
+name: portfolio-gate
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      PORTFOLIO_GATE_PREVIEW_URL: ${{ vars.PORTFOLIO_GATE_PREVIEW_URL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            corepack enable
+            pnpm install --frozen-lockfile
+          elif [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+        env:
+          GITHUB_PACKAGES_TOKEN: ${{ secrets.CAISTECH_PACKAGES_TOKEN }}
+
+      - name: Typecheck
+        run: npm run typecheck --if-present
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Build
+        run: npm run build --if-present
+
+      - name: Static audits (RLS / vendor-leak / unauth endpoints)
+        run: |
+          npm run audit:rls --if-present
+          npm run audit:vendor-leak --if-present
+          npm run audit:unauth-endpoints --if-present
+
+      - name: Verify preview URL is set
+        run: |
+          if [ -z "$PORTFOLIO_GATE_PREVIEW_URL" ]; then
+            echo "::error::PORTFOLIO_GATE_PREVIEW_URL is not set. Wire it via repo vars or a preview-deploy step."
+            exit 1
+          fi
+          echo "Preview URL: $PORTFOLIO_GATE_PREVIEW_URL"
+
+      - name: Route smoke test (R13)
+        run: npm run smoke:routes
+
+      - name: Auth smoke test (R1/R4)
+        run: npm run smoke:auth

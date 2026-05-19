@@ -1,0 +1,41 @@
+{
+  "name": "cais-product-template",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Replace with the product description. Inherits Corporate AI Solutions Portfolio Standard v1.0.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "next lint",
+    "smoke:routes": "portfolio-gate-smoke-routes --config routes.config.json --base-url ${PREVIEW_URL:-http://localhost:3000}",
+    "smoke:auth": "portfolio-gate-smoke-auth --config auth.config.json --base-url ${PREVIEW_URL:-http://localhost:3000}",
+    "audit:rls": "portfolio-gate-audit-rls",
+    "audit:vendor-leak": "portfolio-gate-audit-vendor-leak",
+    "audit:unauth-endpoints": "portfolio-gate-audit-unauth-endpoints"
+  },
+  "dependencies": {
+    "@caistech/corporate-components": "^0.3.0",
+    "@caistech/platform-trust-middleware": "^0.4.0",
+    "@supabase/ssr": "^0.5.0",
+    "@supabase/supabase-js": "^2.0.0",
+    "lucide-react": "^0.400.0",
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@caistech/portfolio-gate": "^0.2.1",
+    "@caistech/portfolio-migrator": "^0.1.0",
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^15.0.0",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.0.0"
+  }
+}

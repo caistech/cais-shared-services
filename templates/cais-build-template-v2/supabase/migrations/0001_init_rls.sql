@@ -1,0 +1,37 @@
+-- =============================================================================
+-- Portfolio Standard R9 — RLS-on-by-default.
+-- =============================================================================
+-- This migration is a placeholder. Add your tables here and follow the rules:
+--   1. Every table gets `ALTER TABLE … ENABLE ROW LEVEL SECURITY;`.
+--   2. No `USING (true)` on tables that hold user data.
+--   3. Scope SELECT/INSERT/UPDATE/DELETE policies to the row's owner via
+--      `auth.uid()` (single-tenant) or a membership table join (multi-tenant).
+--   4. Service-role bypass is only acceptable for trusted server-side jobs —
+--      never for client-side reads.
+--
+-- The portfolio-gate-audit-rls audit fails the CI build if any policy uses
+-- `USING (true)` on a data-bearing table (matched against the default regex
+-- in @caistech/portfolio-gate — extend via rls.config.json if your table
+-- names need adjustment).
+-- =============================================================================
+
+-- Example pattern (delete and replace with your real tables):
+--
+-- CREATE TABLE IF NOT EXISTS public.notes (
+--   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+--   owner_id uuid NOT NULL REFERENCES auth.users(id),
+--   body text NOT NULL,
+--   created_at timestamptz NOT NULL DEFAULT now()
+-- );
+--
+-- ALTER TABLE public.notes ENABLE ROW LEVEL SECURITY;
+--
+-- CREATE POLICY "notes are visible to their owner"
+--   ON public.notes
+--   FOR SELECT
+--   USING (auth.uid() = owner_id);
+--
+-- CREATE POLICY "users can write their own notes"
+--   ON public.notes
+--   FOR INSERT
+--   WITH CHECK (auth.uid() = owner_id);

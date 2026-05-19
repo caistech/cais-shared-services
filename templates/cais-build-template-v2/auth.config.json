@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/caistech/cais-shared-services/main/packages/portfolio-gate/schemas/auth.config.schema.json",
+  "loginPath": "/login",
+  "signupPath": "/signup",
+  "forgotPasswordPath": "/forgot-password",
+  "authCallbackPath": "/api/auth/callback",
+  "requirements": {
+    "passwordVisibilityToggle": true,
+    "forgotPasswordLink": true,
+    "magicLinkButton": true
+  }
+}
