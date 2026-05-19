@@ -1,0 +1,32 @@
+{
+  "name": "@caistech/email-finder",
+  "version": "0.1.0",
+  "description": "Multi-provider contact + email finder cascade (Hunter → Apollo). Returns the best name + email for a domain by walking providers in confidence order with role-account fallthrough.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@caistech/apollo-people": "^0.1.0",
+    "@caistech/hunter-email": "^0.1.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "files": [
+    "dist/"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/email-finder"
+  },
+  "license": "PRIVATE",
+  "type": "module"
+}
