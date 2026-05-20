@@ -1,0 +1,109 @@
+slug,route,status,title,title_verdict,note
+aiftis-demo,/,200,AIFTIS reframing · Working sketch,yes,
+aiftis-demo,/wallet,404,,,failed
+aiftis-demo,/about,404,,,failed
+aiftis-demo,/faq,404,,,failed
+connexions,/,200,Connexions,yes,
+connexions,/demo,200,,,ok
+connexions,/pricing,404,,,failed
+connexions,/dashboard,200,,,ok
+corporate-ai-solutions,/,200,Corporate AI Solutions | The Factory That Builds AI Companies,yes,
+corporate-ai-solutions,/marketplace,200,,,ok
+corporate-ai-solutions,/studio,200,,,ok
+corporate-ai-solutions,/studio-partner,404,,,failed
+deal-findrs,/,200,DealFindrs | AI-Powered Project Assessment,yes,
+deal-findrs,/signup,200,,,ok
+deal-findrs,/dashboard,200,,,ok
+deal-findrs,/reports,404,,,failed
+easy-claude-code,/,200,Easy Claude Code,yes,
+easy-claude-code,/onboarding,200,,,ok
+easy-claude-code,/signup,404,,,failed
+easy-claude-code,/dashboard,404,,,failed
+f2k-checkpoint,/,200,F2K Checkpoint — AI Project Manager for Modular Construction,yes,
+f2k-checkpoint,/backcheck,200,,,ok
+f2k-checkpoint,/contact-sales,404,,,failed
+f2k-checkpoint,/pricing,404,,,failed
+f2k-fund-tokenisation,/,200,F2K — Factory to Key | Tokenised National Housing Fund,yes,
+f2k-fund-tokenisation,/invest,200,,,ok
+f2k-fund-tokenisation,/faq,404,,,failed
+f2k-fund-tokenisation,/contact,404,,,failed
+f2k-offshore-modular,/,200,OMQ — Offshore Modular Qualified | Factory2Key,yes,
+f2k-offshore-modular,/for-funders,404,,,failed
+f2k-offshore-modular,/audit,200,,,ok
+f2k-offshore-modular,/download-rubric,404,,,failed
+f2k-projects,/,200,Factory2Key Projects — Australian Housing Developments,yes,
+f2k-projects,/seafields,404,,,failed
+f2k-projects,/branscombe,404,,,failed
+f2k-projects,/hemp-homes,404,,,failed
+hair-stylist-ai,/,200,HairStylistAI — see your new hair before the cut,partial,title='HairStylistAI — see your new hair before the cut' (expected to contain 'Hair Stylist')
+hair-stylist-ai,/consult,200,,,ok
+hair-stylist-ai,/privacy,404,,,failed
+hair-stylist-ai,/terms,404,,,failed
+investor-pilot,/,200,InvestorPilot — Multi-channel direct outreach platform,yes,
+investor-pilot,/pricing,200,,,ok
+investor-pilot,/demo,404,,,failed
+investor-pilot,/playbook,200,,,ok
+kira,/,200,Kira — Your Friendly Guide Through Anything,yes,
+kira,/create-kira,404,,,failed
+kira,/personal-journey,404,,,failed
+kira,/pricing,404,,,failed
+launchready,/,200,LaunchReady — Protect Your Ideas Before Someone Else Does,yes,
+launchready,/wizard,404,,,failed
+launchready,/pricing,200,,,ok
+launchready,/forgot-password,404,,,failed
+lessonslearned,/,200,LessonsLearned,partial,title='LessonsLearned' (expected to contain 'Lessons Learned')
+lessonslearned,/try,404,,,failed
+lessonslearned,/signup,200,,,ok
+lessonslearned,/contact,404,,,failed
+lingo-pure-ai,/,200,LingoPure AI · Strategic Platform Demo,yes,
+lingo-pure-ai,/get-started,404,,,failed
+lingo-pure-ai,/pricing,404,,,failed
+lingo-pure-ai,/languages,404,,,failed
+longtail-ai-venture-studio,/,200,Long Tail AI Venture Studio | Command Centre,yes,
+longtail-ai-venture-studio,/portfolio,404,,,failed
+longtail-ai-venture-studio,/metrics,404,,,failed
+longtail-ai-venture-studio,/login,404,,,failed
+mmcbuild-webapp,/,200,MMC Build — Transform Construction with AI-Powered MMC Solutions,yes,
+mmcbuild-webapp,/comply,404,,,failed
+mmcbuild-webapp,/build,404,,,failed
+mmcbuild-webapp,/quote,404,,,failed
+ndissda-automate,/,200,PF Platform — Property Friends,yes,
+ndissda-automate,/login,200,,,ok
+ndissda-automate,/dashboard,200,,,ok
+ndissda-automate,/properties,200,,,ok
+platform-trust,/,200,Platform Trust,yes,
+platform-trust,/dashboard,200,,,ok
+platform-trust,/api/scan,200,,,ok
+platform-trust,/api/audit,401,,,failed
+prelabz,/,200,Prelabz | AI Pitch Coaching,yes,
+prelabz,/signup,200,,,ok
+prelabz,/founder,404,,,failed
+prelabz,/pitch-analysis,404,,,failed
+property-services,/,200,Property Services — Australian Property Intelligence API,yes,
+property-services,/demo,404,,,failed
+property-services,/architecture,404,,,failed
+property-services,/coverage,404,,,failed
+r-and-d-tax,/,200,R&amp;D Tax Tracker — Automated R&amp;D Tax Incentive Recording,partial,title='R&amp;D Tax Tracker — Automated R&amp;D Tax Incentive Recording' (expected to contain 'R&D Tax')
+r-and-d-tax,/beta,404,,,failed
+r-and-d-tax,/pricing,404,,,failed
+r-and-d-tax,/contact,404,,,failed
+raiseready-template,/,200,RaiseReady - AI-Powered Fundraising Coach,yes,
+raiseready-template,/setup,404,,,failed
+raiseready-template,/configure,404,,,failed
+raiseready-template,/support,404,,,failed
+storefront-mcp,/,200,StoreFront MCP — Make Your Business Visible to AI,yes,
+storefront-mcp,/audit,200,,,ok
+storefront-mcp,/demo,200,,,ok
+storefront-mcp,/for-business,404,,,failed
+story-verse,/,200,StoryVerse - Books That Grow With Your Child,yes,
+story-verse,/create,404,,,failed
+story-verse,/sample-book,404,,,failed
+story-verse,/privacy,404,,,failed
+tourlingo-operator,/,200,TourLingo Operator — by Corporate AI Solutions,yes,
+tourlingo-operator,/setup,404,,,failed
+tourlingo-operator,/pricing,404,,,failed
+tourlingo-operator,/languages,404,,,failed
+universal-interviews,/,200,Universal Interviews,yes,
+universal-interviews,/login,200,,,ok
+universal-interviews,/dashboard,200,,,ok
+universal-interviews,/auth/forgot-password,200,,,ok
