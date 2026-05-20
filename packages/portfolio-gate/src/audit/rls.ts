@@ -77,7 +77,9 @@ export async function runRlsAudit(options: RlsAuditOptions = {}): Promise<AuditR
   const start = Date.now()
   const rootDir = options.rootDir ?? process.cwd()
   const config =
-    (await loadConfigOptional<RlsAuditConfig>(options.configPath ?? null)) ?? {}
+    (await loadConfigOptional<RlsAuditConfig>(
+      options.configPath ?? resolve(rootDir, 'rls.config.json')
+    )) ?? {}
 
   const migrationsDir = resolve(
     rootDir,

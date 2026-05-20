@@ -72,7 +72,7 @@ export async function runUnauthEndpointsAudit(
   const rootDir = options.rootDir ?? process.cwd()
   const config =
     (await loadConfigOptional<UnauthEndpointsConfig>(
-      options.configPath ?? null
+      options.configPath ?? resolve(rootDir, 'unauth-endpoints.config.json')
     )) ?? {}
 
   const baseUrl = options.baseUrlOverride ?? config.baseUrl ?? null

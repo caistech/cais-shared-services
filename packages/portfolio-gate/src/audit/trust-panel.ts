@@ -9,6 +9,7 @@
  *
  * See foundation/PORTFOLIO_STANDARD.md → R15.
  */
+import { resolve } from 'node:path'
 import {
   type AuditFinding,
   type AuditResult,
@@ -55,7 +56,9 @@ export async function runTrustPanelAudit(
   const start = Date.now()
   const rootDir = options.rootDir ?? process.cwd()
   const config =
-    (await loadConfigOptional<TrustPanelConfig>(options.configPath ?? null)) ?? {}
+    (await loadConfigOptional<TrustPanelConfig>(
+      options.configPath ?? resolve(rootDir, 'trust-panel.config.json')
+    )) ?? {}
 
   const tier = config.tier ?? 'standard'
   if (tier !== 'regulated' && tier !== 'regulated-financial') {

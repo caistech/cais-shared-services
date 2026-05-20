@@ -69,7 +69,9 @@ export async function runSampleAudit(
   const start = Date.now()
   const rootDir = options.rootDir ?? process.cwd()
   const config =
-    (await loadConfigOptional<SampleAuditConfig>(options.configPath ?? null)) ?? {}
+    (await loadConfigOptional<SampleAuditConfig>(
+      options.configPath ?? resolve(rootDir, 'sample.config.json')
+    )) ?? {}
 
   if (config.internalOnly) {
     return {

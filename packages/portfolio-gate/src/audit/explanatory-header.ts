@@ -8,6 +8,7 @@
  *
  * See foundation/PORTFOLIO_STANDARD.md → R3.
  */
+import { resolve } from 'node:path'
 import {
   type AuditFinding,
   type AuditResult,
@@ -59,7 +60,7 @@ export async function runExplanatoryHeaderAudit(
   const rootDir = options.rootDir ?? process.cwd()
   const config =
     (await loadConfigOptional<ExplanatoryHeaderConfig>(
-      options.configPath ?? null
+      options.configPath ?? resolve(rootDir, 'explanatory-header.config.json')
     )) ?? {}
 
   const componentRe = new RegExp(

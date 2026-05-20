@@ -112,7 +112,9 @@ export async function runVendorLeakAudit(
   const start = Date.now()
   const rootDir = options.rootDir ?? process.cwd()
   const config =
-    (await loadConfigOptional<VendorLeakConfig>(options.configPath ?? null)) ?? {}
+    (await loadConfigOptional<VendorLeakConfig>(
+      options.configPath ?? resolve(rootDir, 'vendor-leak.config.json')
+    )) ?? {}
 
   const patterns = (config.patterns ?? DEFAULT_PATTERNS).map((p) => ({
     name: p.name,

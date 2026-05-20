@@ -14,6 +14,7 @@
  *
  * See foundation/PORTFOLIO_STANDARD.md → responsive-design rule.
  */
+import { resolve } from 'node:path'
 import {
   type AuditFinding,
   type AuditResult,
@@ -66,8 +67,11 @@ export async function runResponsiveAudit(
   options: ResponsiveOptions = {}
 ): Promise<AuditResult> {
   const start = Date.now()
+  const rootDir = options.rootDir ?? process.cwd()
   const config =
-    (await loadConfigOptional<ResponsiveConfig>(options.configPath ?? null)) ?? {}
+    (await loadConfigOptional<ResponsiveConfig>(
+      options.configPath ?? resolve(rootDir, 'responsive.config.json')
+    )) ?? {}
 
   const baseUrl = options.baseUrlOverride ?? config.baseUrl
   if (!baseUrl) {
