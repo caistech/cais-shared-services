@@ -2,7 +2,7 @@
 
 **Single source of truth for the portfolio backfill driven by the 2026-05-19 naive-tester report.**
 Source: `C:\Users\denni\naive-tester-reports\2026-05-19-1711\PORTFOLIO_ROOT_CAUSES.md`
-Last updated: 2026-05-20 (Batch 1 closed)
+Last updated: 2026-05-20 (Batch 1 closed; Batch 2 partial — RC2 cleared, RC1 surfaced as DNS-blocked)
 
 Every product × every root cause is a cell. Update the cell when work lands. Don't track in your head.
 
@@ -82,48 +82,48 @@ Every product × every root cause is a cell. Update the cell when work lands. Do
 | ndissda-automate | 🔒 | ✗ | ? | ✗ | ? | ? | ? | ? | ✗ | ? | URL-query error reflection (phishing-by-URL) — residue. Auth flow paused 2026-05-16 |
 | platform-trust | 🔒 | ✗ | ? | ? | ? | ? | ? | ✓ | ✗ | ? | **Hot (4 RCs)**. RC7 ✓ 2026-05-20 (R9 + R12 PASS post gate fix; intentional anon-public reads exempted in rls.config.json) |
 | r-and-d-tax | 🔒 | ✗ | ? | ? | ? | ? | ? | ? | ✗ | ? | Climate heuristic missing QLD east coast (residue) |
-| deal-findrs | 💰 | ✗ | ✗ | ? | ? | ? | ? | ? | ? | ? | **Hot (5 RCs)**. Widget-consumer. US/Caribbean placeholder on AU product (residue) |
+| deal-findrs | 💰 | ✗ | ✓ | ? | ? | ? | ? | ? | ? | ? | **Hot (5 RCs)**. Widget-consumer. US/Caribbean placeholder on AU product (residue). RC2 ✓ 2026-05-20 (no router leak, env scoped to 6 product-specific agents) |
 | easy-claude-code | 💰 | ✗ | ? | ? | ? | ? | ? | ? | ? | ? | |
-| investorpilot | 💰 | ✗ | ✗ | ? | ? | ? | ? | ? | ? | ? | Widget-consumer. Currently single-tenant for F2K. Production URL: investor-pilot-pi.vercel.app |
+| investorpilot | 💰 | ✗ | ✓ | ? | ? | ? | ? | ? | ? | ? | Widget-consumer. Currently single-tenant for F2K. Production URL: investor-pilot-pi.vercel.app. RC2 ✓ 2026-05-20 (single product-scoped agent, no router leak) |
 | partner-pilot | 💰 | ✗ | ? | ? | ? | ? | ? | ? | ? | ? | Auth flow paused 2026-05-16 |
 | storefront-mcp | 💰 | ✗ | ? | ? | ? | ? | ? | ? | ? | ? | Production URL: storefront-mcp-eight.vercel.app |
 | tenderwatch | 💰 | ✗ | ? | ? | ? | ? | ? | ? | ? | ? | Production URL: tenderwatch-alpha.vercel.app |
-| aiftis-demo | ⚪ | ✗ | ✗ | ? | ? | ? | ? | ? | ? | ? | Widget-consumer. Mentioned in LingoPure cross-app returnTo allowlist |
+| aiftis-demo | ⚪ | ✗ | ✓ | ? | ? | ? | ? | ? | ? | ? | Widget-consumer. Mentioned in LingoPure cross-app returnTo allowlist. RC2 ✓ 2026-05-20 (generic ELEVENLABS_AGENT_ID, no router leak) |
 | cais-interview-agent | ⚪ | ✗ | ? | ? | ? | ? | ✗ | ? | ? | ? | "Missing install id" dead-end UX (per bleed plan). MCP funnel — narrow by design |
 | community-question-responder | ⚪ | ✓ | N/A | ✓ | ✓ | ✗ | ✓ | ✓ | N/A | ✓ | Built 2026-05-19/20 under current standard. Voice agent N/A pending VOICE AI rule retrofit. Slack BD play abandoned per Arnaud incident — pivoting to BYOK-free distribution |
-| connexions | ⚪ | ✗ | ✗ | ? | ? | ? | ? | ✓ | ? | ? | **Hot (5 RCs)**. RC7 ✓ 2026-05-20 (R9 + R12 PASS). Widget-consumer. "Try Free Demo" → universal-interviews (different brand, same sandbox) |
-| corporate-ai-solutions | ⚪ | ✗ | ✗ | ? | ? | N/A | ? | ? | ? | ? | Marketing site. Widget-consumer (portfolio-router agents Alex/Scout/Morgan/Victoria/Kira — keep here, strip from per-product) |
+| connexions | ⚪ | ✗ | ✓ | ? | ? | ? | ? | ✓ | ? | ? | **Hot (5 RCs)**. RC7 ✓ + RC2 ✓ 2026-05-20. RC1 still affected — `connexions-silk.vercel.app` now serves "f27 survey" (hijack). Widget-consumer with demo + generic agent env (no router leak). |
+| corporate-ai-solutions | ⚪ | ✗ | ✓ | ? | ? | N/A | ? | ? | ? | ? | Marketing site. RC2 ✓ 2026-05-20 — VoiceAgent.tsx is mock (TODO at line 100, canned responses), canRoute dead code. Only NEXT_PUBLIC_ELEVENLABS_AGENT_KIRA env set (proper home for the portfolio-router agent). |
 | coordination-hub | ⚪ | ? | ? | ? | ? | ? | ? | ? | ? | ? | Not in bleed list — needs initial audit |
 | f2k-projects | ⚪ | ✗ | ? | ? | ? | ? | ? | ? | ? | ? | Video flyover fallback text on iOS Safari codec (residue) |
 | gbta-openclaw | ⚪ | ? | ? | ? | ? | ? | ? | ? | ? | ? | Not flagged in bleed list — verify production URL |
-| hair-stylist-ai | ⚪ | ✗ | ✗ | ? | ? | ? | ? | ? | ? | ? | Widget-consumer (indirect via shared UI packages). Margaret's "Start talking" → here |
-| kira | ⚪ | ✗ | ✗ | ? | ? | ? | ? | ? | ? | ? | Widget-consumer with `auto-connect="true"` at app/start/page.tsx:326 — legitimate exception per bleed plan but agent must have no portfolio-routing tools. Production URL: kira-rho.vercel.app |
+| hair-stylist-ai | ⚪ | ✗ | ✓ | ? | ? | ? | ? | ? | ? | ? | Widget-consumer (indirect via shared UI packages). RC2 ✓ 2026-05-20 — no ConvAI env vars configured at all. Margaret's "Start talking" → here |
+| kira | ⚪ | ✗ | ✓ | ? | ? | ? | ? | ? | ? | ? | RC2 ✓ 2026-05-20 — env scoped to KIRA_SETUP_AGENT_ID/PUBGUARD_KIRA_AGENT_ID (no router leak). `auto-connect="true"` at app/start/page.tsx:326 is the legitimate gated exception per the plan. RC1: bare slug kira.vercel.app hijacked by external "Kira - Spotify regional availability" app. Canonical: kira-rho.vercel.app |
 | launchready | ⚪ | ✗ | ? | ? | ? | ? | ? | ? | ? | ? | **Hot (4 RCs)**. Production URL: launchready-ruby.vercel.app |
 | leadspark-tenant | ⚪ | ? | ? | ? | ? | ? | ? | ? | ? | ? | Auth flow paused 2026-05-16 |
 | lessonslearned | ⚪ | ✗ | ? | ? | ? | ? | ? | ? | ? | ? | Production URL: lessonslearned-wheat.vercel.app |
-| lingo-pure-ai | ⚪ | ✗ | ✗ | ? | ? | ? | ? | ? | ? | ? | Widget-consumer. Megumi: "Get Started" → f2-k-fund-tokenisation-admin-consol on HTTP 429 |
+| lingo-pure-ai | ⚪ | ✗ | ✓ | ? | ? | ? | ? | ? | ? | ? | RC2 ✓ 2026-05-20 — generic ELEVENLABS_AGENT_ID, no router leak. Widget-consumer. Megumi: "Get Started" → f2-k-fund-tokenisation-admin-consol on HTTP 429 |
 | longtail-ai-venture-studio | ⚪ | ✗ | ? | ? | ? | ? | ? | ✓ | ? | ? | **Hot (4 RCs)**. RC7 ✓ 2026-05-20 (R9 + R12 PASS; drop migration 003_rls_replace_open_plans_prices_subs.sql) |
 | mova | ⚪ | ? | ? | ? | ? | ? | ? | ? | ? | ? | Not flagged in bleed list — needs initial audit |
 | omq-outreach | ⚪ | ? | ? | ? | ? | ? | ? | ? | ? | ? | Auth flow paused 2026-05-16 |
 | outreach-ready | ⚪ | ? | ? | ? | ? | ? | ? | ? | ? | ? | Auth flow paused 2026-05-16 |
-| prelabz | ⚪ | ✗ | ? | ? | ? | ? | ? | ? | ? | ? | Asha: tab bounced to LingoPure, then F2K Admin Console; HTTP 429 |
+| prelabz | ⚪ | ✗ | ✓ | ? | ? | ? | ? | ? | ? | ? | RC2 ✓ 2026-05-20 — no ConvAI env vars set. Asha: tab bounced to LingoPure, then F2K Admin Console; HTTP 429 |
 | property-services | ⚪ | ✗ | ? | ? | ? | ? | ? | ? | ? | ? | Production URL: property-services-kappa.vercel.app |
 | raiseready-impact | ⚪ | ✗ | ? | ? | ? | ? | ? | ? | ? | ? | Production URL: raiseready-six.vercel.app |
 | raiseready-template | ⚪ | ✗ | ? | ? | ? | ? | ? | ? | ? | ✗ | "White-label" demo carries Calendly handle in 14 places — proves opposite of white-label pitch (RC9 confirmed) |
 | rehearsals-ai | ⚪ | ? | ? | ? | ? | ? | ? | ? | ? | ? | Not flagged in bleed list — needs initial audit |
 | smart-board | ⚪ | ✗ | ? | ? | ? | ? | ? | ? | ? | ? | Production URL: smart-board-eight.vercel.app |
 | story-verse | ⚪ | ✗ | ? | ? | ? | ? | ? | ✓ | ✗ | ? | **Hot (6 RCs)**. RC7 ✓ 2026-05-20 (R9 + R12 PASS; drop migration 20260519200817_rls_subscriptions_drop_wide_open.sql). Children's voice clones with no /privacy /parents /safety (residue + RC8). Production URL: story-verse-two.vercel.app |
-| tour-lingo | ⚪ | ✗ | ✗ | ? | ? | ? | ? | ? | ? | ? | Widget-consumer. Rohan: silent navigation to kira-rho / universal-interviews / cais-interview-agent / longtail-ai-venture-studio after wait |
-| tourlingo-operator | ⚪ | ✗ | ✗ | ? | ? | ? | ? | ? | ? | ? | Same as tour-lingo (likely same product / aliased) |
-| universal-interviews | ⚪ | ✗ | ✗ | ? | ? | ? | ? | ✓ | ? | ✗ | **Hot (6 RCs)**. RC7 ✓ 2026-05-20 (R9 + R12 PASS; drop migration 20260519221711_rls_membership_scoped.sql). Bea: 5 refreshes → 6 different products including DEPLOYMENT_NOT_FOUND. `$200K raise banner` on candidate screen (residue). Buyer page footer → connexions-silk (RC9 confirmed). Widget-consumer |
-| universallingo | ⚪ | ? | ✗ | ? | ? | ? | ? | ? | ? | ? | Widget-consumer per bleed plan inventory |
+| tour-lingo | ⚪ | ✗ | ✓ | ? | ? | ? | ? | ? | ? | ? | RC2 ✓ 2026-05-20 — no ConvAI env vars set in TourLingo project. Widget-consumer. Rohan: silent navigation to kira-rho / universal-interviews / cais-interview-agent / longtail-ai-venture-studio after wait |
+| tourlingo-operator | ⚪ | ✗ | ✓ | ? | ? | ? | ? | ? | ? | ? | RC2 ✓ 2026-05-20. Same as tour-lingo (likely same product / aliased) |
+| universal-interviews | ⚪ | ✗ | ✓ | ? | ? | ? | ? | ✓ | ? | ✗ | **Hot (6 RCs)**. RC7 ✓ + RC2 ✓ 2026-05-20. ELEVENLABS_SETUP_AGENT_ID scoped to UI setup flow. Drop migration 20260519221711_rls_membership_scoped.sql closed R9. Bea: 5 refreshes → 6 different products including DEPLOYMENT_NOT_FOUND. `$200K raise banner` on candidate screen (residue). Buyer page footer → connexions-silk (RC9 confirmed). |
+| universallingo | ⚪ | ? | ✓ | ? | ? | ? | ? | ? | ? | ? | RC2 ✓ 2026-05-20. Widget-consumer per bleed plan inventory |
 
 **Counts (current state):**
 
 | RC | ✓ | ✗ | ? | N/A | Per-RC target (per synthesis) |
 |---|---|---|---|---|---|
-| RC1 | 1 | 30 | 6 | 0 | 21 confirmed affected — 9 over the synthesis count, audit reveals ~30 in bleed scope |
-| RC2 | 0 | 11 | 24 | 2 | 11 widget-consumers (matches synthesis) |
+| RC1 | 1 | 30 | 6 | 0 | 21 confirmed affected. 5 confirmed bare-slug hijacks via portfolio-alias-probe (2026-05-20). Team-canonical `-corporate-ai-solutions` URLs are 401 deployment-protected. Resolution gated on DNS (Namecheap manual) or auth-protection change. |
+| RC2 | 11 | 0 | 24 | 2 | 11 widget-consumers cleared at code level (2026-05-20). Shared @caistech/elevenlabs-convai has no nav tools; agent-ID env inventory shows no portfolio-router leak; canRoute in CAIS is dead code; Kira auto-connect="true" is the legitimate gated exception. Out-of-repo ElevenLabs dashboard agent configs remain unverified. |
 | RC3 | 1 | 2 | 34 | 0 | 2 confirmed, ~21 suspected — audit fills the ? cells |
 | RC4 | 1 | 0 | 36 | 0 | 17 affected — audit fills the ? cells |
 | RC5 | 0 | 1 | 34 | 2 | 13 affected — audit fills the ? cells |
@@ -206,3 +206,4 @@ After this lands, the global CLAUDE.md compresses from ~660 lines to ~150–200 
 |---|---|---|
 | 2026-05-20 | Initial tracker created from PORTFOLIO_ROOT_CAUSES.md synthesis | claude (session 1c092514) |
 | 2026-05-20 | Batch 1 (RC7) closed — all 5 candidate products PASS R9 + R12. Drop migrations already landed; morning audit was false-positive due to portfolio-gate config-discovery bug (now patched, 0.3.3) | claude (this session) |
+| 2026-05-20 | Batch 2 partial: RC2 (ConvAI hijack) cleared — shared package has no nav tools, agent-ID inventory across 11 widget-consumers shows no portfolio-router leak, canRoute in CAIS constants is dead code (mock VoiceAgent). Kira auto-connect="true" is the documented legitimate exception. RC2 effectively closed at code level; out-of-repo ElevenLabs dashboard configs remain unverified. RC1 (Vercel alias collisions) surfaced as a deeper issue: portfolio-alias-probe (new script) confirmed 5 hijacks (connexions-silk → "f27 survey", ndissda-automate.vercel.app → "PF Platform", mmcbuild.vercel.app → "MMC Minting dApp", mova.vercel.app → "Self Tutor", omq-outreach defaults to "Create Next App") plus 2 unowned 404s. Every team-canonical `<slug>-corporate-ai-solutions.vercel.app` URL is 401 deployment-protected — no working public swap exists. Resolution gated on custom DNS (corporateaisolutions.com is at Namecheap, requires manual CNAME or API token). Hijacked constants.ts entries marked with inline comments; no URL swap until DNS unblocks. | claude (this session) |
