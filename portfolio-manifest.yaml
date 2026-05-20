@@ -269,6 +269,18 @@ projects:
         from_supabase: service_role_key
       RESEND_FROM_EMAIL: { value: "noreply@updates.corporateaisolutions.com" }
 
+  - name: preflight
+    vercel_project_id: "prj_09p4jLZy9LouVOWIOmyKYNNKmg63"
+    # BYOK-totality per project CLAUDE.md — every metered third-party call
+    # (Anthropic, OpenAI, Resend, ElevenLabs) lands on the user's account.
+    # Self-host is the only supported deployment model. Does NOT inherit
+    # portfolio LLM keys; only GITHUB_PACKAGES_TOKEN (for build-time @caistech
+    # package access on the operator's own Vercel deploys).
+    inherit_shared:
+      - GITHUB_PACKAGES_TOKEN
+    envs:
+      NEXT_PUBLIC_APP_URL: "https://preflight-phi.vercel.app"
+
 # -----------------------------------------------------------------------------
 # Vercel projects in the Corporate AI Solutions team that are NOT in the
 # bash-script lists. These should be either onboarded properly (added above
