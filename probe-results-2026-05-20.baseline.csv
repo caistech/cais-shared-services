@@ -5,28 +5,28 @@ aiftis-demo,/about,404,,,failed
 aiftis-demo,/faq,404,,,failed
 connexions,/,200,Connexions,yes,
 connexions,/demo,200,,,ok
-connexions,/pricing,200,,,ok
+connexions,/pricing,404,,,failed
 connexions,/dashboard,200,,,ok
 corporate-ai-solutions,/,200,Corporate AI Solutions | The Factory That Builds AI Companies,yes,
 corporate-ai-solutions,/marketplace,200,,,ok
 corporate-ai-solutions,/studio,200,,,ok
-corporate-ai-solutions,/studio-partner,200,,,ok
+corporate-ai-solutions,/studio-partner,404,,,failed
 deal-findrs,/,200,DealFindrs | AI-Powered Project Assessment,yes,
 deal-findrs,/signup,200,,,ok
 deal-findrs,/dashboard,200,,,ok
 deal-findrs,/reports,404,,,failed
 easy-claude-code,/,200,Easy Claude Code,yes,
 easy-claude-code,/onboarding,200,,,ok
-easy-claude-code,/signup,200,,,ok
-easy-claude-code,/dashboard,200,,,ok
+easy-claude-code,/signup,404,,,failed
+easy-claude-code,/dashboard,404,,,failed
 f2k-checkpoint,/,200,F2K Checkpoint — AI Project Manager for Modular Construction,yes,
 f2k-checkpoint,/backcheck,200,,,ok
 f2k-checkpoint,/contact-sales,404,,,failed
 f2k-checkpoint,/pricing,404,,,failed
 f2k-fund-tokenisation,/,200,F2K — Factory to Key | Tokenised National Housing Fund,yes,
 f2k-fund-tokenisation,/invest,200,,,ok
-f2k-fund-tokenisation,/faq,200,,,ok
-f2k-fund-tokenisation,/contact,200,,,ok
+f2k-fund-tokenisation,/faq,404,,,failed
+f2k-fund-tokenisation,/contact,404,,,failed
 f2k-offshore-modular,/,200,OMQ — Offshore Modular Qualified | Factory2Key,yes,
 f2k-offshore-modular,/for-funders,404,,,failed
 f2k-offshore-modular,/audit,200,,,ok
@@ -37,8 +37,8 @@ f2k-projects,/branscombe,404,,,failed
 f2k-projects,/hemp-homes,404,,,failed
 hair-stylist-ai,/,200,HairStylistAI — see your new hair before the cut,partial,title='HairStylistAI — see your new hair before the cut' (expected to contain 'Hair Stylist')
 hair-stylist-ai,/consult,200,,,ok
-hair-stylist-ai,/privacy,200,,,ok
-hair-stylist-ai,/terms,200,,,ok
+hair-stylist-ai,/privacy,404,,,failed
+hair-stylist-ai,/terms,404,,,failed
 investor-pilot,/,200,InvestorPilot — Multi-channel direct outreach platform,yes,
 investor-pilot,/pricing,200,,,ok
 investor-pilot,/demo,404,,,failed
@@ -74,9 +74,10 @@ ndissda-automate,/properties,200,,,ok
 platform-trust,/,200,Platform Trust,yes,
 platform-trust,/dashboard,200,,,ok
 platform-trust,/api/scan,200,,,ok
+platform-trust,/api/audit,401,,,failed
 prelabz,/,200,Prelabz | AI Pitch Coaching,yes,
 prelabz,/signup,200,,,ok
-prelabz,/founder,307,,,ok
+prelabz,/founder,404,,,failed
 prelabz,/pitch-analysis,404,,,failed
 property-services,/,200,Property Services — Australian Property Intelligence API,yes,
 property-services,/demo,404,,,failed
@@ -94,10 +95,10 @@ storefront-mcp,/,200,StoreFront MCP — Make Your Business Visible to AI,yes,
 storefront-mcp,/audit,200,,,ok
 storefront-mcp,/demo,200,,,ok
 storefront-mcp,/for-business,404,,,failed
-story-verse,/,200,Fantasy Tales,yes,
+story-verse,/,200,StoryVerse - Books That Grow With Your Child,yes,
 story-verse,/create,404,,,failed
 story-verse,/sample-book,404,,,failed
-story-verse,/privacy,200,,,ok
+story-verse,/privacy,404,,,failed
 tourlingo-operator,/,200,TourLingo Operator — by Corporate AI Solutions,yes,
 tourlingo-operator,/setup,404,,,failed
 tourlingo-operator,/pricing,404,,,failed

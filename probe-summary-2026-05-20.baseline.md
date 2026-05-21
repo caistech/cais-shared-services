@@ -6,8 +6,8 @@
 
 ## Tally
 
-- 🟢 Green (basic URL plumbing OK): **7**
-- 🟡 Amber (root reachable, but issues): **20**
+- 🟢 Green (basic URL plumbing OK): **2**
+- 🟡 Amber (root reachable, but issues): **25**
 - 🔴 Red (root broken or scaffold-default): **0**
 
 ## Traffic-light per product
@@ -15,15 +15,15 @@
 | | Slug | Was (2026-05-19) | Root | Title | Routes OK | BYOK ready? | Notes |
 |---|---|---|---|---|---|---|---|
 | 🟡 | `aiftis-demo` | draft | 200 | yes | 0/3 | **no** | broken: /wallet=404 /about=404 /faq=404 |
-| 🟢 | `connexions` | partial_fixed | 200 | yes | 3/3 | **yes** |  |
-| 🟢 | `corporate-ai-solutions` | plan_only | 200 | yes | 3/3 | **yes** |  |
+| 🟡 | `connexions` | partial_fixed | 200 | yes | 2/3 | **no** | broken: /pricing=404 |
+| 🟡 | `corporate-ai-solutions` | plan_only | 200 | yes | 2/3 | **no** | broken: /studio-partner=404 |
 | 🟡 | `deal-findrs` | plan_only | 200 | yes | 2/3 | **no** | broken: /reports=404 |
-| 🟢 | `easy-claude-code` | plan_only | 200 | yes | 3/3 | **yes** |  |
+| 🟡 | `easy-claude-code` | plan_only | 200 | yes | 1/3 | **no** | broken: /signup=404 /dashboard=404 |
 | 🟡 | `f2k-checkpoint` | plan_only | 200 | yes | 1/3 | **no** | broken: /contact-sales=404 /pricing=404 |
-| 🟢 | `f2k-fund-tokenisation` | plan_only | 200 | yes | 3/3 | **yes** |  |
+| 🟡 | `f2k-fund-tokenisation` | plan_only | 200 | yes | 1/3 | **no** | broken: /faq=404 /contact=404 |
 | 🟡 | `f2k-offshore-modular` | plan_only | 200 | yes | 1/3 | **no** | broken: /for-funders=404 /download-rubric=404 |
 | 🟡 | `f2k-projects` | plan_only | 200 | yes | 0/3 | **no** | broken: /seafields=404 /branscombe=404 /hemp-homes=404 |
-| 🟡 | `hair-stylist-ai` | plan_only | 200 | partial | 3/3 | **no** | title='HairStylistAI — see your new hair before the cut' (expected to contain 'Hair Stylist') |
+| 🟡 | `hair-stylist-ai` | plan_only | 200 | partial | 1/3 | **no** | title='HairStylistAI — see your new hair before the cut' (expected to contain 'Hair Stylist'); broken: /privacy=404 /terms=404 |
 | 🟡 | `investor-pilot` | plan_only | 200 | yes | 2/3 | **no** | broken: /demo=404 |
 | 🟡 | `kira` | plan_only | 200 | yes | 0/3 | **no** | broken: /create-kira=404 /personal-journey=404 /pricing=404 |
 | 🟡 | `launchready` | plan_only | 200 | yes | 1/3 | **no** | broken: /wizard=404 /forgot-password=404 |
@@ -32,41 +32,21 @@
 | 🟡 | `longtail-ai-venture-studio` | plan_only | 200 | yes | 0/3 | **no** | broken: /portfolio=404 /metrics=404 /login=404 |
 | 🟡 | `mmcbuild-webapp` | plan_only | 200 | yes | 0/3 | **no** | broken: /comply=404 /build=404 /quote=404 |
 | 🟢 | `ndissda-automate` | partial_fixed | 200 | yes | 3/3 | **yes** |  |
-| 🟢 | `platform-trust` | partial_fixed | 200 | yes | 2/2 | **yes** |  |
-| 🟡 | `prelabz` | plan_only | 200 | yes | 2/3 | **no** | broken: /pitch-analysis=404 |
+| 🟡 | `platform-trust` | partial_fixed | 200 | yes | 2/3 | **no** | broken: /api/audit=401 |
+| 🟡 | `prelabz` | plan_only | 200 | yes | 1/3 | **no** | broken: /founder=404 /pitch-analysis=404 |
 | 🟡 | `property-services` | plan_only | 200 | yes | 0/3 | **no** | broken: /demo=404 /architecture=404 /coverage=404 |
 | 🟡 | `r-and-d-tax` | patched_2026_05_20 | 200 | partial | 0/3 | **no** | title='R&amp;D Tax Tracker — Automated R&amp;D Tax Incentive Recording' (expected to contain 'R&D Tax'); broken: /beta=404 /pricing=404 /contact=404 |
 | 🟡 | `raiseready-template` | partial_fixed | 200 | yes | 0/3 | **no** | broken: /setup=404 /configure=404 /support=404 |
 | 🟡 | `storefront-mcp` | plan_only | 200 | yes | 2/3 | **no** | broken: /for-business=404 |
-| 🟡 | `story-verse` | fixed_2026_05_19 | 200 | yes | 1/3 | **no** | broken: /create=404 /sample-book=404 |
+| 🟡 | `story-verse` | plan_only | 200 | yes | 0/3 | **no** | broken: /create=404 /sample-book=404 /privacy=404 |
 | 🟡 | `tourlingo-operator` | plan_only | 200 | yes | 0/3 | **no** | broken: /setup=404 /pricing=404 /languages=404 |
 | 🟢 | `universal-interviews` | mostly_fixed | 200 | yes | 3/3 | **yes** |  |
 
 ## Greens — basic plumbing OK
 
-- **Connexions** (`connexions`) — https://connexions-silk.vercel.app
-  - Was 2026-05-19: partial_fixed
-  - Persona issue still standing: Public demo leaked panel PII; RC7 RLS fixed.
-  - Plumbing OK now doesn't mean the persona issue is closed — verify against the per-repo doc.
-- **Corporate AI Solutions** (`corporate-ai-solutions`) — https://corporate-ai-solutions.vercel.app
-  - Was 2026-05-19: plan_only
-  - Persona issue still standing: /studio-partner 404; /studio empty body.
-  - Plumbing OK now doesn't mean the persona issue is closed — verify against the per-repo doc.
-- **Easy Claude Code** (`easy-claude-code`) — https://easy-claude-code.vercel.app
-  - Was 2026-05-19: plan_only
-  - Persona issue still standing: Signup form hidden behind 4-step marketing carousel.
-  - Plumbing OK now doesn't mean the persona issue is closed — verify against the per-repo doc.
-- **F2K Fund Tokenisation** (`f2k-fund-tokenisation`) — https://f2-k-fund-tokenisation.vercel.app
-  - Was 2026-05-19: plan_only
-  - Persona issue still standing: AFSL holder, trustee, jurisdiction not named.
-  - Plumbing OK now doesn't mean the persona issue is closed — verify against the per-repo doc.
 - **PF Platform** (`ndissda-automate`) — https://ndissda-automate.vercel.app
   - Was 2026-05-19: partial_fixed
   - Persona issue still standing: URL error reflection (phishing vector).
-  - Plumbing OK now doesn't mean the persona issue is closed — verify against the per-repo doc.
-- **Platform Trust** (`platform-trust`) — https://platform-trust.vercel.app
-  - Was 2026-05-19: partial_fixed
-  - Persona issue still standing: /api/scan auth fixed; rubric still unmapped. /api/audit removed from probe — 401 is intended (C1 hardening 2026-05-19), the cheap probe was flagging the correct behaviour as a failure.
   - Plumbing OK now doesn't mean the persona issue is closed — verify against the per-repo doc.
 - **Universal Interviews** (`universal-interviews`) — https://universal-interviews.vercel.app
   - Was 2026-05-19: mostly_fixed
