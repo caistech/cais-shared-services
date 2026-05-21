@@ -14,15 +14,15 @@ corporate-ai-solutions,/studio-partner,200,,,ok
 deal-findrs,/,200,DealFindrs | AI-Powered Project Assessment,yes,
 deal-findrs,/signup,200,,,ok
 deal-findrs,/dashboard,200,,,ok
-deal-findrs,/reports,404,,,failed
+deal-findrs,/reports,200,,,ok
 easy-claude-code,/,200,Easy Claude Code,yes,
 easy-claude-code,/onboarding,200,,,ok
 easy-claude-code,/signup,200,,,ok
 easy-claude-code,/dashboard,200,,,ok
 f2k-checkpoint,/,200,F2K Checkpoint — AI Project Manager for Modular Construction,yes,
 f2k-checkpoint,/backcheck,200,,,ok
-f2k-checkpoint,/contact-sales,404,,,failed
-f2k-checkpoint,/pricing,404,,,failed
+f2k-checkpoint,/contact-sales,200,,,ok
+f2k-checkpoint,/pricing,200,,,ok
 f2k-fund-tokenisation,/,200,F2K — Factory to Key | Tokenised National Housing Fund,yes,
 f2k-fund-tokenisation,/invest,200,,,ok
 f2k-fund-tokenisation,/faq,200,,,ok
@@ -41,16 +41,16 @@ hair-stylist-ai,/privacy,200,,,ok
 hair-stylist-ai,/terms,200,,,ok
 investor-pilot,/,200,InvestorPilot — Multi-channel direct outreach platform,yes,
 investor-pilot,/pricing,200,,,ok
-investor-pilot,/demo,404,,,failed
+investor-pilot,/demo,200,,,ok
 investor-pilot,/playbook,200,,,ok
 kira,/,200,Kira — Your Friendly Guide Through Anything,yes,
 kira,/create-kira,404,,,failed
 kira,/personal-journey,404,,,failed
 kira,/pricing,404,,,failed
 launchready,/,200,LaunchReady — Protect Your Ideas Before Someone Else Does,yes,
-launchready,/wizard,404,,,failed
+launchready,/wizard,307,,,ok
 launchready,/pricing,200,,,ok
-launchready,/forgot-password,404,,,failed
+launchready,/forgot-password,307,,,ok
 lessonslearned,/,200,LessonsLearned,partial,title='LessonsLearned' (expected to contain 'Lessons Learned')
 lessonslearned,/try,404,,,failed
 lessonslearned,/signup,200,,,ok
@@ -83,17 +83,17 @@ property-services,/demo,404,,,failed
 property-services,/architecture,404,,,failed
 property-services,/coverage,404,,,failed
 r-and-d-tax,/,200,R&amp;D Tax Tracker — Automated R&amp;D Tax Incentive Recording,partial,title='R&amp;D Tax Tracker — Automated R&amp;D Tax Incentive Recording' (expected to contain 'R&D Tax')
-r-and-d-tax,/beta,404,,,failed
-r-and-d-tax,/pricing,404,,,failed
-r-and-d-tax,/contact,404,,,failed
-raiseready-template,/,200,RaiseReady - AI-Powered Fundraising Coach,yes,
-raiseready-template,/setup,404,,,failed
-raiseready-template,/configure,404,,,failed
-raiseready-template,/support,404,,,failed
+r-and-d-tax,/beta,200,,,ok
+r-and-d-tax,/pricing,200,,,ok
+r-and-d-tax,/contact,200,,,ok
+raiseready-template,/,200,RaiseReady | White-Label Platform Generator,yes,
+raiseready-template,/setup,200,,,ok
+raiseready-template,/configure,200,,,ok
+raiseready-template,/support,200,,,ok
 storefront-mcp,/,200,StoreFront MCP — Make Your Business Visible to AI,yes,
 storefront-mcp,/audit,200,,,ok
 storefront-mcp,/demo,200,,,ok
-storefront-mcp,/for-business,404,,,failed
+storefront-mcp,/for-business,200,,,ok
 story-verse,/,200,Fantasy Tales,yes,
 story-verse,/create,404,,,failed
 story-verse,/sample-book,404,,,failed
