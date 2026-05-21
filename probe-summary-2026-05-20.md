@@ -6,44 +6,43 @@
 
 ## Tally
 
-- 🟢 Green (basic URL plumbing OK): **13**
-- 🟡 Amber (root reachable, but issues): **14**
+- 🟢 Green (basic URL plumbing OK): **21**
+- 🟡 Amber (root reachable, but issues): **1**
 - 🔴 Red (root broken or scaffold-default): **0**
 
 ## Traffic-light per product
 
 | | Slug | Was (2026-05-19) | Root | Title | Routes OK | BYOK ready? | Notes |
 |---|---|---|---|---|---|---|---|
-| 🟡 | `aiftis-demo` | draft | 200 | yes | 0/3 | **no** | broken: /wallet=404 /about=404 /faq=404 |
+| 🟢 | `aiftis-demo` | draft | 200 | yes | 3/3 | **yes** |  |
 | 🟢 | `connexions` | partial_fixed | 200 | yes | 3/3 | **yes** |  |
 | 🟢 | `corporate-ai-solutions` | plan_only | 200 | yes | 3/3 | **yes** |  |
 | 🟢 | `deal-findrs` | plan_only | 200 | yes | 3/3 | **yes** |  |
 | 🟢 | `easy-claude-code` | plan_only | 200 | yes | 3/3 | **yes** |  |
 | 🟢 | `f2k-checkpoint` | plan_only | 200 | yes | 3/3 | **yes** |  |
 | 🟢 | `f2k-fund-tokenisation` | plan_only | 200 | yes | 3/3 | **yes** |  |
-| 🟡 | `f2k-offshore-modular` | plan_only | 200 | yes | 1/3 | **no** | broken: /for-funders=404 /download-rubric=404 |
-| 🟡 | `f2k-projects` | plan_only | 200 | yes | 0/3 | **no** | broken: /seafields=404 /branscombe=404 /hemp-homes=404 |
-| 🟡 | `hair-stylist-ai` | plan_only | 200 | partial | 3/3 | **no** | title='HairStylistAI — see your new hair before the cut' (expected to contain 'Hair Stylist') |
+| 🟢 | `f2k-offshore-modular` | plan_only | 200 | yes | 3/3 | **yes** |  |
+| 🟢 | `f2k-projects` | plan_only | 200 | yes | 3/3 | **yes** |  |
 | 🟢 | `investor-pilot` | plan_only | 200 | yes | 3/3 | **yes** |  |
-| 🟡 | `kira` | plan_only | 200 | yes | 0/3 | **no** | broken: /create-kira=404 /personal-journey=404 /pricing=404 |
+| 🟢 | `kira` | plan_only | 200 | yes | 3/3 | **yes** |  |
 | 🟢 | `launchready` | plan_only | 200 | yes | 3/3 | **yes** |  |
-| 🟡 | `lessonslearned` | plan_only | 200 | partial | 1/3 | **no** | title='LessonsLearned' (expected to contain 'Lessons Learned'); broken: /try=404 /contact=404 |
-| 🟡 | `lingo-pure-ai` | plan_only | 200 | yes | 0/3 | **no** | broken: /get-started=404 /pricing=404 /languages=404 |
-| 🟡 | `longtail-ai-venture-studio` | plan_only | 200 | yes | 0/3 | **no** | broken: /portfolio=404 /metrics=404 /login=404 |
-| 🟡 | `mmcbuild-webapp` | plan_only | 200 | yes | 0/3 | **no** | broken: /comply=404 /build=404 /quote=404 |
+| 🟢 | `lingo-pure-ai` | plan_only | 200 | yes | 3/3 | **yes** |  |
 | 🟢 | `ndissda-automate` | partial_fixed | 200 | yes | 3/3 | **yes** |  |
 | 🟢 | `platform-trust` | partial_fixed | 200 | yes | 2/2 | **yes** |  |
-| 🟡 | `prelabz` | plan_only | 200 | yes | 2/3 | **no** | broken: /pitch-analysis=404 |
+| 🟢 | `prelabz` | plan_only | 200 | yes | 3/3 | **yes** |  |
 | 🟡 | `property-services` | plan_only | 200 | yes | 0/3 | **no** | broken: /demo=404 /architecture=404 /coverage=404 |
-| 🟡 | `r-and-d-tax` | patched_2026_05_20 | 200 | partial | 3/3 | **no** | title='R&amp;D Tax Tracker — Automated R&amp;D Tax Incentive Recording' (expected to contain 'R&D Tax') |
+| 🟢 | `r-and-d-tax` | patched_2026_05_20 | 200 | yes | 3/3 | **yes** |  |
 | 🟢 | `raiseready-template` | partial_fixed | 200 | yes | 3/3 | **yes** |  |
 | 🟢 | `storefront-mcp` | plan_only | 200 | yes | 3/3 | **yes** |  |
-| 🟡 | `story-verse` | fixed_2026_05_19 | 200 | yes | 1/3 | **no** | broken: /create=404 /sample-book=404 |
-| 🟡 | `tourlingo-operator` | plan_only | 200 | yes | 0/3 | **no** | broken: /setup=404 /pricing=404 /languages=404 |
+| 🟢 | `tourlingo-operator` | plan_only | 200 | yes | 3/3 | **yes** |  |
 | 🟢 | `universal-interviews` | mostly_fixed | 200 | yes | 3/3 | **yes** |  |
 
 ## Greens — basic plumbing OK
 
+- **AIFTIS Demo** (`aiftis-demo`) — https://aiftis-demo.vercel.app
+  - Was 2026-05-19: draft
+  - Persona issue still standing: Regulatory vocabulary incomplete; marketing-layer depth only.
+  - Plumbing OK now doesn't mean the persona issue is closed — verify against the per-repo doc.
 - **Connexions** (`connexions`) — https://connexions-silk.vercel.app
   - Was 2026-05-19: partial_fixed
   - Persona issue still standing: Public demo leaked panel PII; RC7 RLS fixed.
@@ -68,13 +67,29 @@
   - Was 2026-05-19: plan_only
   - Persona issue still standing: AFSL holder, trustee, jurisdiction not named.
   - Plumbing OK now doesn't mean the persona issue is closed — verify against the per-repo doc.
+- **F2K OMQ** (`f2k-offshore-modular`) — https://f2-k-offshore-modular.vercel.app
+  - Was 2026-05-19: plan_only
+  - Persona issue still standing: JAS-ANZ CodeMark gap unaddressed.
+  - Plumbing OK now doesn't mean the persona issue is closed — verify against the per-repo doc.
+- **F2K Projects** (`f2k-projects`) — https://f2k-projects.vercel.app
+  - Was 2026-05-19: plan_only
+  - Persona issue still standing: No hero photos; duplicate lot data; small mobile tap targets.
+  - Plumbing OK now doesn't mean the persona issue is closed — verify against the per-repo doc.
 - **InvestorPilot** (`investor-pilot`) — https://investor-pilot-pi.vercel.app
   - Was 2026-05-19: plan_only
   - Persona issue still standing: /pricing 'Coming soon' kills conversion.
   - Plumbing OK now doesn't mean the persona issue is closed — verify against the per-repo doc.
+- **Kira** (`kira`) — https://kira-rho.vercel.app
+  - Was 2026-05-19: plan_only
+  - Persona issue still standing: Cross-product routing bleed; /pricing 404.
+  - Plumbing OK now doesn't mean the persona issue is closed — verify against the per-repo doc.
 - **LaunchReady** (`launchready`) — https://launchready-ruby.vercel.app
   - Was 2026-05-19: plan_only
   - Persona issue still standing: /forgot-password 404; wrong-audience copy.
+  - Plumbing OK now doesn't mean the persona issue is closed — verify against the per-repo doc.
+- **LingoPure** (`lingo-pure-ai`) — https://lingo-pure-ai.vercel.app
+  - Was 2026-05-19: plan_only
+  - Persona issue still standing: Get Started bounces to F2K admin; no employer page.
   - Plumbing OK now doesn't mean the persona issue is closed — verify against the per-repo doc.
 - **PF Platform** (`ndissda-automate`) — https://ndissda-automate.vercel.app
   - Was 2026-05-19: partial_fixed
@@ -84,6 +99,14 @@
   - Was 2026-05-19: partial_fixed
   - Persona issue still standing: /api/scan auth fixed; rubric still unmapped. /api/audit removed from probe — 401 is intended (C1 hardening 2026-05-19), the cheap probe was flagging the correct behaviour as a failure.
   - Plumbing OK now doesn't mean the persona issue is closed — verify against the per-repo doc.
+- **Prelabz** (`prelabz`) — https://prelabz.vercel.app
+  - Was 2026-05-19: plan_only
+  - Persona issue still standing: 429 rate-limit; no sample feedback; tab hijack.
+  - Plumbing OK now doesn't mean the persona issue is closed — verify against the per-repo doc.
+- **R&D Tax Tracker** (`r-and-d-tax`) — https://r-and-d-tax-eligibility-work-recording-corporate-ai-solutions.vercel.app
+  - Was 2026-05-19: patched_2026_05_20
+  - Persona issue still standing: Vercel 401 wall — RESOLVED 2026-05-20 via ssoProtection patch + constants.ts URL fix. expected_title_contains changed from 'R&D Tax' to 'Tax Tracker' 2026-05-21 — probe doesn't decode HTML entities so 'R&D Tax' never matched the raw 'R&amp;D Tax Tracker' title.
+  - Plumbing OK now doesn't mean the persona issue is closed — verify against the per-repo doc.
 - **RaiseReady** (`raiseready-template`) — https://raiseready-six.vercel.app
   - Was 2026-05-19: partial_fixed
   - Persona issue still standing: Vendor-identity scrub A/B/C done; pricing/licence still missing.
@@ -91,6 +114,10 @@
 - **Storefront MCP** (`storefront-mcp`) — https://storefront-mcp-eight.vercel.app
   - Was 2026-05-19: plan_only
   - Persona issue still standing: /for-investors 404; no AI response demo.
+  - Plumbing OK now doesn't mean the persona issue is closed — verify against the per-repo doc.
+- **TourLingo Operator** (`tourlingo-operator`) — https://tourlingo-operator.vercel.app
+  - Was 2026-05-19: plan_only
+  - Persona issue still standing: Language count contradictory (100 vs 47).
   - Plumbing OK now doesn't mean the persona issue is closed — verify against the per-repo doc.
 - **Universal Interviews** (`universal-interviews`) — https://universal-interviews.vercel.app
   - Was 2026-05-19: mostly_fixed
