@@ -6,8 +6,8 @@
 
 ## Tally
 
-- 🟢 Green (basic URL plumbing OK): **21**
-- 🟡 Amber (root reachable, but issues): **1**
+- 🟢 Green (basic URL plumbing OK): **22**
+- 🟡 Amber (root reachable, but issues): **0**
 - 🔴 Red (root broken or scaffold-default): **0**
 
 ## Traffic-light per product
@@ -30,7 +30,7 @@
 | 🟢 | `ndissda-automate` | partial_fixed | 200 | yes | 3/3 | **yes** |  |
 | 🟢 | `platform-trust` | partial_fixed | 200 | yes | 2/2 | **yes** |  |
 | 🟢 | `prelabz` | plan_only | 200 | yes | 3/3 | **yes** |  |
-| 🟡 | `property-services` | plan_only | 200 | yes | 0/3 | **no** | broken: /demo=404 /architecture=404 /coverage=404 |
+| 🟢 | `property-services` | plan_only | 200 | yes | 3/3 | **yes** |  |
 | 🟢 | `r-and-d-tax` | patched_2026_05_20 | 200 | yes | 3/3 | **yes** |  |
 | 🟢 | `raiseready-template` | partial_fixed | 200 | yes | 3/3 | **yes** |  |
 | 🟢 | `storefront-mcp` | plan_only | 200 | yes | 3/3 | **yes** |  |
@@ -102,6 +102,10 @@
 - **Prelabz** (`prelabz`) — https://prelabz.vercel.app
   - Was 2026-05-19: plan_only
   - Persona issue still standing: 429 rate-limit; no sample feedback; tab hijack.
+  - Plumbing OK now doesn't mean the persona issue is closed — verify against the per-repo doc.
+- **Property Services** (`property-services`) — https://property-services-kappa.vercel.app
+  - Was 2026-05-19: plan_only
+  - Persona issue still standing: /demo 404; no OpenAPI; auth model hidden.
   - Plumbing OK now doesn't mean the persona issue is closed — verify against the per-repo doc.
 - **R&D Tax Tracker** (`r-and-d-tax`) — https://r-and-d-tax-eligibility-work-recording-corporate-ai-solutions.vercel.app
   - Was 2026-05-19: patched_2026_05_20

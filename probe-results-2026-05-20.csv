@@ -32,9 +32,9 @@ f2k-offshore-modular,/for-funders,307,,,ok
 f2k-offshore-modular,/audit,200,,,ok
 f2k-offshore-modular,/download-rubric,200,,,ok
 f2k-projects,/,200,Factory2Key Projects — Australian Housing Developments,yes,
-f2k-projects,/seafields,200,,,ok
-f2k-projects,/branscombe,200,,,ok
-f2k-projects,/hemp-homes,200,,,ok
+f2k-projects,/seafields,307,,,ok
+f2k-projects,/branscombe,307,,,ok
+f2k-projects,/hemp-homes,307,,,ok
 investor-pilot,/,200,InvestorPilot — Multi-channel direct outreach platform,yes,
 investor-pilot,/pricing,200,,,ok
 investor-pilot,/demo,200,,,ok
@@ -63,9 +63,9 @@ prelabz,/signup,200,,,ok
 prelabz,/founder,307,,,ok
 prelabz,/pitch-analysis,200,,,ok
 property-services,/,200,Property Services — Australian Property Intelligence API,yes,
-property-services,/demo,404,,,failed
-property-services,/architecture,404,,,failed
-property-services,/coverage,404,,,failed
+property-services,/demo,200,,,ok
+property-services,/architecture,200,,,ok
+property-services,/coverage,200,,,ok
 r-and-d-tax,/,200,R&amp;D Tax Tracker — Automated R&amp;D Tax Incentive Recording,yes,
 r-and-d-tax,/beta,200,,,ok
 r-and-d-tax,/pricing,200,,,ok
