@@ -1,7 +1,7 @@
 {
   "name": "@caistech/email-finder",
-  "version": "0.1.0",
-  "description": "Multi-provider contact + email finder cascade (Hunter → Apollo). Returns the best name + email for a domain by walking providers in confidence order with role-account fallthrough.",
+  "version": "0.2.0",
+  "description": "Multi-provider contact + email finder cascade (Hunter -> Apollo -> Hunter pattern). Returns the best name + email for a domain by walking providers in confidence order with role-account fallthrough and Hunter pattern-derivation when Apollo finds a named person but no email.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
