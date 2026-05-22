@@ -1,0 +1,29 @@
+{
+  "name": "@caistech/property-launch-kit",
+  "version": "0.1.0",
+  "description": "Shared primitives for property-sale launch pages — branded admin emails + notification recipient management. Used by f2k-projects (Seafields, Branscombe) and any future property estate.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "@supabase/supabase-js": "^2.0.0",
+    "typescript": ">=5.0.0"
+  },
+  "files": [
+    "dist/"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/property-launch-kit"
+  },
+  "license": "PRIVATE",
+  "type": "module"
+}
