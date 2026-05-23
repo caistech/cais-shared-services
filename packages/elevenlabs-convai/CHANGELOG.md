@@ -1,5 +1,27 @@
 # @caistech/elevenlabs-convai — Changelog
 
+## 0.3.1 — 2026-05-24
+
+Workspace-webhook API shapes verified against the live ElevenLabs docs and corrected.
+
+### Fixed
+- **Workspace webhook create** — endpoint is `POST /v1/workspace/webhooks` (was incorrectly
+  under `/v1/convai/...`), and the body is a `{ settings: { auth_type: 'hmac', name,
+  webhook_url } }` envelope (was a flat `{ name, url, events }`; `events` is not a create
+  param). The 0.3.0 shape would have 4xx'd on a real run.
+- **Workspace webhook reuse-match** — list response items use `webhook_url` (not `url`); the
+  duplicate-avoidance check now matches on the correct field, so re-provisioning reuses the
+  existing webhook instead of creating duplicates.
+
+### Verified correct (no change)
+- List-agents pagination (`has_more` / `next_cursor`), allowlist item shape (`{ hostname }`).
+
+### Still runtime-verify (documented in-code, not doc-extractable)
+- Exact path of the agent→webhook binding field (`post_call_webhook_id` assumed),
+  `platform_settings.auth.allowlist` path, and the override-enablement path. Confirm these on
+  the first dev provisioning run (allowlist shows in Security; a real call delivers the
+  post-call webhook; a per-session `firstMessage` override takes effect).
+
 ## 0.3.0 — 2026-05-24
 
 Full shared voice service — PR2 (front-end). Completes the loop: the package now owns

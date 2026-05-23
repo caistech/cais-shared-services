@@ -24,6 +24,8 @@ interface FetchLog {
   patchAgent: { url: string; body: Record<string, unknown> }[];
   wsList: number;
   wsCreate: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  wsCreateBody?: any;
 }
 
 function installFetch(opts: {
@@ -39,10 +41,10 @@ function installFetch(opts: {
     const method = (i.method || 'GET').toUpperCase();
     const body = i.body ? JSON.parse(i.body as string) : {};
 
-    if (method === 'POST' && url.includes('/workspace/webhooks')) { log.wsCreate++; return ok({ webhook_id: 'wh_new' }); }
+    if (method === 'POST' && url.includes('/workspace/webhooks')) { log.wsCreate++; log.wsCreateBody = body; return ok({ webhook_id: 'wh_new', webhook_secret: 'sek_123' }); }
     if (method === 'GET' && url.includes('/workspace/webhooks')) {
       log.wsList++;
-      const webhooks = opts.existingWebhookUrl ? [{ url: opts.existingWebhookUrl, webhook_id: 'wh_existing' }] : [];
+      const webhooks = opts.existingWebhookUrl ? [{ webhook_url: opts.existingWebhookUrl, webhook_id: 'wh_existing' }] : [];
       return ok({ webhooks });
     }
     if (method === 'POST' && url.includes('/agents/create')) { log.createAgent++; return ok({ agent_id: 'agent_created' }); }
@@ -99,6 +101,11 @@ describe('provisionVoiceAgent — webhook + guards', () => {
     const res = await provisionVoiceAgent('key', baseOpts);
     expect(log.wsCreate).toBe(1);
     expect(res.webhookId).toBe('wh_new');
+    // create body uses the { settings } envelope with webhook_url (not flat { url, events })
+    expect(log.wsCreateBody.settings).toMatchObject({
+      auth_type: 'hmac',
+      webhook_url: 'https://app.example.com/api/convai/webhooks/post-call',
+    });
     const bind = log.patchAgent.find((p) => p.body.platform_settings && (p.body.platform_settings as Record<string, unknown>).post_call_webhook_id);
     expect(bind).toBeTruthy();
     expect((bind!.body.platform_settings as Record<string, unknown>).post_call_webhook_id).toBe('wh_new');

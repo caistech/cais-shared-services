@@ -28,7 +28,9 @@ import {
 } from './agent-client.js';
 import type { ConvAIAgentConfig, ConvAITool } from './types.js';
 
-const WORKSPACE_WEBHOOKS = `${ELEVENLABS_API}/workspace/webhooks`;
+// Workspace webhooks live under /v1/workspace/webhooks (NOT /v1/convai/...). ELEVENLABS_API
+// is the /v1/convai base used by agent endpoints, so strip the convai segment here.
+const WORKSPACE_WEBHOOKS = `${ELEVENLABS_API.replace(/\/convai$/, '')}/workspace/webhooks`;
 const PLACEHOLDER_VOICE_ID = 'REPLACE_WITH_CANONICAL_ELEVENLABS_VOICE_ID';
 
 // =============================================================================
@@ -53,7 +55,10 @@ export async function setAllowlist(
   hostnames: string[]
 ): Promise<void> {
   const body = {
-    // CONFIRM: Security → Allowlist lives under platform_settings.auth.{enable_overrides_*, allowlist}.
+    // Allowlist entries are { hostname } objects (verified vs live docs). The path
+    // platform_settings.auth.allowlist matches the docs' "part of authentication settings",
+    // but is RUNTIME-VERIFY: after a dev run, confirm the agent's Security -> Allowlist shows
+    // these origins. (Max 10 hostnames per the docs.)
     platform_settings: {
       auth: {
         allowlist: hostnames.map((h) => ({ hostname: h })),
@@ -118,43 +123,52 @@ export async function setAgentTools(
 export async function bindWorkspaceWebhook(
   apiKey: string,
   agentId: string,
-  opts: { name: string; url: string; events?: string[] }
+  opts: { name: string; url: string }
 ): Promise<string> {
   // 1. Reuse an existing workspace webhook with this exact URL if present.
+  //    List response: { webhooks: [{ webhook_id, webhook_url, ... }] } (verified vs live docs).
   let webhookId: string | undefined;
   const listRes = await fetch(WORKSPACE_WEBHOOKS, { headers: { 'xi-api-key': apiKey } });
   if (listRes.ok) {
     const data = await listRes.json();
     const existing = (data.webhooks || []).find(
-      (w: { url?: string; webhook_id?: string; id?: string }) => w.url === opts.url
+      (w: { webhook_url?: string; webhook_id?: string }) => w.webhook_url === opts.url
     );
-    if (existing) webhookId = existing.webhook_id || existing.id;
+    if (existing) webhookId = existing.webhook_id;
   }
 
   // 2. Create one if none matched.
+  //    POST /v1/workspace/webhooks body is a { settings } envelope (verified vs live docs).
+  //    Response returns { webhook_id, webhook_secret }. The webhook_secret signs post-call
+  //    payloads — capture it (workspace-level, shown on create) for verifyWebhookSignature.
   if (!webhookId) {
     const createRes = await fetch(WORKSPACE_WEBHOOKS, {
       method: 'POST',
       headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name: opts.name,
-        url: opts.url,
-        // CONFIRM event names vs live API.
-        events: opts.events || ['conversation.ended', 'conversation.transcript'],
+        settings: {
+          auth_type: 'hmac',
+          name: opts.name,
+          webhook_url: opts.url,
+        },
       }),
     });
     if (!createRes.ok) {
       throw new Error(`ElevenLabs workspace webhook create failed: ${createRes.status} ${await createRes.text()}`);
     }
     const created = await createRes.json();
-    webhookId = created.webhook_id || created.id;
+    webhookId = created.webhook_id;
   }
 
   if (!webhookId) {
     throw new Error('ElevenLabs workspace webhook: no webhook_id returned by create/list.');
   }
 
-  // 3. Bind the agent to the workspace webhook (the correct, non-leaking shape).
+  // 3. Bind the agent to the workspace webhook (workspace-scoped, not the per-agent leak).
+  //    RUNTIME-VERIFY: docs confirm per-agent webhook overrides exist ("workspace level AND
+  //    agent level"), but the exact field name was not doc-extractable. post_call_webhook_id
+  //    is the working assumption — confirm on a dev run that a real call delivers the webhook;
+  //    if not, the field is likely platform_settings.workspace_overrides.webhooks.*.
   const bindRes = await fetch(`${ELEVENLABS_API}/agents/${agentId}`, {
     method: 'PATCH',
     headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' },
