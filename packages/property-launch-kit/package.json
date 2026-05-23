@@ -1,6 +1,6 @@
 {
   "name": "@caistech/property-launch-kit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Shared primitives for property-sale launch pages — branded admin emails, notification recipient management, and reusable React components (NotifyRecipientsCard, DesignGallery). Used by f2k-projects (Seafields, Branscombe, Hemp Homes) and any future property estate.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

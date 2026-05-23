@@ -2,34 +2,18 @@
  * @caistech/property-launch-kit
  *
  * Shared primitives for property-sale launch products. Used by
- * f2k-projects (Seafields, Branscombe) and any future property estate
- * built on the same conventions:
+ * f2k-projects (Seafields, Branscombe, Hemp Homes) and any future
+ * property estate built on the same conventions:
  *   - {product}_notify_recipients table for editable admin email lists
  *   - F2K-branded HTML email shell for admin notifications
+ *   - Daily-digest cron route shape
  *
- * Consume from a product:
+ * Subpath exports:
+ *   /                    branded-email + notify-recipients + daily-digest
+ *   /components          React UI (NotifyRecipientsCard, DesignGallery)
  *
- *   import {
- *     renderBrandedEmail,
- *     getActiveRecipients,
- *     type Branding,
- *   } from "@caistech/property-launch-kit";
- *
- *   const branding: Branding = {
- *     productName: "Seafields Estate",
- *     adminUrl: "https://f2k-projects.vercel.app/admin/seafields-registrations",
- *   };
- *
- *   const recipients = await getActiveRecipients({
- *     supabase: createSupabaseService(),
- *     table: "seafields_notify_recipients",
- *     fallback: ["dennis@factory2key.com.au"],
- *   });
- *
- *   const html = renderBrandedEmail(
- *     { preheader, heading, rows, ... },
- *     branding,
- *   );
+ * Tailwind requirement for /components: add the package dist path
+ * to your tailwind.config content array (see components/index.ts).
  */
 
 export {
@@ -44,3 +28,10 @@ export {
   getActiveRecipients,
   type GetActiveRecipientsOptions,
 } from "./notify-recipients.js";
+
+export {
+  createDailyDigestHandler,
+  NOTIFY_RECIPIENTS_MIGRATION_TEMPLATE,
+  type DailyDigestCounts,
+  type CreateDailyDigestHandlerOptions,
+} from "./daily-digest.js";
