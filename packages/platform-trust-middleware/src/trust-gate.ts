@@ -19,10 +19,16 @@
  *   this shim to the primitive API after confirming every production
  *   agent/scope/operation has an explicit policy row.
  *
+ * BYOK CONFIG (added in 0.4.1):
+ * - Each function accepts an optional `PlatformTrustConfig` (with
+ *   `supabaseUrl` / `serviceKey` / `projectId`) so consumers can point at
+ *   THEIR Supabase project rather than relying on the portfolio's shared
+ *   PLATFORM_TRUST_* env vars. Explicit config beats env-var fallback.
+ *
  * UNCONFIGURED-ENVIRONMENT BEHAVIOUR (changed in 0.4.0):
  * - Read operations: allowed (warning logged). Backward-compatible.
  * - Write/delete operations: DENIED. Returns allowed=false with a
- *   denial_reason that names the missing env vars. This closes the
+ *   denial_reason that names the missing config. This closes the
  *   anti-pattern flagged in storefront-mcp/agent-attack.md (FINDING-02
  *   step 5, FINDING-04 step 2, FINDING-05 step 5) and Connexions/CLAUDE.md.
  * - Local-dev escape hatch: set PLATFORM_TRUST_DEV_OVERRIDE to the literal
@@ -31,31 +37,9 @@
  *   is active. Production environments must NEVER set this var.
  */
 
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { type SupabaseClient } from '@supabase/supabase-js'
 import { createHash } from 'crypto'
-
-// ── Env-var config (same names the template uses) ─────────────────
-const PLATFORM_TRUST_URL = () => process.env.PLATFORM_TRUST_SUPABASE_URL || ''
-const PLATFORM_TRUST_KEY = () => process.env.PLATFORM_TRUST_SERVICE_KEY || ''
-const PROJECT_ID = () => process.env.PLATFORM_TRUST_PROJECT_ID || ''
-
-let _client: SupabaseClient | null = null
-
-function getClient(): SupabaseClient {
-  if (!_client) {
-    if (!PLATFORM_TRUST_URL() || !PLATFORM_TRUST_KEY()) {
-      throw new Error(
-        'Platform Trust not configured: set PLATFORM_TRUST_SUPABASE_URL and PLATFORM_TRUST_SERVICE_KEY'
-      )
-    }
-    _client = createClient(PLATFORM_TRUST_URL(), PLATFORM_TRUST_KEY())
-  }
-  return _client
-}
-
-function isConfigured(): boolean {
-  return !!(PLATFORM_TRUST_URL() && PLATFORM_TRUST_KEY() && PROJECT_ID())
-}
+import { getTrustClient, type PlatformTrustConfig } from './config'
 
 // ── Public types (match the template exactly) ────────────────────
 export interface TrustContext {
@@ -87,12 +71,13 @@ const WINDOW_SECONDS: Record<string, number> = { minute: 60, hour: 3600, day: 86
 
 async function shimCheckRateLimit(
   client: SupabaseClient,
-  agent_id: string
+  projectId: string,
+  agent_id: string,
 ): Promise<{ allowed: boolean; retry_after?: number }> {
   const { data: limits } = await client
     .from('rate_limits')
     .select('*')
-    .eq('project_id', PROJECT_ID())
+    .eq('project_id', projectId)
     .in('agent_id', [agent_id, '*'])
     .order('window_type')
 
@@ -139,14 +124,15 @@ async function shimCheckRateLimit(
 // ── Permission Check — ALLOW-BY-DEFAULT to match template ────────
 async function shimCheckPermission(
   client: SupabaseClient,
+  projectId: string,
   agent_id: string,
   scope: string,
-  operation: string
+  operation: string,
 ): Promise<{ allowed: boolean; requires_approval: boolean }> {
   const { data: policy } = await client
     .from('permission_policies')
     .select('*')
-    .eq('project_id', PROJECT_ID())
+    .eq('project_id', projectId)
     .eq('agent_id', agent_id)
     .eq('scope', scope)
     .eq('operation', operation)
@@ -159,6 +145,7 @@ async function shimCheckPermission(
 // ── Audit Log ───────────────────────────────────────────────────
 async function shimLogAudit(
   client: SupabaseClient,
+  projectId: string,
   ctx: TrustContext,
   status: string,
   output?: unknown,
@@ -167,7 +154,7 @@ async function shimLogAudit(
   const { data } = await client
     .from('audit_log')
     .insert({
-      project_id: PROJECT_ID(),
+      project_id: projectId,
       session_id: ctx.session_id || null,
       agent_id: ctx.agent_id,
       tool_name: ctx.tool_name,
@@ -196,29 +183,40 @@ function devOverrideActive(): boolean {
  * Run the full trust pipeline: rate limit → permission check → audit log.
  * Call BEFORE executing any operation.
  *
- * Unconfigured behaviour (no env vars):
+ * @param ctx - operation context
+ * @param config - optional BYOK config. Pass `supabaseUrl` / `serviceKey` /
+ *   `projectId` to point at YOUR trust-events Supabase project; otherwise
+ *   falls back to the `PLATFORM_TRUST_*` env vars.
+ *
+ * Unconfigured behaviour (no config + no env vars):
  *   read           → allowed, warning logged
- *   write / delete → DENIED with denial_reason naming the missing env vars,
+ *   write / delete → DENIED with denial_reason naming the missing fields,
  *                    UNLESS PLATFORM_TRUST_DEV_OVERRIDE='allow-unconfigured-writes'
  *                    is set, in which case allowed with a loud warning.
  */
-export async function trustGate(ctx: TrustContext): Promise<TrustGateResult> {
-  if (!isConfigured()) {
+export async function trustGate(
+  ctx: TrustContext,
+  config?: PlatformTrustConfig,
+): Promise<TrustGateResult> {
+  const { client, resolved } = getTrustClient(config)
+
+  if (!client || !resolved) {
     const isMutation = ctx.operation_type === 'write' || ctx.operation_type === 'delete'
 
     if (isMutation && !devOverrideActive()) {
       console.error(
         `[platform-trust] DENIED ${ctx.operation_type} on scope="${ctx.scope}" tool="${ctx.tool_name}": ` +
-        'platform-trust env vars unset. Set PLATFORM_TRUST_SUPABASE_URL, PLATFORM_TRUST_SERVICE_KEY, ' +
-        'PLATFORM_TRUST_PROJECT_ID. To temporarily allow unconfigured writes in local dev, set ' +
+        'platform-trust config unset. Pass { supabaseUrl, serviceKey, projectId } to trustGate(), ' +
+        'or set PLATFORM_TRUST_SUPABASE_URL / PLATFORM_TRUST_SERVICE_KEY / PLATFORM_TRUST_PROJECT_ID env vars. ' +
+        'To temporarily allow unconfigured writes in local dev, set ' +
         `PLATFORM_TRUST_DEV_OVERRIDE='${DEV_OVERRIDE_TOKEN}' (never in production).`
       )
       return {
         allowed: false,
         requires_approval: false,
         denial_reason:
-          'Platform Trust not configured: write/delete denied. Set PLATFORM_TRUST_SUPABASE_URL, ' +
-          'PLATFORM_TRUST_SERVICE_KEY, PLATFORM_TRUST_PROJECT_ID.',
+          'Platform Trust not configured: write/delete denied. Pass { supabaseUrl, serviceKey, projectId } ' +
+          'to trustGate() or set the PLATFORM_TRUST_* env vars.',
       }
     }
 
@@ -233,11 +231,9 @@ export async function trustGate(ctx: TrustContext): Promise<TrustGateResult> {
     return { allowed: true, requires_approval: false }
   }
 
-  const client = getClient()
-
-  const rateResult = await shimCheckRateLimit(client, ctx.agent_id)
+  const rateResult = await shimCheckRateLimit(client, resolved.projectId, ctx.agent_id)
   if (!rateResult.allowed) {
-    await shimLogAudit(client, ctx, 'rate_limited')
+    await shimLogAudit(client, resolved.projectId, ctx, 'rate_limited')
     return {
       allowed: false,
       requires_approval: false,
@@ -246,9 +242,9 @@ export async function trustGate(ctx: TrustContext): Promise<TrustGateResult> {
     }
   }
 
-  const permResult = await shimCheckPermission(client, ctx.agent_id, ctx.scope, ctx.operation_type)
+  const permResult = await shimCheckPermission(client, resolved.projectId, ctx.agent_id, ctx.scope, ctx.operation_type)
   if (!permResult.allowed) {
-    await shimLogAudit(client, ctx, 'permission_denied')
+    await shimLogAudit(client, resolved.projectId, ctx, 'permission_denied')
     return {
       allowed: false,
       requires_approval: false,
@@ -257,7 +253,7 @@ export async function trustGate(ctx: TrustContext): Promise<TrustGateResult> {
   }
 
   if (permResult.requires_approval) {
-    const audit_id = await shimLogAudit(client, ctx, 'pending_approval')
+    const audit_id = await shimLogAudit(client, resolved.projectId, ctx, 'pending_approval')
     return { allowed: true, requires_approval: true, audit_id: audit_id || undefined }
   }
 
@@ -271,10 +267,12 @@ export async function trustGate(ctx: TrustContext): Promise<TrustGateResult> {
 export async function trustLog(
   ctx: TrustContext,
   output: unknown,
-  duration_ms: number
+  duration_ms: number,
+  config?: PlatformTrustConfig,
 ): Promise<void> {
-  if (!isConfigured()) return
-  await shimLogAudit(getClient(), ctx, 'completed', output, duration_ms)
+  const { client, resolved } = getTrustClient(config)
+  if (!client || !resolved) return
+  await shimLogAudit(client, resolved.projectId, ctx, 'completed', output, duration_ms)
 }
 
 /**
@@ -286,9 +284,11 @@ export async function trustMeter(
   model: string,
   input_tokens: number,
   output_tokens: number,
-  session_id?: string
+  session_id?: string,
+  config?: PlatformTrustConfig,
 ): Promise<void> {
-  if (!isConfigured()) return
+  const { client, resolved } = getTrustClient(config)
+  if (!client || !resolved) return
 
   const pricing: Record<string, { input: number; output: number }> = {
     'claude-opus-4-6': { input: 0.000015, output: 0.000075 },
@@ -298,10 +298,10 @@ export async function trustMeter(
   const p = pricing[model] || pricing['claude-sonnet-4-6']
   const cost_usd = input_tokens * p.input + output_tokens * p.output
 
-  await getClient()
+  await client
     .from('metering_events')
     .insert({
-      project_id: PROJECT_ID(),
+      project_id: resolved.projectId,
       session_id: session_id || null,
       agent_id,
       model,

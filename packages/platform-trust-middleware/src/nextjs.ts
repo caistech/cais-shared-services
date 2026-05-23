@@ -11,24 +11,22 @@
  *   export const POST = withTrust('write', 'bookings', handler)
  *   export const GET = withTrust('read', 'providers', handler)
  *
- * Or use the auto-middleware in middleware.ts for blanket coverage.
+ * BYOK consumers running their own trust-events Supabase project pass
+ * `supabaseUrl` / `serviceKey` / `projectId` directly:
+ *
+ *   export const POST = withTrust('write', 'bookings', handler, {
+ *     supabaseUrl: process.env.MY_TRUST_SUPABASE_URL,
+ *     serviceKey: process.env.MY_TRUST_SERVICE_KEY,
+ *     projectId:  process.env.MY_TRUST_PROJECT_ID,
+ *   })
+ *
+ * When no explicit options are passed, the middleware falls back to the
+ * `PLATFORM_TRUST_*` env vars (the legacy shared-infra pattern).
  */
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { type SupabaseClient } from '@supabase/supabase-js'
 import { createHash } from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
-
-// ── Config (set via env vars) ───────────────────────────────
-const TRUST_URL = () => process.env.PLATFORM_TRUST_SUPABASE_URL || ''
-const TRUST_KEY = () => process.env.PLATFORM_TRUST_SERVICE_KEY || ''
-const PROJECT_ID = () => process.env.PLATFORM_TRUST_PROJECT_ID || ''
-
-let _client: SupabaseClient | null = null
-
-function getClient(): SupabaseClient | null {
-  if (!TRUST_URL() || !TRUST_KEY() || !PROJECT_ID()) return null
-  if (!_client) _client = createClient(TRUST_URL(), TRUST_KEY())
-  return _client
-}
+import { getTrustClient, type PlatformTrustConfig } from './config'
 
 const DEV_OVERRIDE_TOKEN = 'allow-unconfigured-writes'
 
@@ -39,14 +37,15 @@ function devOverrideActive(): boolean {
 function unconfiguredDenialResponse(operation: string, scope: string, toolName: string): NextResponse {
   console.error(
     `[platform-trust] DENIED ${operation} on scope="${scope}" tool="${toolName}": ` +
-    'platform-trust env vars unset. Set PLATFORM_TRUST_SUPABASE_URL, PLATFORM_TRUST_SERVICE_KEY, ' +
-    'PLATFORM_TRUST_PROJECT_ID. To temporarily allow unconfigured writes in local dev, set ' +
+    'platform-trust config unset. Pass { supabaseUrl, serviceKey, projectId } to withTrust(), ' +
+    'or set PLATFORM_TRUST_SUPABASE_URL / PLATFORM_TRUST_SERVICE_KEY / PLATFORM_TRUST_PROJECT_ID env vars. ' +
+    'To temporarily allow unconfigured writes in local dev, set ' +
     `PLATFORM_TRUST_DEV_OVERRIDE='${DEV_OVERRIDE_TOKEN}' (never in production).`
   )
   return NextResponse.json(
     {
       error: 'Platform Trust not configured: write/delete denied',
-      missing_env: ['PLATFORM_TRUST_SUPABASE_URL', 'PLATFORM_TRUST_SERVICE_KEY', 'PLATFORM_TRUST_PROJECT_ID'],
+      missing_config: ['supabaseUrl', 'serviceKey', 'projectId'],
     },
     { status: 503 }
   )
@@ -61,11 +60,15 @@ function hashData(data: unknown): string | null {
 const WINDOW_SECONDS: Record<string, number> = { minute: 60, hour: 3600, day: 86400 }
 
 // ── Core checks ─────────────────────────────────────────────
-async function checkRateLimit(client: SupabaseClient, agentId: string): Promise<{ allowed: boolean; retry_after?: number }> {
+async function checkRateLimit(
+  client: SupabaseClient,
+  projectId: string,
+  agentId: string,
+): Promise<{ allowed: boolean; retry_after?: number }> {
   const { data: limits } = await client
     .from('rate_limits')
     .select('*')
-    .eq('project_id', PROJECT_ID())
+    .eq('project_id', projectId)
     .in('agent_id', [agentId, '*'])
     .order('window_type')
 
@@ -89,11 +92,17 @@ async function checkRateLimit(client: SupabaseClient, agentId: string): Promise<
   return { allowed: true }
 }
 
-async function checkPermission(client: SupabaseClient, agentId: string, scope: string, operation: string): Promise<{ allowed: boolean; requires_approval: boolean }> {
+async function checkPermission(
+  client: SupabaseClient,
+  projectId: string,
+  agentId: string,
+  scope: string,
+  operation: string,
+): Promise<{ allowed: boolean; requires_approval: boolean }> {
   const { data: policy } = await client
     .from('permission_policies')
     .select('*')
-    .eq('project_id', PROJECT_ID())
+    .eq('project_id', projectId)
     .in('agent_id', [agentId, '*'])
     .eq('scope', scope)
     .eq('operation', operation)
@@ -106,6 +115,7 @@ async function checkPermission(client: SupabaseClient, agentId: string, scope: s
 
 async function logAudit(
   client: SupabaseClient,
+  projectId: string,
   agentId: string,
   toolName: string,
   operationType: string,
@@ -117,7 +127,7 @@ async function logAudit(
   const { data } = await client
     .from('audit_log')
     .insert({
-      project_id: PROJECT_ID(),
+      project_id: projectId,
       agent_id: agentId,
       tool_name: toolName,
       operation_type: operationType,
@@ -135,26 +145,33 @@ async function logAudit(
 // ── Route handler wrapper ───────────────────────────────────
 type RouteHandler = (request: NextRequest, context?: unknown) => Promise<NextResponse | Response>
 
+export interface WithTrustOptions extends PlatformTrustConfig {
+  /** Header name to read the agent ID from. Default: 'x-agent-id'. */
+  agentIdHeader?: string
+}
+
 /**
  * Wrap a Next.js API route handler with platform-trust checks.
  *
  * @param operation - 'read' | 'write' | 'delete'
  * @param scope - permission scope (e.g. 'bookings', 'sessions', 'agents')
  * @param handler - the original route handler
- * @param options - optional config
+ * @param options - optional config. Pass `supabaseUrl` / `serviceKey` /
+ *   `projectId` to point at YOUR Supabase project; otherwise the wrapper
+ *   falls back to the `PLATFORM_TRUST_*` env vars.
  */
 export function withTrust(
   operation: 'read' | 'write' | 'delete',
   scope: string,
   handler: RouteHandler,
-  options?: { agentIdHeader?: string }
+  options?: WithTrustOptions
 ): RouteHandler {
   return async (request: NextRequest, context?: unknown) => {
-    const client = getClient()
+    const { client, resolved } = getTrustClient(options)
     const agentId = request.headers.get(options?.agentIdHeader || 'x-agent-id') || 'anonymous'
     const toolName = new URL(request.url).pathname
 
-    if (!client) {
+    if (!client || !resolved) {
       const isMutation = operation === 'write' || operation === 'delete'
       if (isMutation && !devOverrideActive()) {
         return unconfiguredDenialResponse(operation, scope, toolName)
@@ -169,9 +186,9 @@ export function withTrust(
     }
 
     // 1. Rate limit
-    const rateResult = await checkRateLimit(client, agentId)
+    const rateResult = await checkRateLimit(client, resolved.projectId, agentId)
     if (!rateResult.allowed) {
-      await logAudit(client, agentId, toolName, operation, 'rate_limited')
+      await logAudit(client, resolved.projectId, agentId, toolName, operation, 'rate_limited')
       return NextResponse.json(
         { error: 'Rate limit exceeded', retry_after: rateResult.retry_after },
         { status: 429, headers: { 'Retry-After': String(rateResult.retry_after || 60) } }
@@ -179,9 +196,9 @@ export function withTrust(
     }
 
     // 2. Permission check
-    const permResult = await checkPermission(client, agentId, scope, operation)
+    const permResult = await checkPermission(client, resolved.projectId, agentId, scope, operation)
     if (!permResult.allowed) {
-      await logAudit(client, agentId, toolName, operation, 'permission_denied')
+      await logAudit(client, resolved.projectId, agentId, toolName, operation, 'permission_denied')
       return NextResponse.json(
         { error: `Permission denied: no policy for scope="${scope}" operation="${operation}"` },
         { status: 403 }
@@ -190,9 +207,9 @@ export function withTrust(
 
     // 3. Approval gate
     if (permResult.requires_approval) {
-      const auditId = await logAudit(client, agentId, toolName, operation, 'pending_approval', null)
+      const auditId = await logAudit(client, resolved.projectId, agentId, toolName, operation, 'pending_approval', null)
       return NextResponse.json(
-        { error: 'Approval required', audit_id: auditId, approve_at: 'platform-trust.vercel.app/dashboard/approvals' },
+        { error: 'Approval required', audit_id: auditId },
         { status: 202 }
       )
     }
@@ -202,7 +219,7 @@ export function withTrust(
     const response = await handler(request, context)
     const duration = Date.now() - start
 
-    await logAudit(client, agentId, toolName, operation, 'completed', null, null, duration)
+    await logAudit(client, resolved.projectId, agentId, toolName, operation, 'completed', null, null, duration)
 
     return response
   }
@@ -221,10 +238,15 @@ export interface ScopeRule {
 /**
  * Create a Next.js middleware function that applies trust checks
  * based on URL path matching.
+ *
+ * @param rules - URL → { operation, scope } mapping
+ * @param options - optional config. Pass `supabaseUrl` / `serviceKey` /
+ *   `projectId` to point at YOUR Supabase project; otherwise falls back
+ *   to the `PLATFORM_TRUST_*` env vars.
  */
-export function createTrustMiddleware(rules: ScopeRule[]) {
+export function createTrustMiddleware(rules: ScopeRule[], options?: PlatformTrustConfig) {
   return async (request: NextRequest) => {
-    const client = getClient()
+    const { client, resolved } = getTrustClient(options)
     const pathname = new URL(request.url).pathname
     const method = request.method
 
@@ -240,7 +262,7 @@ export function createTrustMiddleware(rules: ScopeRule[]) {
     const operation = rule.operation || (method === 'GET' ? 'read' : 'write')
     const agentId = request.headers.get('x-agent-id') || 'anonymous'
 
-    if (!client) {
+    if (!client || !resolved) {
       const isMutation = operation === 'write' || operation === 'delete'
       if (isMutation && !devOverrideActive()) {
         return unconfiguredDenialResponse(operation, rule.scope, pathname)
@@ -255,9 +277,9 @@ export function createTrustMiddleware(rules: ScopeRule[]) {
     }
 
     // Rate limit
-    const rateResult = await checkRateLimit(client, agentId)
+    const rateResult = await checkRateLimit(client, resolved.projectId, agentId)
     if (!rateResult.allowed) {
-      await logAudit(client, agentId, pathname, operation, 'rate_limited')
+      await logAudit(client, resolved.projectId, agentId, pathname, operation, 'rate_limited')
       return NextResponse.json(
         { error: 'Rate limit exceeded', retry_after: rateResult.retry_after },
         { status: 429 }
@@ -265,9 +287,9 @@ export function createTrustMiddleware(rules: ScopeRule[]) {
     }
 
     // Permission
-    const permResult = await checkPermission(client, agentId, rule.scope, operation)
+    const permResult = await checkPermission(client, resolved.projectId, agentId, rule.scope, operation)
     if (!permResult.allowed) {
-      await logAudit(client, agentId, pathname, operation, 'permission_denied')
+      await logAudit(client, resolved.projectId, agentId, pathname, operation, 'permission_denied')
       return NextResponse.json(
         { error: `Permission denied for ${rule.scope}/${operation}` },
         { status: 403 }
@@ -276,7 +298,7 @@ export function createTrustMiddleware(rules: ScopeRule[]) {
 
     // Approval gate
     if (permResult.requires_approval) {
-      const auditId = await logAudit(client, agentId, pathname, operation, 'pending_approval')
+      const auditId = await logAudit(client, resolved.projectId, agentId, pathname, operation, 'pending_approval')
       return NextResponse.json(
         { error: 'Approval required', audit_id: auditId },
         { status: 202 }
@@ -284,7 +306,7 @@ export function createTrustMiddleware(rules: ScopeRule[]) {
     }
 
     // Audit the pass-through
-    logAudit(client, agentId, pathname, operation, 'completed').catch(() => {})
+    logAudit(client, resolved.projectId, agentId, pathname, operation, 'completed').catch(() => {})
 
     return NextResponse.next()
   }
