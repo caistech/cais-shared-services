@@ -114,28 +114,46 @@ export async function POST(request: NextRequest) {
 }
 ```
 
-## Usage — Client Side
+## Usage — Front End (React)
 
-```typescript
-import { useConversation } from '@elevenlabs/react';
+Drop in the `VoiceWidget` from the `/react` subpath. It provides its own
+`ConversationProvider`, is responsive (full-screen sheet on mobile, ≥44px touch targets),
+and carries an explanatory header. Requires the optional peers `react` + `@elevenlabs/react`.
 
-const conversation = useConversation({
-  onConnect: ({ conversationId }) => { /* connected */ },
-  onMessage: ({ message, source }) => { /* new message */ },
-  onDisconnect: () => { /* done */ },
-});
+```tsx
+'use client';
+import { VoiceWidget } from '@caistech/elevenlabs-convai/react';
+import { voiceConfig } from '@/voice.config'; // emitted by the voice-init wizard
 
-await conversation.startSession({
-  agentId: 'your-agent-id',
-  connectionType: 'websocket',
-  overrides: {
-    agent: {
-      prompt: { prompt: 'Context for this session...' },
-      firstMessage: 'Hey! What are we doing today?',
-    },
-  },
-});
+export function VoiceConcierge() {
+  return (
+    <VoiceWidget
+      {...voiceConfig}                  // agentId, placement, mode, textFallback
+      overrides={{ agent: { firstMessage: 'Hi, I can help with your estimate.' } }}
+      onConnect={(conversationId) => {
+        // POST conversationId to your session-init route so the SERVER binds it to the
+        // verified user. The widget never sends an identity the agent relays to tools.
+        fetch('/api/convai/session-init', { method: 'POST', body: JSON.stringify({ conversationId }) });
+      }}
+    />
+  );
+}
 ```
+
+If you need lower-level control, the raw `@elevenlabs/react` `useConversation` hook is
+still available — but prefer `VoiceWidget` so every product shares one voice surface.
+
+## Scaffold wizard
+
+From the `cais-shared-services` repo (after `npm run build` on the package):
+
+```bash
+node scripts/voice-init.mjs --target ../my-product
+```
+
+Asks 5 questions (placement / mode / text-fallback / clarifier fields / persona-confirm),
+reads the canonical persona from `voice-config.json`, and emits `voice.config.ts` into the
+target project, then prints the provisioning next-steps.
 
 ## Custom table names
 

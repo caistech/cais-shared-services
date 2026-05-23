@@ -99,3 +99,12 @@ export {
   createConversationTools,
   conversationContinuityPrompt,
 } from './conversation-tools.js';
+
+// Scaffold-wizard helpers (pure; the wizard in scripts/ does the I/O)
+export {
+  buildVoiceConfig,
+  renderVoiceConfigModule,
+  PLACEMENTS,
+  MODES,
+} from './voice-init.js';
+export type { VoiceInitAnswers } from './voice-init.js';

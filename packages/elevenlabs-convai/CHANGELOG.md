@@ -1,5 +1,32 @@
 # @caistech/elevenlabs-convai — Changelog
 
+## 0.3.0 — 2026-05-24
+
+Full shared voice service — PR2 (front-end). Completes the loop: the package now owns
+the front-door widget, not just the server plumbing.
+
+### Added
+- **`VoiceWidget`** at the subpath export `@caistech/elevenlabs-convai/react`. Config-driven
+  via `VoiceWidgetProps` (placement, mode, overrides, text fallback). Provides its own
+  `ConversationProvider`, self-contained responsive styles (full-screen sheet ≤640px, ≥44px
+  touch targets), an explanatory header, and accessible controls. Built on
+  `@elevenlabs/react` `useConversation` (1.6.x API: `ConversationProvider` + `getId()`).
+- **Subpath packaging:** `react` + `@elevenlabs/react` are **optional** peer dependencies and
+  the widget ships only from `/react`, so the main entry stays React-free for server-only
+  consumers (verified: the main entry loads in Node without React).
+- **`VoiceConfigBase`** is now the shared base for `VoiceConfig` (scaffold) and
+  `VoiceWidgetProps` (runtime); `VoicePlacement` / `VoiceMode` / `VoiceConnectionStatus` types.
+- **Scaffold wizard** `scripts/voice-init.mjs` — 5-question CLI that reads `voice-config.json`,
+  emits `voice.config.ts` into a target project, and prints provisioning next-steps. Its pure
+  config mapping (`buildVoiceConfig`, `renderVoiceConfigModule`) lives in the package and is
+  unit-tested.
+- Test suite grows to 56 (added widget-logic + voice-init coverage).
+
+### Notes
+- Identity stays server-owned: the widget exposes `onConnect(conversationId)` so the consumer
+  binds the conversation to the verified user via a session-init route. The widget never sends
+  an identity the agent relays to tools (pairs with the 0.2.0 memory-binding fix).
+
 ## 0.2.0 — 2026-05-24
 
 Full shared voice service — PR1 (backend). Reviewed via `/plan-eng-review` + an

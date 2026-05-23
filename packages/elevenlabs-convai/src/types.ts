@@ -262,8 +262,15 @@ export interface VoiceWidgetProps extends VoiceConfigBase {
   onDisconnect?: () => void;
   onMessage?: (role: string, text: string) => void;
   onError?: (error: string) => void;
+  onStatusChange?: (status: VoiceConnectionStatus) => void;
+  /** Called when the user submits via the text fallback (no voice). */
+  onTextFallbackSubmit?: (text: string) => void;
 
   // UI
+  /** Explanatory header shown at the top of the open panel. Has a sensible default. */
+  title?: string;
   autoConnect?: boolean;
   className?: string;
 }
+
+export type VoiceConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';

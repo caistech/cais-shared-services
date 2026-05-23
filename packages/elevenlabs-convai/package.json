@@ -1,13 +1,17 @@
 {
   "name": "@caistech/elevenlabs-convai",
-  "version": "0.2.0",
-  "description": "ElevenLabs Conversational AI — idempotent agent provisioning, webhook routes, persistent memory, anonymous sessions",
+  "version": "0.3.0",
+  "description": "ElevenLabs Conversational AI — agent provisioning, webhook routes, persistent memory, anonymous sessions, and a React VoiceWidget",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js"
     }
   },
   "scripts": {
@@ -17,16 +21,26 @@
     "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
-    "typescript": ">=5.0.0",
-    "@supabase/supabase-js": ">=2.0.0"
+    "@supabase/supabase-js": ">=2.0.0",
+    "@elevenlabs/react": ">=1.0.0",
+    "react": ">=18.0.0",
+    "typescript": ">=5.0.0"
   },
   "peerDependenciesMeta": {
     "@supabase/supabase-js": {
       "optional": true
+    },
+    "@elevenlabs/react": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
     }
   },
   "devDependencies": {
+    "@elevenlabs/react": "^1.6.3",
     "@supabase/supabase-js": "^2.39.0",
+    "@types/react": "^19.2.15",
     "vitest": "^1.6.0"
   },
   "files": [
