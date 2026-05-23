@@ -193,12 +193,6 @@ projects:
     envs:
       PLATFORM_TRUST_PROJECT_ID: { ref: "$secret:platform_trust_project_id_raiseready_template" }
 
-  - name: gbta-openclaw
-    vercel_project_id: "prj_OxAM6WpIyT3oUQ4fSrJSuBoiUcvM"
-    inherit_shared:
-      - GITHUB_PACKAGES_TOKEN
-      - ANTHROPIC_API_KEY
-
   - name: easy-claude-code
     vercel_project_id: "prj_sedjiKhnHUBginSeK2jP555u4wAp"
     inherit_shared:
