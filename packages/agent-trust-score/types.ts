@@ -113,6 +113,20 @@ export interface ScanConfig {
   runBehavioural?: boolean;
   /** Model call function for behavioural probes */
   modelCallFn?: import("@caistech/security-gate").ModelCallFn;
-  /** Base URL for badge/report links */
+  /**
+   * Base URL of YOUR trust-grader host for the badge / report links in the
+   * returned report (e.g. `https://your-grader.example.com`). When omitted,
+   * `badge_url` and `report_url` are emitted as relative paths so the
+   * consumer can prepend their own host at render time. The package ships
+   * no default host — BYOK consumers running their own grader pass it
+   * explicitly.
+   */
+  graderUrl?: string;
+  /**
+   * @deprecated Use `graderUrl`. Accepted as a fallback for callers written
+   * against pre-0.2.2 of this package, where the field defaulted to the
+   * CAS-owned `platform-trust.vercel.app` host. The default has been removed
+   * — pass your own grader URL via `graderUrl` instead.
+   */
   baseUrl?: string;
 }

@@ -76,10 +76,28 @@ function scoreDimension(
 // Overall Grade
 // ---------------------------------------------------------------------------
 
+/**
+ * Calculate the overall trust-score grade and assemble a full report.
+ *
+ * @param results — criterion results from the static / behavioural checkers
+ * @param projectSlug — slug used in the badge / report URLs
+ * @param graderUrl — base URL of YOUR trust-grader host (e.g.
+ *   `https://your-grader.example.com`). When provided, the returned
+ *   `badge_url` / `report_url` are absolute URLs of the form
+ *   `${graderUrl}/badge/${slug}` and `${graderUrl}/report/${slug}/${date}`.
+ *   When omitted, both fields are relative paths (`/badge/${slug}` etc.)
+ *   that the consumer can prepend their own host to at render time. The
+ *   package ships no default host — BYOK consumers running their own
+ *   grader pass it explicitly.
+ *
+ * Backward-compatible alias: the prior `baseUrl` parameter name is still
+ * accepted (positionally) since this is the third positional argument
+ * — only the default value changed (CAS URL → undefined).
+ */
 export function calculateGrade(
   results: CriterionResult[],
   projectSlug: string,
-  baseUrl = "https://platform-trust.vercel.app"
+  graderUrl?: string
 ): TrustScoreReport {
   const scanDate = new Date().toISOString();
 
@@ -143,8 +161,12 @@ export function calculateGrade(
     medium_findings: mediumFindings,
     low_findings: lowFindings,
     findings,
-    badge_url: `${baseUrl}/badge/${projectSlug}`,
-    report_url: `${baseUrl}/report/${projectSlug}/${scanDate.slice(0, 10)}`,
+    badge_url: graderUrl
+      ? `${graderUrl}/badge/${projectSlug}`
+      : `/badge/${projectSlug}`,
+    report_url: graderUrl
+      ? `${graderUrl}/report/${projectSlug}/${scanDate.slice(0, 10)}`
+      : `/report/${projectSlug}/${scanDate.slice(0, 10)}`,
   };
 }
 

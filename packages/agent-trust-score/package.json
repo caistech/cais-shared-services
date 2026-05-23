@@ -1,6 +1,6 @@
 {
   "name": "@caistech/agent-trust-score",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Agent trust-score scanner, grader, and badge generator. Static + behavioural checks across security, correctness, observability, and reliability dimensions.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

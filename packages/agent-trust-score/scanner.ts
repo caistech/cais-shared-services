@@ -40,11 +40,13 @@ export async function scanProject(config: ScanConfig): Promise<TrustScoreReport>
     console.log("[trust-score] Behavioural probes not yet wired — using static results only");
   }
 
-  // Calculate grade
+  // Calculate grade — prefer config.graderUrl (BYOK consumer's own grader
+  // host); fall back to legacy config.baseUrl for callers written against
+  // pre-0.2.2 of this package.
   const report = calculateGrade(
     results,
     config.projectSlug,
-    config.baseUrl
+    config.graderUrl ?? config.baseUrl
   );
 
   return report;
