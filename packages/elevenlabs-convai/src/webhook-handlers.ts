@@ -30,7 +30,10 @@ export interface TableNames {
   conversations: string;
   messages: string;
   memory: string;
-  anonSessions: string;
+  // Optional: only the anon-session/route layer references it, never the core handlers.
+  // Optional so a 0.1.x consumer's existing { agents, conversations, messages, memory }
+  // TableNames keeps compiling after upgrading (no code edit needed for the bump).
+  anonSessions?: string;
 }
 
 const DEFAULT_TABLES: TableNames = {

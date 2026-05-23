@@ -1,5 +1,22 @@
 # @caistech/elevenlabs-convai — Changelog
 
+## 0.3.2 — 2026-05-24
+
+Upgrade-friendliness for existing 0.1.x consumers.
+
+### Changed
+- **`TableNames.anonSessions` is now optional.** Only the anon-session/route layer reads it;
+  the core handlers never do. This means a 0.1.x consumer's existing
+  `{ agents, conversations, messages, memory }` `TableNames` keeps compiling after upgrading
+  — no code edit required for the version bump. (Backward-compatible; no behaviour change.)
+
+### Upgrade note (0.1.x → 0.3.x consumers)
+A version bump still requires applying the 0.3.x schema migration to your Supabase project
+(the post-call dedup uses a unique index on `(conversation_id, message_index)` and a
+`processed_at` column — see `migration.sql`, which is idempotent and backfills existing rows).
+The leak fix for an already-provisioned agent requires re-provisioning via `provisionVoiceAgent`
+(workspace-scoped webhook), not just the bump.
+
 ## 0.3.1 — 2026-05-24
 
 Workspace-webhook API shapes verified against the live ElevenLabs docs and corrected.
