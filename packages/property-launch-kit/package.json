@@ -1,9 +1,21 @@
 {
   "name": "@caistech/property-launch-kit",
-  "version": "0.1.0",
-  "description": "Shared primitives for property-sale launch pages — branded admin emails + notification recipient management. Used by f2k-projects (Seafields, Branscombe) and any future property estate.",
+  "version": "0.2.0",
+  "description": "Shared primitives for property-sale launch pages — branded admin emails, notification recipient management, and reusable React components (NotifyRecipientsCard, DesignGallery). Used by f2k-projects (Seafields, Branscombe, Hemp Homes) and any future property estate.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./components": {
+      "types": "./dist/components/index.d.ts",
+      "import": "./dist/components/index.js",
+      "default": "./dist/components/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "lint": "tsc --noEmit",
@@ -11,7 +23,13 @@
   },
   "peerDependencies": {
     "@supabase/supabase-js": "^2.0.0",
+    "react": "^18.0.0 || ^19.0.0",
     "typescript": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
   },
   "files": [
     "dist/"
