@@ -14,16 +14,18 @@
  * Usage in a Next.js route:
  *
  *   import { createDailyDigestHandler } from "@caistech/property-launch-kit";
- *   import { getActiveRecipients, renderBrandedEmail } from "@/lib/seafields/notify";
+ *   import { getActiveRecipients, renderBrandedEmail } from "@/lib/<product>/notify";
  *   import { createSupabaseService } from "@/lib/supabase-service";
  *
  *   export const GET = createDailyDigestHandler({
- *     subjectPrefix: "Seafields digest",
- *     adminUrl: "https://f2k-projects.vercel.app/admin/seafields-registrations",
+ *     subjectPrefix: "<Product> digest",
+ *     // adminUrl is required — pass YOUR product's admin URL, e.g.
+ *     // "https://your-app.example.com/admin/<product>-registrations"
+ *     adminUrl: process.env.ADMIN_URL!,
  *     getRecipients: getActiveRecipients,
  *     renderEmail: renderBrandedEmail,
  *     fromAddress: process.env.RESEND_FROM_EMAIL ||
- *       "Seafields Estate <onboarding@resend.dev>",
+ *       "<Product Display Name> <onboarding@resend.dev>",
  *     resendApiKey: process.env.RESEND_API_KEY!,
  *     cronSecret: process.env.CRON_SECRET,
  *     gatherCounts: async () => {
@@ -89,6 +91,15 @@ export interface CreateDailyDigestHandlerOptions {
 export function createDailyDigestHandler(
   opts: CreateDailyDigestHandlerOptions,
 ): (req: Request) => Promise<Response> {
+  if (!opts.adminUrl || typeof opts.adminUrl !== "string" || opts.adminUrl.trim() === "") {
+    throw new Error(
+      "@caistech/property-launch-kit: createDailyDigestHandler({ adminUrl }) " +
+      "requires a non-empty adminUrl. Pass YOUR product's admin URL (e.g., " +
+      "'https://your-app.example.com/admin/<product>-registrations'). The " +
+      "package ships no default — BYOK consumers must point the digest's " +
+      '"Open admin" CTA at their own admin surface.',
+    );
+  }
   return async function GET(req: Request): Promise<Response> {
     if (!isAuthorised(req, opts.cronSecret)) {
       return jsonResponse({ error: "Forbidden" }, 403);
