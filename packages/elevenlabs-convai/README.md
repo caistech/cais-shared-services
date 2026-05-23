@@ -34,9 +34,9 @@ import { createAgent } from '@/lib/convai';
 
 const { agentId } = await createAgent(process.env.ELEVENLABS_API_KEY!, {
   config: {
-    agentName: 'MOVA Drive Copilot',
+    agentName: 'Your Voice Copilot',
     voiceId: '2pwMUCWPsm9t6AwXYaCj',
-    webhookUrl: 'https://mova.vercel.app/api/convai/webhook',
+    webhookUrl: 'https://your-app.example.com/api/convai/webhook',
   },
   systemPrompt: 'You are a driving copilot...',
   firstMessage: 'Hey! Where are we heading today?',

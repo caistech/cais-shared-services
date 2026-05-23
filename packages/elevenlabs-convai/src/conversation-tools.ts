@@ -3,7 +3,7 @@
 // These are webhook-based tools the agent calls during a conversation
 // to maintain context, save messages, and manage memory.
 //
-// Usage: pass `baseUrl` (your app's public URL) to `createConversationTools()`.
+// Usage: pass `baseUrl` (your app's own public URL) to `createConversationTools()`.
 // Wire the returned tool definitions into your agent config.
 // Implement the webhook handlers in your project's API routes.
 
@@ -15,15 +15,27 @@ import type { ConvAITool } from './types.js';
 
 /**
  * Create the standard set of conversation tools.
- * Each tool calls a webhook on YOUR server. You implement the handlers.
+ * Each tool calls a webhook on YOUR server — you provide the host and implement
+ * the handlers. This package never targets a shared/default endpoint; the
+ * caller's `baseUrl` is the only host the returned tool definitions point at.
  *
- * @param baseUrl — your app's public URL (e.g., 'https://mova.vercel.app')
+ * @param baseUrl — your app's public URL (e.g., `https://your-app.example.com`).
+ *                  Required. Throws if missing/empty so BYOK consumers never
+ *                  accidentally point at a default host.
  * @param webhookBasePath — base path for webhook routes (default: '/api/convai/webhooks')
  */
 export function createConversationTools(
   baseUrl: string,
   webhookBasePath: string = '/api/convai/webhooks'
 ): ConvAITool[] {
+  if (!baseUrl || typeof baseUrl !== 'string' || baseUrl.trim() === '') {
+    throw new Error(
+      '@caistech/elevenlabs-convai: createConversationTools(baseUrl) requires ' +
+      "a non-empty baseUrl set to YOUR app's public URL " +
+      "(e.g., 'https://your-app.example.com'). The package ships no default " +
+      'host — BYOK consumers must point the conversation webhooks at their own infrastructure.'
+    );
+  }
   const url = (path: string) => `${baseUrl}${webhookBasePath}/${path}`;
   const headers = { 'Content-Type': 'application/json' };
 
