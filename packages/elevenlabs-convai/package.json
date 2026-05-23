@@ -1,16 +1,33 @@
 {
   "name": "@caistech/elevenlabs-convai",
-  "version": "0.1.6",
-  "description": "ElevenLabs Conversational AI — agent management, webhooks, persistent memory",
+  "version": "0.2.0",
+  "description": "ElevenLabs Conversational AI — idempotent agent provisioning, webhook routes, persistent memory, anonymous sessions",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "lint": "tsc --noEmit",
+    "test": "vitest run",
     "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
-    "typescript": ">=5.0.0"
+    "typescript": ">=5.0.0",
+    "@supabase/supabase-js": ">=2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@supabase/supabase-js": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "vitest": "^1.6.0"
   },
   "files": [
     "dist/",

@@ -76,12 +76,10 @@ Use this to greet returning users appropriately and continue where you left off.
           type: 'string',
           description: 'Your agent ID',
         },
-        user_id: {
-          type: 'string',
-          description: 'The user ID',
-        },
       },
-      required: ['elevenlabs_conversation_id', 'elevenlabs_agent_id', 'user_id'],
+      // NOTE: no user_id here on purpose. The server resolves the verified user identity
+      // for this session (authed user or anon session) — the agent must not name a user.
+      required: ['elevenlabs_conversation_id', 'elevenlabs_agent_id'],
     },
   };
 }
@@ -149,16 +147,16 @@ Use this when you need to remember something specific they've told you before.`,
     parameters: {
       type: 'object',
       properties: {
-        user_id: {
+        conversation_id: {
           type: 'string',
-          description: 'The user ID',
+          description: 'The current ElevenLabs conversation ID (the server derives whose memory to read from it)',
         },
         query: {
           type: 'string',
           description: 'What you want to remember (e.g., "their budget", "family situation", "business goals")',
         },
       },
-      required: ['user_id', 'query'],
+      required: ['conversation_id', 'query'],
     },
   };
 }
@@ -173,9 +171,9 @@ Use this for key facts, preferences, decisions, or anything you should remember 
     parameters: {
       type: 'object',
       properties: {
-        user_id: {
+        conversation_id: {
           type: 'string',
-          description: 'The user ID',
+          description: 'The current ElevenLabs conversation ID (the server derives whose memory to write from it)',
         },
         memory: {
           type: 'string',
@@ -186,7 +184,7 @@ Use this for key facts, preferences, decisions, or anything you should remember 
           description: 'Optional category (preference, context, goal, decision, followup, correction, insight)',
         },
       },
-      required: ['user_id', 'memory'],
+      required: ['conversation_id', 'memory'],
     },
   };
 }

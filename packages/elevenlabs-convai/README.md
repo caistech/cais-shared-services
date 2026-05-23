@@ -1,6 +1,8 @@
-# elevenlabs-convai
+# @caistech/elevenlabs-convai
 
-Shared ElevenLabs Conversational AI module. Extracted from Kira. Provides the full voice conversation loop with persistent memory, webhook handling, and conversation continuity.
+Shared ElevenLabs Conversational AI service. Originated in Kira. Provides the full voice conversation loop with persistent memory: idempotent agent provisioning, drop-in Next.js webhook routes, conversation continuity, and ephemeral anonymous sessions.
+
+> Server-side entry point. The React `VoiceWidget` ships from the subpath `@caistech/elevenlabs-convai/react` (in progress) so this entry stays React-free for server-only consumers.
 
 ## What this replaces
 
@@ -14,33 +16,64 @@ If you're currently building voice with MediaRecorder + STT API + LLM API + TTS 
 | `agent-client.ts` | Server-side agent CRUD (create, update, delete, get, conversation history) |
 | `webhook.ts` | Signature verification + payload parsing for ElevenLabs webhooks |
 | `webhook-handlers.ts` | Generic Supabase handlers: start conversation, save message, update topic, recall/save memory, post-call transcript |
+| `provision.ts` | Idempotent `provisionVoiceAgent()` — agent create/adopt, allowlist, workspace-scoped webhook bind, override enablement |
+| `routes.ts` | `createConvaiWebhookRoutes()` — Next.js route factory wrapping the handlers (400/401/500 + signature) |
+| `session.ts` | Ephemeral anonymous-session tokens (HMAC) — no cross-session anon memory |
 | `conversation-tools.ts` | Tool definitions the agent calls during conversation (memory, context, topics) |
-| `migration.sql` | Supabase tables: agents, conversations, messages, memory + RPC + RLS |
+| `migration.sql` | Supabase tables: agents, conversations, messages, memory, anon-sessions + RPC + RLS + purge |
 | `index.ts` | Barrel export |
 
 ## Setup
 
-1. Copy this directory into your project: `cp -r corporate-ai-common/elevenlabs-convai/ your-project/lib/convai/`
-2. Install `@elevenlabs/client` and `@elevenlabs/react` in your project
-3. Run `migration.sql` against your Supabase project
-4. Set environment variables: `ELEVENLABS_API_KEY`, `ELEVENLABS_WEBHOOK_SECRET`
+1. Install: `npm install @caistech/elevenlabs-convai --legacy-peer-deps` (add `@caistech:registry=https://npm.pkg.github.com` to `.npmrc`).
+2. Install peers your usage needs: `@supabase/supabase-js` (handlers/routes), `@elevenlabs/react` (the widget, when consuming the `/react` subpath).
+3. Apply `migration.sql` to your Supabase project (or pass `tableNames` to map existing tables).
+4. Set env: `ELEVENLABS_API_KEY`, `ELEVENLABS_WEBHOOK_SECRET`, and an anon-session signing secret if you use anonymous sessions.
 
 ## Usage — Server Side
 
-### Create an agent
+### Provision an agent (idempotent)
 
 ```typescript
-import { createAgent } from '@/lib/convai';
+import { provisionVoiceAgent, standardAllowlist, createConversationTools } from '@caistech/elevenlabs-convai';
 
-const { agentId } = await createAgent(process.env.ELEVENLABS_API_KEY!, {
+const { agentId, created } = await provisionVoiceAgent(process.env.ELEVENLABS_API_KEY!, {
   config: {
-    agentName: 'Your Voice Copilot',
-    voiceId: '2pwMUCWPsm9t6AwXYaCj',
-    webhookUrl: 'https://your-app.example.com/api/convai/webhook',
+    agentName: 'Your Voice Concierge',
+    voiceId: process.env.CANONICAL_VOICE_ID!,   // from voice-config.json
   },
-  systemPrompt: 'You are a driving copilot...',
-  firstMessage: 'Hey! Where are we heading today?',
+  systemPrompt: 'You are a helpful concierge...',
+  firstMessage: 'Hi, I can help with that.',
+  baseUrl: 'https://your-app.example.com',
+  allowedOrigins: standardAllowlist('your-app.example.com'),
+  tools: createConversationTools('https://your-app.example.com'),
+  // existingAgentId: stored id — re-runs update in place instead of creating duplicates
 });
+```
+
+`provisionVoiceAgent` is safe to re-run: it keys on a stored agent id first, falls back to a name search, and **aborts** rather than guessing if two agents share the name. It also writes the Security allowlist and binds a workspace-scoped post-call webhook (never the deprecated per-agent shape).
+
+### Webhook routes (Next.js, drop-in)
+
+```typescript
+// app/api/convai/webhooks/[action]/route.ts — or one file per action
+import { createConvaiWebhookRoutes } from '@caistech/elevenlabs-convai';
+import { createServiceClient } from '@/lib/supabase';
+
+const routes = createConvaiWebhookRoutes({
+  supabase: createServiceClient(),
+  postCallSecret: process.env.ELEVENLABS_WEBHOOK_SECRET,
+  resolveSession: async (_req, body) => {
+    // Map the verified session to an identity. Authed: your auth.uid(). Anon: verify the
+    // ephemeral token and return { userId: sid, anonSessionId: sid }. Return null to 401.
+    return { userId: await resolveUserId(body) };
+  },
+  onConversationComplete: async (conversation, supabase) => {
+    // Optional: write the finished conversation into YOUR domain table. Runs once.
+  },
+});
+
+export const POST = routes.postCall; // ...and routes.startConversation, .saveMessage, etc.
 ```
 
 ### Webhook route (Next.js)

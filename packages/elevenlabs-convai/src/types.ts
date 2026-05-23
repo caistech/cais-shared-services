@@ -215,8 +215,34 @@ export interface MemoryEntry {
 // COMPONENT PROPS (for React consumers)
 // =============================================================================
 
-export interface VoiceWidgetProps {
+export type VoicePlacement = 'floating' | 'sidebar' | 'header' | 'inline' | 'fullpage';
+export type VoiceMode = 'greeting' | 'clarifier' | 'discovery' | 'interview';
+
+/**
+ * Shared base for the scaffold-time VoiceConfig (wizard output) and the runtime
+ * VoiceWidgetProps. One declaration for the fields both need, so they cannot drift.
+ */
+export interface VoiceConfigBase {
   agentId: string;
+  placement?: VoicePlacement;
+  mode?: VoiceMode;
+  /** Fall back to a text input when the ElevenLabs key / voice is unavailable. */
+  textFallback?: boolean;
+}
+
+/**
+ * Scaffold-time config emitted by the voice wizard. Adds fields the runtime widget
+ * never needs (persona source, provisioning allowlist).
+ */
+export interface VoiceConfig extends VoiceConfigBase {
+  /** Path/identifier of the canonical persona used at provision time (voice-config.json). */
+  personaRef?: string;
+  /** Origins written to the agent Security allowlist at provision time. */
+  allowedOrigins?: string[];
+}
+
+/** Runtime props for the React VoiceWidget (PR2). Extends the shared base. */
+export interface VoiceWidgetProps extends VoiceConfigBase {
   userId?: string;
   sessionId?: string;
 

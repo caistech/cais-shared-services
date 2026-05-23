@@ -5,7 +5,7 @@
 
 import type { ConvAIAgentConfig, ElevenLabsAgentConfig, ConvAITool } from './types.js';
 
-const ELEVENLABS_API = 'https://api.elevenlabs.io/v1/convai';
+export const ELEVENLABS_API = 'https://api.elevenlabs.io/v1/convai';
 
 // ElevenLabs rejects multilingual TTS models for English-only agents (April 2026).
 // English agents must use an English-only model: eleven_flash_v2 or eleven_turbo_v2.
@@ -15,6 +15,34 @@ const VOICE_MODEL_MULTILINGUAL_DEFAULT = 'eleven_turbo_v2_5';
 
 export function defaultVoiceModelFor(language: string): string {
   return language === 'en' ? VOICE_MODEL_ENGLISH_DEFAULT : VOICE_MODEL_MULTILINGUAL_DEFAULT;
+}
+
+/**
+ * Map generic ConvAITool definitions to the ElevenLabs agent-tools wire shape.
+ * Shared by createAgent (on create) and provision.ts setAgentTools (on re-provision)
+ * so the tool payload is built one way only. `fallbackBaseUrl` derives a per-tool URL
+ * for any tool that didn't carry an explicit webhook URL (createConversationTools
+ * always sets one, so the fallback is rarely exercised).
+ */
+export function toElevenLabsTools(tools: ConvAITool[], fallbackBaseUrl?: string) {
+  return tools
+    .filter((t) => t.type === 'webhook')
+    .map((t) => {
+      const derivedUrl = fallbackBaseUrl
+        ? `${fallbackBaseUrl.replace(/\/webhook$/, '')}/tools/${t.name}`
+        : undefined;
+      return {
+        type: 'webhook' as const,
+        name: t.name,
+        description: t.description,
+        webhook: {
+          url: t.webhook?.url || derivedUrl,
+          method: t.webhook?.method || 'POST',
+          headers: t.webhook?.headers || { 'Content-Type': 'application/json' },
+        },
+        parameters: t.parameters,
+      };
+    });
 }
 
 // =============================================================================
@@ -27,10 +55,32 @@ export interface CreateAgentOptions {
   firstMessage: string;
   language?: string;          // Default: 'en'
   tools?: ConvAITool[];
-  // Arbitrary additional platform_settings keys merged into the outgoing payload.
-  // Use for widget, evaluation, overrides, etc. The webhook block is added
-  // automatically from config.webhookUrl and should NOT be duplicated here.
+  // Enable per-session conversation_config_override (first_message / prompt /
+  // language). Required for the VoiceWidget clarifier use case — without it
+  // ElevenLabs silently ignores client-sent overrides. Default: false.
+  enableOverrides?: boolean;
+  // Arbitrary additional platform_settings keys merged into the outgoing payload
+  // (widget, evaluation, etc.). The post-call webhook is NOT bound here — it is
+  // workspace-scoped via bindWorkspaceWebhook() in provision.ts.
   platformSettings?: Record<string, unknown>;
+}
+
+// Override-enablement block written into platform_settings.overrides.
+// Lets a client (VoiceWidget) override these fields per session at connect time.
+// NOTE: confirm this shape against the live ElevenLabs API before relying on it in
+// production — the dashboard stopped surfacing these toggles and the API field has
+// moved between revisions (see CLAUDE.md voice failure-modes). Verification is runtime:
+// if per-session language/greeting/prompt overrides take effect, this is correct.
+export function buildOverrideEnablement(): Record<string, unknown> {
+  return {
+    conversation_config_override: {
+      agent: {
+        prompt: { prompt: true },
+        first_message: true,
+        language: true,
+      },
+    },
+  };
 }
 
 export async function createAgent(
@@ -58,40 +108,23 @@ export async function createAgent(
     },
   };
 
-  // Merge platform_settings from caller (widget, etc.) with the auto-built webhook block
+  // Build platform_settings. The post-call webhook is intentionally NOT bound here:
+  // per-agent platform_settings.webhook is the deprecated shape that previously bound
+  // one product's agent to another product's workspace webhook (cross-product transcript
+  // leak). Post-call delivery is now workspace-scoped — see bindWorkspaceWebhook().
   const platformSettings: Record<string, unknown> = { ...(options.platformSettings || {}) };
-  if (config.webhookUrl) {
-    platformSettings.webhook = {
-      url: config.webhookUrl,
-      events: config.webhookEvents || ['conversation.transcript', 'conversation.ended'],
-    };
+
+  if (options.enableOverrides) {
+    platformSettings.overrides = buildOverrideEnablement();
   }
+
   if (Object.keys(platformSettings).length > 0) {
     agentConfig.platform_settings = platformSettings as ElevenLabsAgentConfig['platform_settings'];
   }
 
   // Add webhook tools if defined
   if (tools && tools.length > 0) {
-    const webhookTools = tools
-      .filter(t => t.type === 'webhook')
-      .map(t => {
-        // Derive tool webhook URL from the main webhookUrl if not explicitly set
-        const derivedUrl = config.webhookUrl
-          ? `${config.webhookUrl.replace(/\/webhook$/, '')}/tools/${t.name}`
-          : undefined;
-        return {
-          type: 'webhook',
-          name: t.name,
-          description: t.description,
-          webhook: {
-            url: t.webhook?.url || derivedUrl,
-            method: t.webhook?.method || 'POST',
-            headers: t.webhook?.headers || { 'Content-Type': 'application/json' },
-          },
-          parameters: t.parameters,
-        };
-      });
-
+    const webhookTools = toElevenLabsTools(tools, config.webhookUrl);
     if (webhookTools.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (agentConfig as any).conversation_config.agent.tools = webhookTools;
@@ -249,4 +282,57 @@ export async function getConversationHistory(
 
   const data = await response.json();
   return data.messages || [];
+}
+
+// =============================================================================
+// AGENT LIST / SEARCH (idempotent provisioning)
+// =============================================================================
+
+export interface AgentSummary {
+  agentId: string;
+  name: string;
+}
+
+/**
+ * List all agents in the workspace, following cursor pagination to completion.
+ * Used by provisionVoiceAgent() to find an existing agent before creating one.
+ */
+export async function listAgents(apiKey: string): Promise<AgentSummary[]> {
+  const out: AgentSummary[] = [];
+  let cursor: string | undefined;
+
+  // Bound the loop defensively so a malformed cursor can never spin forever.
+  for (let page = 0; page < 1000; page++) {
+    const url = new URL(`${ELEVENLABS_API}/agents`);
+    url.searchParams.set('page_size', '100');
+    if (cursor) url.searchParams.set('cursor', cursor);
+
+    const response = await fetch(url.toString(), {
+      headers: { 'xi-api-key': apiKey },
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`ElevenLabs agent list failed: ${response.status} ${error}`);
+    }
+
+    const data = await response.json();
+    for (const a of data.agents || []) {
+      out.push({ agentId: a.agent_id, name: a.name });
+    }
+
+    if (!data.has_more || !data.next_cursor) break;
+    cursor = data.next_cursor;
+  }
+
+  return out;
+}
+
+/**
+ * Find every agent whose name matches exactly. Returns 0, 1, or many — the caller
+ * decides what to do (provisionVoiceAgent aborts on 2+ to avoid touching the wrong one).
+ */
+export async function findAgentsByName(apiKey: string, name: string): Promise<AgentSummary[]> {
+  const agents = await listAgents(apiKey);
+  return agents.filter((a) => a.name === name);
 }

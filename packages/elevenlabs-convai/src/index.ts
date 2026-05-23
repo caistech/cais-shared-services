@@ -1,13 +1,16 @@
 // elevenlabs-convai/index.ts
-// Shared ElevenLabs Conversational AI module for Corporate AI Solutions.
+// Shared ElevenLabs Conversational AI service for Corporate AI Solutions.
+//
+// Server-side entry point. The React VoiceWidget ships from the subpath
+// "@caistech/elevenlabs-convai/react" (PR2) so this entry stays React-free for
+// server-only consumers.
 //
 // Usage:
-//   Copy this directory into your project (e.g., lib/convai/ or shared/convai/).
-//   Import what you need:
-//
-//   import { createAgent, verifyWebhookSignature } from '@/lib/convai';
-//   import { createConversationTools } from '@/lib/convai/conversation-tools';
-//   import { handleStartConversation } from '@/lib/convai/webhook-handlers';
+//   import {
+//     provisionVoiceAgent,
+//     createConversationTools,
+//     createConvaiWebhookRoutes,
+//   } from '@caistech/elevenlabs-convai';
 
 // Types
 export type {
@@ -22,17 +25,38 @@ export type {
   MemoryType,
   MemoryEntry,
   VoiceWidgetProps,
+  VoiceConfig,
+  VoiceConfigBase,
+  VoicePlacement,
+  VoiceMode,
 } from './types.js';
 
-// Agent CRUD (server-side)
+// Agent CRUD + provisioning helpers (server-side)
 export {
+  ELEVENLABS_API,
   createAgent,
   updateAgent,
   deleteAgent,
   getAgent,
   getConversationHistory,
+  listAgents,
+  findAgentsByName,
   defaultVoiceModelFor,
+  toElevenLabsTools,
+  buildOverrideEnablement,
 } from './agent-client.js';
+export type { AgentSummary } from './agent-client.js';
+
+// Idempotent end-to-end provisioning (server-side)
+export {
+  provisionVoiceAgent,
+  bindWorkspaceWebhook,
+  setAllowlist,
+  setAgentOverrides,
+  setAgentTools,
+  standardAllowlist,
+} from './provision.js';
+export type { ProvisionVoiceAgentOptions, ProvisionResult } from './provision.js';
 
 // Webhook utilities (server-side)
 export {
@@ -52,7 +76,23 @@ export {
   handleSaveMemory,
   handlePostCallWebhook,
 } from './webhook-handlers.js';
-export type { TableNames } from './webhook-handlers.js';
+export type { TableNames, OnConversationComplete } from './webhook-handlers.js';
+
+// Next.js webhook route factory (server-side)
+export { createConvaiWebhookRoutes } from './routes.js';
+export type {
+  ConvaiWebhookRoutes,
+  CreateConvaiWebhookRoutesOptions,
+  ConvaiRouteContext,
+} from './routes.js';
+
+// Anonymous-session tokens (ephemeral; server-side)
+export {
+  mintAnonSessionToken,
+  verifyAnonSessionToken,
+  hashToken,
+} from './session.js';
+export type { AnonSessionClaims, MintAnonSessionOptions } from './session.js';
 
 // Conversation tools (agent config)
 export {
