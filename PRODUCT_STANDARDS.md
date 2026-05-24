@@ -49,7 +49,7 @@ If any box is unchecked, the page is not done.
 *Source: CLAUDE.md "AUTH PAGE PATTERN".*
 
 - [ ] **Forgot-password** link on every login page → working reset flow (forgot → email → reset page calling the provider's update-password).
-- [ ] **Password visibility toggle** (Eye/EyeOff, `lucide-react`) on every password input; `tabIndex={-1}` + `aria-label`.
+- [ ] **Password visibility toggle** (Eye/EyeOff, `lucide-react`) on every password input; `tabIndex={-1}` + `aria-label`. Use ONE shared component (`@caistech/corporate-components` `PasswordInput`, or a registry-free local mirror) — never hand-roll the toggle per page; login/signup/reset/change all consume the same component. *(mmcbuild 2026-05-25: reset had it inline, login/signup missing — unified onto one `PasswordInput`.)*
 - [ ] **Working magic-link** wired to the provider's OTP method. If "magic link doesn't work" — check SMTP config (Resend custom SMTP) before the code.
 
 ## 3. AUTH SMOKE-TEST (on every memory save in a repo with auth)
@@ -110,6 +110,8 @@ If any box is unchecked, the page is not done.
 - [ ] **Supabase** — migrations idempotent + applied via CLI (not "paste this in the dashboard"); **RLS on every table**; service-role key never client-side; parameterised queries. *(CLAUDE.md "SUPABASE MIGRATIONS" + code standards.)*
 - [ ] **No secrets in committed files / settings / logs.** *(CLAUDE.md security + the no-plaintext-secrets memory.)*
 - [ ] **Vercel env vars → `sensitive`, production+preview only.** Any script/route that creates Vercel env vars marks secrets `type: "sensitive"` (non-readable) and targets **production+preview — never `development`**. The CAS + MMC Vercel teams have *Enforce Sensitive Environment Variables* on (2026-05-25), which force-marks prod/preview sensitive and **bans dev creates team-wide**; a plaintext secret is flagged "Needs Attention" (post-April-2026 breach). A PATCH can't convert `encrypted`→`sensitive` — **delete + recreate**. Don't read sensitive values back (they're non-readable) — source from `.env.local`. Public `NEXT_PUBLIC_*`/config: `plain`, still prod+preview only. *(project_vercel_sensitive_env_vars memory.)*
+- [ ] **DB dumps / data exports never committed** — `dump-*.sql` and any data export is gitignored, treated as PII, and deleted after the restore verifies. Migrate a Supabase project between orgs via `pg_dump`/restore (a copy), **not** "Transfer project," when the source environment must be retained. Storage files and `auth.users` migrate as *separate* steps (Storage API + `--schema auth`), not via the public-schema dump. *(mmcbuild CAS→MMC migration, 2026-05-25.)*
+- [ ] **Live credentials exchanged over a secure channel** (password manager / WhatsApp / encrypted) — never plain email. Applies to DB passwords, API keys, service-role keys. *(mmcbuild migration, 2026-05-25.)*
 - [ ] **Address fields → Mapbox autocomplete; company/ABN fields → ABN lookup** — no plain text inputs for these. *(feedback memory.)*
 - [ ] **Every UI makes the next action obvious — zero dead ends.** *(feedback_ux_flow_first.)*
 - [ ] **Supabase Auth config is self-serve — never ask the user for a token.** `site_url`, redirect allow-list, SMTP, and email templates are set via the Management API using the token at `~/.supabase-token` (or `SUPABASE_MANAGEMENT_TOKEN` / `SUPABASE_ACCESS_TOKEN`) and `scripts/onboard-new-project.sh` / `configure-email-templates.sh`. Don't punt to "generate an access token" or "click the dashboard". *(Singify 2026-05-25; memory `supabase-management-token-on-disk`.)*
@@ -135,10 +137,10 @@ First use of this checklist, against the cockpit shipped this session.
 | §6 Voice agent | ✅ | `VoiceAgent.tsx` ("Talk to Morgan") present on the chrome. |
 | §7 Scaffold metadata | ✅ (site) | CAS metadata customised. |
 | §9 Consequence clarity | ✅ | Launch buttons now state the consequence + confirm + gating (2026-05-25). |
-| **Auth on `/admin`** | ❌ **GAP** | `/admin/methodology` is **unauthenticated** (open 200). It exposes the pipeline and the real-outreach/cost Launch buttons to anyone with the URL. Highest-priority gap. |
-| §4 Left navbar | ❌ GAP | Marketing `CorporateHeader` + `PipelineNav` + a cockpit top bar — not a persistent app left-navbar. |
-| §4 Settings page + link | ❌ GAP | No `/settings`; no Settings link in the cockpit chrome. |
-| §4 Sign Out every page | ⚠️ N/A→GAP | Moot while unauthenticated; required once auth is added. |
-| §8 Team admin | ❌ absent | No org/member layer on the cockpit (single-operator today; shape not built). |
+| **Auth on `/admin`** | ✅ | **Fixed 2026-05-25.** `middleware.ts` matcher extended to `/admin/:path*`; unauth → `/pipeline/login` (verified 307); operator allowlist via `ADMIN_EMAILS` (defaults to the operator email). |
+| §4 Left navbar | ✅ | **Fixed 2026-05-25.** `src/app/admin/layout.tsx` + `AdminNav` — persistent sticky left rail on `md:`+, collapses to a 44px hamburger → drawer on mobile; Methodology + Settings + Sign Out (bottom); active-route indicator. |
+| §4 Settings page + link | ✅ | **Fixed 2026-05-25.** `/admin/settings` (Account / Password with Eye-toggle / Sign-out-everywhere), explanatory header, reachable from the nav. Profile + Notifications deferred (single-operator tool). |
+| §4 Sign Out every page | ✅ | **Fixed 2026-05-25.** In the persistent nav (every `/admin` route) + on Settings. |
+| §8 Team admin | ❌ deferred | No org/member layer (single-operator today; shape not built). Build when the cockpit gets >1 operator — see TEAM ADMIN rule. |
 
-**Verdict:** the cockpit meets the *content* standards (explanatory headers, responsive, voice, consequence-clarity) but **not the authenticated-app-chrome standards — primarily because it has no auth at all.** The fix sequence: (1) auth-gate `/admin/*` (foundational — it fires real outreach + cost), (2) add the persistent left navbar + Settings + Sign Out, (3) `/settings` page, (4) team-admin shape if/when the cockpit gets more than one operator.
+**Verdict (updated 2026-05-25):** the cockpit now meets the content standards **and** the authenticated-app-chrome standards. `/admin/*` is auth-gated with an operator allowlist (exposure closed), and has a persistent left navbar + Settings + Sign Out. **Remaining:** team-admin org/member shape (§8) — deferred while single-operator; and the full Settings Profile/Notifications sections + a `profiles` table — deferred as overkill for an internal single-operator tool. Both are intentional deferrals, not gaps.
