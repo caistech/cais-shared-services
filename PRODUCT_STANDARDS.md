@@ -108,6 +108,7 @@ If any box is unchecked, the page is not done.
 - [ ] **Feature pre-flight** — `feature-manifests/<slug>.json` + `feature-preflight.mjs` before building; surface env/dashboard needs up front. *(CLAUDE.md "FEATURE PRE-FLIGHT RULE".)*
 - [ ] **Supabase** — migrations idempotent + applied via CLI (not "paste this in the dashboard"); **RLS on every table**; service-role key never client-side; parameterised queries. *(CLAUDE.md "SUPABASE MIGRATIONS" + code standards.)*
 - [ ] **No secrets in committed files / settings / logs.** *(CLAUDE.md security + the no-plaintext-secrets memory.)*
+- [ ] **Vercel env vars → `sensitive`, production+preview only.** Any script/route that creates Vercel env vars marks secrets `type: "sensitive"` (non-readable) and targets **production+preview — never `development`**. The CAS + MMC Vercel teams have *Enforce Sensitive Environment Variables* on (2026-05-25), which force-marks prod/preview sensitive and **bans dev creates team-wide**; a plaintext secret is flagged "Needs Attention" (post-April-2026 breach). A PATCH can't convert `encrypted`→`sensitive` — **delete + recreate**. Don't read sensitive values back (they're non-readable) — source from `.env.local`. Public `NEXT_PUBLIC_*`/config: `plain`, still prod+preview only. *(project_vercel_sensitive_env_vars memory.)*
 - [ ] **Address fields → Mapbox autocomplete; company/ABN fields → ABN lookup** — no plain text inputs for these. *(feedback memory.)*
 - [ ] **Every UI makes the next action obvious — zero dead ends.** *(feedback_ux_flow_first.)*
 
