@@ -83,6 +83,7 @@ If any box is unchecked, the page is not done.
 - [ ] ≥1 product-native use-case (not just "ask the docs").
 - [ ] **In-context clarifier** wired wherever input has nuance a label can't convey (discussion-style, context-aware of the surface + the user's draft).
 - [ ] Webhook provisioning uses the corrected workspace-create-then-bind shape (`bindWorkspaceWebhook` in `@caistech/elevenlabs-convai` ≥0.3.3) — never the deprecated inline `platform_settings.webhook`. Allowlist set on every public agent.
+- [ ] **Proactive + stage-aware**, not a passive button — the agent greets on arrival, asks the user's goal, and re-grounds its prompt per flow-stage (e.g. welcome → post-baseline → post-take), passing the user's measured state as per-session prompt overrides so it speaks about *this* user. Agent id is scaffolded into `voice.config.ts` (via the wizard's `buildVoiceConfig`/`renderVoiceConfigModule`), never a hand-set `NEXT_PUBLIC_*` env. *(Singify 2026-05-25.)*
 
 ## 7. SCAFFOLD METADATA (every Next.js deploy)
 *Source: CLAUDE.md "SCAFFOLD-TIME METADATA CUSTOMIZATION".*
@@ -111,6 +112,9 @@ If any box is unchecked, the page is not done.
 - [ ] **Vercel env vars → `sensitive`, production+preview only.** Any script/route that creates Vercel env vars marks secrets `type: "sensitive"` (non-readable) and targets **production+preview — never `development`**. The CAS + MMC Vercel teams have *Enforce Sensitive Environment Variables* on (2026-05-25), which force-marks prod/preview sensitive and **bans dev creates team-wide**; a plaintext secret is flagged "Needs Attention" (post-April-2026 breach). A PATCH can't convert `encrypted`→`sensitive` — **delete + recreate**. Don't read sensitive values back (they're non-readable) — source from `.env.local`. Public `NEXT_PUBLIC_*`/config: `plain`, still prod+preview only. *(project_vercel_sensitive_env_vars memory.)*
 - [ ] **Address fields → Mapbox autocomplete; company/ABN fields → ABN lookup** — no plain text inputs for these. *(feedback memory.)*
 - [ ] **Every UI makes the next action obvious — zero dead ends.** *(feedback_ux_flow_first.)*
+- [ ] **Supabase Auth config is self-serve — never ask the user for a token.** `site_url`, redirect allow-list, SMTP, and email templates are set via the Management API using the token at `~/.supabase-token` (or `SUPABASE_MANAGEMENT_TOKEN` / `SUPABASE_ACCESS_TOKEN`) and `scripts/onboard-new-project.sh` / `configure-email-templates.sh`. Don't punt to "generate an access token" or "click the dashboard". *(Singify 2026-05-25; memory `supabase-management-token-on-disk`.)*
+- [ ] **Content/IP acknowledgment** — any product where users create or share content built on third-party IP (karaoke backing, stock samples, someone's likeness) ships a `/terms` page (own-performance vs licensed-material, personal-use-only, takedown path) **and** an acknowledgment gate before save/share, recorded on the account at signup. *(Singify 2026-05-25.)*
+- [ ] **Emotional register matches the product.** End-user/creative surfaces (singing, social, play) must feel alive — colour, energy, a clear "start here" — not a utilitarian grey form. Operator/admin tools stay matter-of-fact (§5), but for a consumer product a dull shell fails the "I want that" bar as surely as a missing feature. Run `/naive-tester` on a new consumer surface before calling it done — it catches dull / jargon-leak / dead-end issues a checklist misses. *(Singify 2026-05-25.)*
 
 ---
 
