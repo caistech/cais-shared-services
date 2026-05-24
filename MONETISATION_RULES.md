@@ -33,6 +33,47 @@ The single load-bearing risk in the entire monetisation plan. Both the doc's aut
 
 ---
 
+## RULE 1B — VALUE-WEIGHTED EFFORT ALLOCATION (NON-NEGOTIABLE)
+
+Operator time is the scarce resource every lane competes for. Effort is allocated by a **value-weighted formula across the four lanes + infrastructure**, applied uniformly as policy — NOT per-task gut feel (same discipline as the product-selection rubric in `BUSINESS_MODEL.md` §5). Rule 1's engagement-bandwidth tripwire becomes one *instance* of this rule's floors: Rule 1 protects the portfolio from engagements; Rule 1B protects high-value work from **all** low-value work, in every direction. Locked 2026-05-24.
+
+### The formula
+
+**1. Lane value weights** — what a unit of effort *there* is worth (0–10):
+
+| Stream | Weight |
+|---|---|
+| Lane 1 — paid distributor SaaS (primary revenue) | 10 |
+| Infrastructure (`@caistech`) — leverage multiplier | 8 |
+| Lane 3 — contract builds (direct revenue, on demand) | 6 |
+| Lane 2 — studio in-residence (capped) | 5 |
+| Lane 4 — BYOK-only (awareness, no revenue) | 2 |
+
+**2. Task Value Score (TVS)** = the weight of the highest-value lane the task serves **+2 for each additional lane served from the same effort** (the multi-lane leverage bonus). A BYOK-only build scores 2; a distributor build that throws off a BYOK marketing offshoot scores 10+2 = **12** — the sweet spot the formula deliberately rewards. Design builds to serve multiple lanes.
+
+**3. Allocation** — discretionary build/sell time flows in proportion to TVS, subject to:
+- **Floors (anti-starvation):** infrastructure ≥ ~20% of discretionary time; cash-delivery (lane-1 hosted ops + active lane-3 contracts) ≥ its committed load. Shiny new builds cannot starve the substrate or the paying work.
+- **Caps:** lane 2 ≤ its capacity cap (2×3mo / 1×6mo per year, per Rule 1 + Rule 7); lane-4-*only* work ≤ ~10% of discretionary time (past that, low-value awareness is eating revenue work).
+
+**4. The drift tripwire** — fires when low-value work breaches a high-value floor over the rolling 4-week window (e.g. cash-delivery or infra below floor while lane-4-only or speculative new-build time is above cap). Same window mechanic as Rule 1.
+
+### How to apply
+
+- Tag each substantive block of build/sell time with the lane(s) it serves; compute TVS. Track the time-weighted-average TVS + floor/cap status in `MONETISATION_STATE.md` alongside the Rule 1 tripwire.
+- When choosing what to do next, prefer the higher-TVS task — explicitly favour multi-lane builds (distributor + BYOK-offshoot) over single-lane ones.
+- Weights, the +2 bonus, floors, and caps are a **one-time policy** from the thesis; review only if the output is obviously wrong, never by re-scoring a single task by gut.
+
+### Why this rule exists
+
+Rule 1 guarded only one direction (engagements eating the portfolio) because it predates lane 1 being the primary revenue lane. With four lanes of differing value competing for the same hours — and the most *interesting* work (new builds) often the lowest-value (BYOK-only) — an undifferentiated "portfolio hours" bucket lets low-value work crowd out high-value work invisibly (it all reads as "portfolio time"). This rule makes the trade-off explicit and formulaic, so effort tracks value the way product selection tracks the rubric. Dennis 2026-05-24: low value = build for BYOK-only; high value = build for a distributor with a BYOK offshoot; medium = studio/VC in-residence (some time, capped).
+
+### Verification heuristic before committing a block of time
+
+- What lane(s) does this serve? What's its TVS? Is there a higher-TVS option (especially a multi-lane one) I'm skipping for a more interesting low-value one?
+- Are infra + cash-delivery above their floors this week? If a floor is breached and I'm about to do lane-4-only / speculative work, stop — the tripwire condition is forming.
+
+---
+
 ## RULE 2 — WEEKLY TIME-LOG PRECEDES ENGAGEMENT INTAKE (NON-NEGOTIABLE)
 
 You cannot sign engagement N if you have not been logging weekly hours for at least 4 weeks prior. Instrumentation precedes intake.

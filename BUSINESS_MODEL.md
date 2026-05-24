@@ -186,12 +186,12 @@ Memory files reflecting the older framing: `project_methodology_monetisation.md`
 
 ---
 
-## 11. Open questions — unresolved, Dennis's call
+## 11. Resolved decisions (locked 2026-05-24)
 
-These are genuine strategy gaps the model hasn't closed (surfaced by multiple reviewers). A reader should know they're open, not infer an answer.
+Both former open questions are now decided.
 
-1. **Does the product/lane-1 line need its own bandwidth gate?** R1's tripwire stops *engagements* from starving the portfolio — it is one-directional. Nothing explicitly stops product/distributor/hosted-infra ops from starving the engagement cash-line. The rails were written before lane 1 existed as the primary revenue lane; the product-revenue line may need its own bandwidth guard.
-2. **Does lane-1 / distributor sales need its own funnel?** Lane A content (Factory Floor essays) feeds dev-shop owners (the engagement audience), not distributors. Either lane 1 needs its own distributor-lead funnel, or it rides on engagements on the thesis that *in-residence dev shops are themselves distributors* (R15 hints at this but doesn't decide it).
+1. **Bandwidth → value-weighted effort allocation.** Re-cut Rule 1 from the vintage "portfolio vs engagement" binary into a **value-weighted allocation across the four lanes + infrastructure**, with anti-starvation floors and a drift tripwire — applied as policy, not gut (the §5 rubric discipline extended to time). Lane weights: Lane 1 = 10, infra = 8, Lane 3 = 6, Lane 2 = 5 (capped), Lane 4 = 2. **Task Value Score** = top lane weight **+2 per additional lane served**, so a distributor build with a BYOK offshoot = 12 (the rewarded sweet spot). Floors: infra ≥ ~20%, cash-delivery ≥ committed load. Caps: lane 2 at capacity, lane-4-only ≤ ~10%. Full mechanic: **Rule 1B in `MONETISATION_RULES.md`**.
+2. **Distributor funnel → the validation pipeline IS the funnel.** Engine 3 (the InvestorPilot contact-discovery machinery) is pointed permanently at distributors: discover → validate → the validated distributors become the first paying customers → the engine keeps feeding new prospects. Complemented by engagement relationships warm-introducing the distributors it surfaces. A separate Factory-Floor-style content funnel for distributors is **not** pursued (lowest leverage). This is why wiring IP's dual-stream discovery+outreach (stage 3) is the load-bearing build — it doubles as lane 1's standing sales funnel.
 
 ---
 
