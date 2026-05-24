@@ -201,8 +201,8 @@ async function createVercelEnv(projectId, teamId, key, value) {
     body: JSON.stringify({
       key,
       value,
-      type: "encrypted",
-      target: ["production", "preview", "development"],
+      type: "sensitive",
+      target: ["production", "preview"],
     }),
   });
   if (!res.ok) {
