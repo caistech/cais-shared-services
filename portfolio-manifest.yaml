@@ -357,6 +357,12 @@ product_registry:
     team_admin_status: unaudited
     metadata_status: unaudited
     distributor_gate_status: unaudited
+  f2k-projects:
+    display_name: "F2K Projects (Seafields / Branscombe)"   # public estate marketing pages + an /admin half
+    voice_agent_status: absent                 # 2026-05-25 voice-audit (f2k-projects session): the public marketing page has no voice agent — a guide/clarifier "could-add-value" surface, not Required; pre-existing gap, not a regression
+    team_admin_status: unaudited
+    metadata_status: unaudited
+    distributor_gate_status: unaudited
   property-services:
     display_name: "Property Services"   # substrate/edge-functions — likely n/a-non-ui; confirm at audit
     voice_agent_status: unaudited
