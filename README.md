@@ -64,7 +64,7 @@ Shared services hub for the Corporate AI Solutions portfolio. npm workspace mono
 
 ## Portfolio operations
 
-`portfolio-manifest.yaml` at the hub root is the **single source of truth** for what env vars must exist on each Vercel deploy target across the 15 actively-managed projects, plus the resolution sources for shared secrets.
+`portfolio-manifest.yaml` at the hub root is the **single source of truth** for what env vars must exist on each Vercel deploy target across the 17 actively-managed projects, plus the resolution sources for shared secrets.
 
 ### Audit + apply
 

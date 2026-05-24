@@ -3,6 +3,8 @@
 Non-negotiable rules for the methodology-monetisation operation. These are treated with the same severity as the AUTH PAGE PATTERN and RESPONSIVE DESIGN rules in the global `CLAUDE.md`. Missing or violating any of these is a bug, not a polish item.
 
 > **Canonical location:** `cais-shared-services/MONETISATION_RULES.md` (this file — version-controlled, travels with the repo, readable from any clone). The narrative that frames these rules is `BUSINESS_MODEL.md` next to it; §9 there summarises every rule in one line. Moved here from `C:\Users\denni\` on 2026-05-24 so the full rule text is portable.
+>
+> **Last updated:** 2026-05-24 (rules locked; header added 2026-05-25).
 
 **Sibling artifacts** (operator-local — these stay in the home directory, not in the repo, because they are personal/weekly-operational rather than shared doctrine):
 - State file (what's true this week): `C:\Users\denni\MONETISATION_STATE.md`
@@ -308,8 +310,6 @@ If any answer is "no" → the operator was about to wait when the methodology ca
 
 ---
 
----
-
 ## RULE 12 — NO UNCOVERED COST EXPOSURE (NON-NEGOTIABLE)
 
 **We are never exposed to costs that are not pre-covered.** Every dollar of vendor cost, infrastructure cost, or operational cost CAS incurs on behalf of a customer must already be covered by money in hand — prepaid credits, paid-in-advance subscription cycle, or escrow — before the cost is incurred. Not "we'll bill at end of month for what they used." Not "we'll absorb the overage and chase reconciliation later." Not "it's a small leak, we can eat it."
@@ -397,8 +397,6 @@ The 80% soft warning exists because hard-cutting a customer without warning is h
 - Trigger a race: 10 concurrent calls when the cap allows for 5. Do exactly 5 succeed and 5 hit the cap-disabled state? If more than 5 succeed, the check-and-increment is not atomic. Fix it.
 - Trigger top-up at the cap. Does the next call succeed within seconds of the Stripe webhook firing? If there's a delay > 30s, the balance read is cached too aggressively. Fix it.
 - Walk the admin dashboard. Are per-customer usage meters visible to the customer's admin user in real time? (See the global TEAM ADMIN rule.)
-
----
 
 ---
 

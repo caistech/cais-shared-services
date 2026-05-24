@@ -306,3 +306,132 @@ unaudited_vercel_projects:
   - universal-lingo-guest
   - universal-lingo-host
   - universal-lingo-marketing
+
+# -----------------------------------------------------------------------------
+# Product registry — per-product status + metadata fields.
+#
+# Added 2026-05-25 to back the "tracked in the manifest" / "manifest carries X"
+# claims in the canonical docs (CLAUDE.md VOICE AI / TEAM ADMIN / SCAFFOLD
+# METADATA rules; PRODUCT_STANDARDS §6/§7/§8; MONETISATION_RULES R15;
+# BUSINESS_MODEL §3/§4). Keyed by the same `name:` used in `projects:` above.
+# @caistech/portfolio-env-sync ignores this block (it only reads `projects:`).
+#
+# Status enums. `unaudited` is the visible-backlog sentinel — it means "not yet
+# assessed", NOT a real classification. The quarterly portfolio review (and any
+# session that touches a product's auth/chrome/voice/metadata) replaces it with
+# a real value:
+#   voice_agent_status:      present | absent | migrating | n/a-non-ui | unaudited
+#   team_admin_status:       present | absent | n/a-single-user-by-design | n/a-non-ui | unaudited
+#   metadata_status:         customized | scaffold-default | n/a-non-ui | unaudited
+#   distributor_gate_status: validated | pending | no-go | personal-interest-override | n/a-infrastructure | unaudited
+#
+# Metadata fields consumed by scripts/customize-metadata.sh (App-/Pages-router
+# aware). `display_name` is required and seeded below — DERIVED from the slug,
+# so CONFIRM each is the real brand name. `tagline`, `description`,
+# `canonical_url`, `og_image` are filled per-product before running the script;
+# the script errors clearly if a required one is missing. See the SCAFFOLD
+# METADATA rule for the exact metadata block written into layout.tsx.
+# -----------------------------------------------------------------------------
+product_registry:
+  mmcbuild:
+    display_name: "MMC Build"           # paying client — sanitise per R3 before any public artifact
+    voice_agent_status: unaudited
+    team_admin_status: unaudited
+    metadata_status: unaudited
+    distributor_gate_status: unaudited
+  deal-findrs:
+    display_name: "DealFindrs"
+    voice_agent_status: unaudited
+    team_admin_status: unaudited
+    metadata_status: unaudited
+    distributor_gate_status: unaudited
+  f2k-checkpoint-new:
+    display_name: "F2K Checkpoint"
+    voice_agent_status: unaudited
+    team_admin_status: unaudited
+    metadata_status: unaudited
+    distributor_gate_status: unaudited
+  property-services:
+    display_name: "Property Services"   # substrate/edge-functions — likely n/a-non-ui; confirm at audit
+    voice_agent_status: unaudited
+    team_admin_status: unaudited
+    metadata_status: unaudited
+    distributor_gate_status: unaudited
+  platform-trust:
+    display_name: "Platform Trust"      # infrastructure — likely n/a-infrastructure; confirm at audit
+    voice_agent_status: unaudited
+    team_admin_status: unaudited
+    metadata_status: unaudited
+    distributor_gate_status: unaudited
+  universal-interviews:
+    display_name: "Universal Interviews"
+    voice_agent_status: unaudited
+    team_admin_status: unaudited
+    metadata_status: unaudited
+    distributor_gate_status: unaudited
+  launchready:
+    display_name: "LaunchReady"
+    voice_agent_status: unaudited
+    team_admin_status: unaudited
+    metadata_status: unaudited
+    distributor_gate_status: unaudited
+  connexions:
+    display_name: "Connexions"
+    voice_agent_status: unaudited
+    team_admin_status: unaudited
+    metadata_status: unaudited
+    distributor_gate_status: unaudited
+  kira:
+    display_name: "Kira"
+    voice_agent_status: unaudited
+    team_admin_status: unaudited
+    metadata_status: unaudited
+    distributor_gate_status: personal-interest-override   # R15 named example (personal AI thinking partner)
+  smart-board:
+    display_name: "SmartBoard"
+    voice_agent_status: unaudited
+    team_admin_status: unaudited
+    metadata_status: unaudited
+    distributor_gate_status: unaudited
+  storefront-mcp:
+    display_name: "Storefront MCP"
+    voice_agent_status: unaudited
+    team_admin_status: unaudited
+    metadata_status: unaudited
+    distributor_gate_status: unaudited
+  raiseready-template:
+    display_name: "RaiseReady"
+    voice_agent_status: unaudited
+    team_admin_status: unaudited
+    metadata_status: unaudited
+    distributor_gate_status: unaudited
+  easy-claude-code:
+    display_name: "Easy Claude Code"
+    voice_agent_status: unaudited
+    team_admin_status: unaudited
+    metadata_status: unaudited
+    distributor_gate_status: unaudited
+  hair-stylist-ai:
+    display_name: "Hair Stylist AI"
+    voice_agent_status: unaudited
+    team_admin_status: unaudited
+    metadata_status: unaudited
+    distributor_gate_status: unaudited
+  lessonslearned:
+    display_name: "Lessons Learned"
+    voice_agent_status: unaudited
+    team_admin_status: unaudited
+    metadata_status: unaudited
+    distributor_gate_status: unaudited
+  community-question-responder:
+    display_name: "Community Question Responder"   # CQR
+    voice_agent_status: unaudited
+    team_admin_status: unaudited
+    metadata_status: unaudited
+    distributor_gate_status: unaudited
+  preflight:
+    display_name: "Preflight"
+    voice_agent_status: unaudited
+    team_admin_status: unaudited
+    metadata_status: unaudited
+    distributor_gate_status: unaudited
