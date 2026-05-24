@@ -131,8 +131,12 @@ echo ""
 echo "== Step 3: setting env var in each Vercel project =="
 
 # Vercel REST API: POST /v10/projects/{idOrName}/env?teamId={teamId}
-# Body: { "key": "GITHUB_PACKAGES_TOKEN", "value": "...", "type": "encrypted",
-#         "target": ["production","preview","development"] }
+# Body: { "key": "GITHUB_PACKAGES_TOKEN", "value": "...", "type": "sensitive",
+#         "target": ["production","preview"] }
+# type=sensitive (post-April-2026): clears Vercel's "Needs Attention" flag by
+# storing the token non-readable. Sensitive vars can't target development, so
+# we scope to production+preview — local builds read it from ~/.npmrc (Step 2)
+# and each repo's .env.local (Step 1), never from Vercel's development env.
 for repo in "${REPOS[@]}"; do
   slug="${VERCEL_SLUG[$repo]}"
   [ -z "$slug" ] && { echo "  skip $repo (no Vercel slug mapped)"; continue; }
@@ -158,7 +162,7 @@ for repo in "${REPOS[@]}"; do
   response=$(curl -sS -X POST \
     -H "Authorization: Bearer $VERCEL_TOKEN" \
     -H "Content-Type: application/json" \
-    -d "{\"key\":\"GITHUB_PACKAGES_TOKEN\",\"value\":\"$GH_TOKEN\",\"type\":\"encrypted\",\"target\":[\"production\",\"preview\",\"development\"]}" \
+    -d "{\"key\":\"GITHUB_PACKAGES_TOKEN\",\"value\":\"$GH_TOKEN\",\"type\":\"sensitive\",\"target\":[\"production\",\"preview\"]}" \
     "https://api.vercel.com/v10/projects/$slug/env?teamId=$TEAM_ID" 2>&1)
 
   if echo "$response" | grep -q '"error"'; then

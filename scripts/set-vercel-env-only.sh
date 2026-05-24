@@ -39,8 +39,15 @@ SLUGS=(
 
 echo "== Setting GITHUB_PACKAGES_TOKEN in each Vercel project =="
 
-# Build JSON body once
-BODY=$(printf '{"key":"GITHUB_PACKAGES_TOKEN","value":"%s","type":"encrypted","target":["production","preview","development"]}' "$GH_TOKEN")
+# Build JSON body once.
+# type=sensitive (not encrypted): since the April-2026 Vercel incident,
+# plaintext-readable secrets are flagged "Needs Attention" in the dashboard.
+# Sensitive values are non-readable once written, which clears the flag.
+# Sensitive vars CANNOT target the development environment (the API rejects
+# it), so we scope to production+preview. Local dev reads
+# GITHUB_PACKAGES_TOKEN from ~/.npmrc and each repo's .env.local, never from
+# Vercel's development env.
+BODY=$(printf '{"key":"GITHUB_PACKAGES_TOKEN","value":"%s","type":"sensitive","target":["production","preview"]}' "$GH_TOKEN")
 
 for slug in "${SLUGS[@]}"; do
   # 1. Check if this project exists at all
