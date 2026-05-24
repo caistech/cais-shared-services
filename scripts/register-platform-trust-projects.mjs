@@ -322,7 +322,8 @@ async function createVercelEnv(projectId, teamId, key, value) {
       key,
       value,
       type: "encrypted",
-      target: ["production", "preview", "development"],
+      // Enforce-Sensitive bans development creates; prod+preview only.
+      target: ["production", "preview"],
     }),
   });
   if (!res.ok) {
