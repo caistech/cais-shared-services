@@ -27,6 +27,12 @@ export function verifyWebhookSignature(
 ): boolean {
   if (!signature || !secret) return false;
 
+  // Tolerate stray whitespace / trailing newline in env-stored secrets and proxied
+  // headers (e.g. a `\n` left by `echo secret | vercel env add`). Real values have none,
+  // so trimming is safe and prevents a silent verification failure.
+  secret = secret.trim();
+  signature = signature.trim();
+
   const parts = signature.split(',');
   const timestamp = parts.find(p => p.startsWith('t='))?.slice(2);
   const hash = parts.find(p => p.startsWith('v0='))?.slice(3);

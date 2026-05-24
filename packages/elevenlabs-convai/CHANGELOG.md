@@ -1,5 +1,32 @@
 # @caistech/elevenlabs-convai — Changelog
 
+## 0.3.3 — 2026-05-24
+
+The post-call webhook fix every consumer inherits. Both bugs were diagnosed live against
+the Connexions methodology agents — agents provisioned by 0.3.2 were created but never
+received post-call webhooks, and even an aligned secret returned 401 on verification.
+
+### Fixed
+- **`bindWorkspaceWebhook` was binding to the wrong field.** It PATCHed
+  `platform_settings.post_call_webhook_id` (top-level), which ElevenLabs **silently ignores**
+  — the agent's `post_call_webhook_id` stayed `null`, so no webhook ever fired. The binding
+  field is `platform_settings.workspace_overrides.webhooks.post_call_webhook_id`
+  (CONFIRMED 2026-05-24 against the live API). Now also sends
+  `events: ['transcript'], transcript_format: 'json'` in the same block. Re-run
+  `provisionVoiceAgent` (or `bindWorkspaceWebhook`) on any agent provisioned by ≤0.3.2 to
+  rebind it correctly.
+- **`verifyWebhookSignature` failed on env-stored secrets with stray whitespace.** A trailing
+  `\n` (left by `echo secret | vercel env add`) or a proxied header with surrounding
+  whitespace produced a silent HMAC mismatch → 401, even when the secret was correct.
+  The secret and signature are now `.trim()`-ed before the HMAC compare. Real values have no
+  whitespace, so this is safe and removes a class of "the secret is right but it still 401s".
+
+### Upgrade note
+A version bump is enough to get both fixes in code, but **already-provisioned agents must be
+re-bound**: bump, then call `bindWorkspaceWebhook(apiKey, agentId, { name, url })` (or
+re-run `provisionVoiceAgent`) once per existing agent. New agents are bound correctly on
+first provision.
+
 ## 0.3.2 — 2026-05-24
 
 Upgrade-friendliness for existing 0.1.x consumers.

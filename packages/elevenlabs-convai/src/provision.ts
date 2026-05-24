@@ -165,14 +165,24 @@ export async function bindWorkspaceWebhook(
   }
 
   // 3. Bind the agent to the workspace webhook (workspace-scoped, not the per-agent leak).
-  //    RUNTIME-VERIFY: docs confirm per-agent webhook overrides exist ("workspace level AND
-  //    agent level"), but the exact field name was not doc-extractable. post_call_webhook_id
-  //    is the working assumption — confirm on a dev run that a real call delivers the webhook;
-  //    if not, the field is likely platform_settings.workspace_overrides.webhooks.*.
+  //    CONFIRMED 2026-05-24 against the live API (Connexions methodology agents): the binding
+  //    field is platform_settings.workspace_overrides.webhooks.post_call_webhook_id. The
+  //    top-level platform_settings.post_call_webhook_id is SILENTLY IGNORED (stays null) —
+  //    which is exactly why agents provisioned the old way never received post-call webhooks.
   const bindRes = await fetch(`${ELEVENLABS_API}/agents/${agentId}`, {
     method: 'PATCH',
     headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ platform_settings: { post_call_webhook_id: webhookId } }),
+    body: JSON.stringify({
+      platform_settings: {
+        workspace_overrides: {
+          webhooks: {
+            post_call_webhook_id: webhookId,
+            events: ['transcript'],
+            transcript_format: 'json',
+          },
+        },
+      },
+    }),
   });
   if (!bindRes.ok) {
     throw new Error(`ElevenLabs agent webhook bind failed: ${bindRes.status} ${await bindRes.text()}`);

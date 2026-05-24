@@ -96,7 +96,7 @@ describe('provisionVoiceAgent — idempotency', () => {
 });
 
 describe('provisionVoiceAgent — webhook + guards', () => {
-  it('creates a workspace webhook then binds the agent via post_call_webhook_id', async () => {
+  it('creates a workspace webhook then binds the agent via workspace_overrides.webhooks.post_call_webhook_id', async () => {
     const log = installFetch({ nameMatches: [] });
     const res = await provisionVoiceAgent('key', baseOpts);
     expect(log.wsCreate).toBe(1);
@@ -106,9 +106,20 @@ describe('provisionVoiceAgent — webhook + guards', () => {
       auth_type: 'hmac',
       webhook_url: 'https://app.example.com/api/convai/webhooks/post-call',
     });
-    const bind = log.patchAgent.find((p) => p.body.platform_settings && (p.body.platform_settings as Record<string, unknown>).post_call_webhook_id);
+    // The bind PATCH must target platform_settings.workspace_overrides.webhooks.post_call_webhook_id.
+    // The top-level platform_settings.post_call_webhook_id is silently ignored by ElevenLabs
+    // (CONFIRMED 2026-05-24) — binding there leaves the agent with no webhook.
+    const bind = log.patchAgent.find((p) => {
+      const ps = p.body.platform_settings as Record<string, unknown> | undefined;
+      const wo = ps?.workspace_overrides as Record<string, unknown> | undefined;
+      const wh = wo?.webhooks as Record<string, unknown> | undefined;
+      return wh?.post_call_webhook_id;
+    });
     expect(bind).toBeTruthy();
-    expect((bind!.body.platform_settings as Record<string, unknown>).post_call_webhook_id).toBe('wh_new');
+    const wh = ((bind!.body.platform_settings as Record<string, unknown>)
+      .workspace_overrides as Record<string, unknown>)
+      .webhooks as Record<string, unknown>;
+    expect(wh.post_call_webhook_id).toBe('wh_new');
   });
 
   it('reuses an existing workspace webhook with the same URL (no duplicate create)', async () => {
