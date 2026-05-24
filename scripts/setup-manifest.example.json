@@ -1,0 +1,114 @@
+{
+  "$comment": "Example setup-manifest.json. Each portfolio product owns its own manifest at the repo root, with only the credentials that product actually needs. The setup-product-credentials.mjs script reads this file and walks the operator through each entry in order.",
+  "product_name": "Community Question Responder",
+  "credentials": [
+    {
+      "key": "NEXT_PUBLIC_SUPABASE_URL",
+      "vendor": "Supabase",
+      "description": "Your Supabase project URL (create the project at https://supabase.com/dashboard/projects)",
+      "signup_url": "https://supabase.com/dashboard/projects",
+      "format": { "prefix": "https://", "min_length": 30 },
+      "validate": "supabase_url",
+      "required": true
+    },
+    {
+      "key": "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "vendor": "Supabase",
+      "description": "Anon key — Settings → API in your Supabase dashboard",
+      "format": { "prefix": "eyJ", "min_length": 100 },
+      "required": true
+    },
+    {
+      "key": "SUPABASE_SERVICE_ROLE_KEY",
+      "vendor": "Supabase",
+      "description": "Service role key — Settings → API. Server-only, bypasses RLS. Treat as password.",
+      "format": { "prefix": "eyJ", "min_length": 100 },
+      "required": true
+    },
+    {
+      "key": "ANTHROPIC_API_KEY",
+      "vendor": "Anthropic",
+      "description": "Claude API key — classifier (Haiku) + drafter (Sonnet)",
+      "signup_url": "https://console.anthropic.com/account/keys",
+      "format": { "prefix": "sk-ant-" },
+      "validate": "anthropic",
+      "required": false,
+      "alternative_to": "OPENROUTER_API_KEY"
+    },
+    {
+      "key": "OPENROUTER_API_KEY",
+      "vendor": "OpenRouter",
+      "description": "Alternative to Anthropic — routes through OpenRouter (multi-provider, often cheaper)",
+      "signup_url": "https://openrouter.ai/keys",
+      "format": { "prefix": "sk-or-" },
+      "validate": "openrouter",
+      "required": false,
+      "alternative_to": "ANTHROPIC_API_KEY"
+    },
+    {
+      "key": "OPENAI_API_KEY",
+      "vendor": "OpenAI",
+      "description": "Embeddings for the knowledge base (text-embedding-3-small)",
+      "signup_url": "https://platform.openai.com/api-keys",
+      "format": { "prefix": "sk-" },
+      "validate": "openai",
+      "required": true
+    },
+    {
+      "key": "RESEND_API_KEY",
+      "vendor": "Resend",
+      "description": "Email sending for Supabase Auth magic-links and notifications",
+      "signup_url": "https://resend.com/api-keys",
+      "format": { "prefix": "re_" },
+      "validate": "resend",
+      "required": true
+    },
+    {
+      "key": "RESEND_FROM_EMAIL",
+      "vendor": "Resend",
+      "description": "Verified sender (e.g. noreply@yourdomain.com)",
+      "required": true
+    },
+    {
+      "key": "ELEVENLABS_API_KEY",
+      "vendor": "ElevenLabs",
+      "description": "Voice AI agent (per VOICE AI STANDARD RULE — voice surface is non-negotiable)",
+      "signup_url": "https://elevenlabs.io/app/settings/api-keys",
+      "format": { "min_length": 20 },
+      "validate": "elevenlabs",
+      "required": true
+    },
+    {
+      "key": "ELEVENLABS_AGENT_ID",
+      "vendor": "ElevenLabs",
+      "description": "Created automatically below — leave blank unless you have a specific agent ID",
+      "required": false
+    },
+    {
+      "key": "CRON_SECRET",
+      "vendor": "internal",
+      "description": "Random string protecting /api/cron/* endpoints. Generate any 32+ char random value.",
+      "format": { "min_length": 16 },
+      "required": true
+    },
+    {
+      "key": "NEXT_PUBLIC_APP_URL",
+      "vendor": "internal",
+      "description": "Your deployed app URL (e.g. https://yourapp.vercel.app, or http://localhost:3000 for dev)",
+      "required": true
+    }
+  ],
+  "post_actions": [
+    {
+      "type": "create_elevenlabs_agent",
+      "agent_env": "ELEVENLABS_AGENT_ID",
+      "config": {
+        "name": "CQR Operator Agent",
+        "system_prompt": "You are the Community Question Responder operator's voice assistant. Help the operator capture learnings, review drafts, and discuss community-reply strategy. Match the operator's opinionated-practitioner voice. Keep replies under three sentences unless asked for depth.",
+        "first_message": "Hey, what did you just learn? Tell me and I'll get it into the knowledge base.",
+        "voice_id": "21m00Tcm4TlvDq8ikWAM",
+        "language": "en"
+      }
+    }
+  ]
+}
