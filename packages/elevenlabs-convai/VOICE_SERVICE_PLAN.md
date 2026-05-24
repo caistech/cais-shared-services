@@ -1,7 +1,9 @@
 # Voice Service Plan — `@caistech/elevenlabs-convai` v1
 
-Status: **locked** (eng review CLEARED 2026-05-24). Implementation not started.
+Status: **SHIPPED in v0.3.3** (eng review CLEARED 2026-05-24; PR1 backend + PR2 react widget + scaffold wizard landed). Retained as the design record.
 Reviewed via `/plan-eng-review` + independent Claude subagent (outside voice).
+
+> **Note (2026-05-25):** the `@caistech → @mmcbuild` rename referenced below (decision 17C + deferred TODO 1) is **CANCELLED** — `@caistech` is the canonical scope per global CLAUDE.md. Treat those rename items as historical; do not action them.
 
 ---
 
