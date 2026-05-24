@@ -333,6 +333,12 @@ unaudited_vercel_projects:
 # METADATA rule for the exact metadata block written into layout.tsx.
 # -----------------------------------------------------------------------------
 product_registry:
+  corporate-ai-solutions:
+    display_name: "Corporate AI Solutions"     # marketing/marketplace + the methodology pipeline cockpit (/admin/methodology)
+    voice_agent_status: absent                 # 2026-05-25 voice-audit: the "Talk to Morgan" FAB is a marketing MOCK (TODO-integrate, canned replies, local @/lib/elevenlabs), not a real agent; the Required in-context clarifier on Gate-1/Launch + the decision controls is being wired. See Corporate-AI-Solutions/voice-audit/2026-05-25/methodology-cockpit.md
+    team_admin_status: n/a-single-operator     # /admin cockpit is operator-only (auth-gated + ADMIN_EMAILS allowlist)
+    metadata_status: customized
+    distributor_gate_status: n/a-infrastructure
   mmcbuild:
     display_name: "MMC Build"           # paying client — sanitise per R3 before any public artifact
     voice_agent_status: unaudited
