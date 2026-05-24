@@ -145,3 +145,27 @@ First use of this checklist, against the cockpit shipped this session.
 | §8 Team admin | ❌ deferred | No org/member layer (single-operator today; shape not built). Build when the cockpit gets >1 operator — see TEAM ADMIN rule. |
 
 **Verdict (updated 2026-05-25):** the cockpit now meets the content standards **and** the authenticated-app-chrome standards. `/admin/*` is auth-gated with an operator allowlist (exposure closed), and has a persistent left navbar + Settings + Sign Out. **Remaining:** team-admin org/member shape (§8) — deferred while single-operator; and the full Settings Profile/Notifications sections + a `profiles` table — deferred as overkill for an internal single-operator tool. Both are intentional deferrals, not gaps.
+
+---
+
+## Appendix — applied audit: Singify studio (`singify-platform`, 2026-05-25)
+
+Second worked example — a **consumer** (end-user) product, single-user validation slice (no multi-tenant pre-Gate-2).
+
+| Standard | Status | Note |
+|---|---|---|
+| §0 per-page gate | ✅ | Explanatory headers, responsive, real titles, voice-in-chrome all present. |
+| §1 Responsive | ✅ | Verified 375 + 1280 via `/browse` — studio + landing reflow, 44px targets, 16px text. |
+| §2 Auth page pattern | ✅ | `/login` + `/signup` + `/auth/forgot-password` + `/auth/reset-password`; shared `PasswordInput` visibility toggle; forgot-password + magic-link wired. |
+| §3 Auth smoke-test | ✅ | 4 paths smoke-tested 2026-05-25: signup+confirm+trigger OK (records `tos_accepted_at`), login OK (session), reset dispatch OK, magic-link path OK (hit the built-in-email ~3–4/hr **rate limit** → Resend is the upgrade). |
+| §4 Chrome + Settings | 🟡 | Persistent nav (sidebar/drawer) + Sign in/out ✅; `/settings` has the canonical section shape + a working reset-profile action, but Profile/Password/Notifications are "with accounts" stubs — wire to real `updateUser`/`profiles` next. |
+| §5 Explanatory header | ✅ | Every surface (studio, settings, terms, auth cards). |
+| §6 Voice AI | ✅ | Chrome-level `VoiceWidget`, **proactive + stage-aware** (greet → post-baseline → post-take), `voice.config.ts`, BYOK, `@caistech/elevenlabs-convai`. |
+| §7 Scaffold metadata | 🟡 | `<title>`/description customised (not "Create Next App"); OG image + manifest-driven favicon not yet set. |
+| §8 Team admin | ❌ deferred | Single-user slice; multi-tenant/distributor layer is post-Gate-2 (build-override + THIN_MVP_RUBRIC — no scale infra pre-GO). |
+| §9 content/IP ack | ✅ | `/terms` + acceptance gate before save/share + recorded on the account at signup. |
+| §9 `@caistech`-first | ✅ | Consumes `elevenlabs-convai` (+ `/react` widget); fork-check clean. |
+| §9 Supabase + self-serve auth config | ✅ | Migrations via CLI (pooler), RLS on, Auth config set via the Management API (`~/.supabase-token`) — no token asked of the operator. |
+| §9 emotional register | ✅ | Fun redesign (gradients, karaoke stage, energy); `/naive-tester` run before "done". |
+
+**Verdict:** the Singify single-user validation slice meets the content, responsive, voice, auth-pattern, auth-smoke-test, and content/IP standards. Intentional deferrals (not gaps), all post-Gate-2 / platform-tier or polish: §8 team-admin, the full §4 Settings Profile/Notifications forms, §7 OG image + favicon, and **Resend email** (built-in is rate-limited — magic-link hit it in the smoke test; wire Resend before real users per the EMAIL INFRASTRUCTURE rule).
