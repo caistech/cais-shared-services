@@ -8,3 +8,8 @@ dist/
 .vercel
 .env*.local
 .secrets/
+
+# Generated audit reports (not committed — regenerate via the audit scripts)
+AUDIT_PHONE_HOME_REPORT.md
+audit-phone-home-report.json
+.audit-results-*/
