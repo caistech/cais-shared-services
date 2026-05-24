@@ -29,6 +29,14 @@ If any box is unchecked, the page is not done.
 
 ---
 
+## 0.5 Before sign-off: run `/naive-tester` (MANDATORY on every build / update)
+
+Before signing off on **any new build or build update** — a new product, a new feature, or a revamp of an existing surface — run the **`/naive-tester`** skill against the live (or preview) URL. It walks the product as a real human persona **and** cross-checks every UI-observable item in this checklist, closing with a **Standards Check** (✅ / ❌ / — per item). **Any ❌ is a release-blocking finding, same severity as a bug — nothing ships with an open ❌.**
+
+This is the catch-all that stops items in this checklist being silently missed: the per-page §0 gate is the author's self-check; `/naive-tester` is the independent human-eyes sweep before "done." It loads *this file* as its rubric, so the two never drift. For public-facing or multi-surface builds run the relevant personas (`auto` picks them) — at minimum a domain-operator pass plus Mobile Marcus for anything mobile-reachable. *(Wired 2026-05-25 — naive-tester consumes PRODUCT_STANDARDS.md.)*
+
+---
+
 ## 1. RESPONSIVE DESIGN (every UI, every viewport)
 *Source: CLAUDE.md "RESPONSIVE DESIGN RULE".*
 
