@@ -92,6 +92,7 @@ This is the catch-all that stops items in this checklist being silently missed: 
 - [ ] **In-context clarifier** wired wherever input has nuance a label can't convey (discussion-style, context-aware of the surface + the user's draft).
 - [ ] Webhook provisioning uses the corrected workspace-create-then-bind shape (`bindWorkspaceWebhook` in `@caistech/elevenlabs-convai` ≥0.3.3) — never the deprecated inline `platform_settings.webhook`. Allowlist set on every public agent.
 - [ ] **Proactive + stage-aware**, not a passive button — the agent greets on arrival, asks the user's goal, and re-grounds its prompt per flow-stage (e.g. welcome → post-baseline → post-take), passing the user's measured state as per-session prompt overrides so it speaks about *this* user. Agent id is scaffolded into `voice.config.ts` (via the wizard's `buildVoiceConfig`/`renderVoiceConfigModule`), never a hand-set `NEXT_PUBLIC_*` env. *(Singify 2026-05-25.)*
+- [ ] **Placement audited by `/voice-auditor`** (MANDATORY before sign-off) — run the voice-placement auditor (repo scan + optional live pass) to map every surface into *required / could-add-value / not-needed* × *guide-clarifier / coaching*, name the `@caistech/elevenlabs-convai` integration shape per Required surface, and set the repo's `voice_agent_status`. **A Required surface shipped without voice is a finding.** *(voice-auditor skill, 2026-05-25; mirrors the §0.5 naive-tester gate.)*
 
 ## 7. SCAFFOLD METADATA (every Next.js deploy)
 *Source: CLAUDE.md "SCAFFOLD-TIME METADATA CUSTOMIZATION".*
