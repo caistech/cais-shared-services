@@ -357,9 +357,9 @@ product_registry:
     team_admin_status: unaudited
     metadata_status: unaudited
     distributor_gate_status: unaudited
-  f2k-projects:
-    display_name: "F2K Projects (Seafields / Branscombe)"   # public estate marketing pages + an /admin half
-    voice_agent_status: absent                 # 2026-05-25 voice-audit (f2k-projects session): the public marketing page has no voice agent — a guide/clarifier "could-add-value" surface, not Required; pre-existing gap, not a regression
+  f2-k-offshore-modular:
+    display_name: "F2K Offshore Modular (OMQ)"   # offshore modular manufacturer qualification
+    voice_agent_status: absent                 # 2026-05-25 voice-audit (F2K-OffshoreModular session): the OMQ Stage 1 voice assistant is provisioned via scripts/provision-omq-agent.ts but not surfaced/wired in the deployed app (agent-id env unset) → effectively absent. Confirm + wire per VOICE_MEMORY_STANDARD.
     team_admin_status: unaudited
     metadata_status: unaudited
     distributor_gate_status: unaudited
