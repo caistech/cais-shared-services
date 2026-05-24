@@ -143,7 +143,7 @@ Consequence: the backfill validates **engine-level** demand once and verticals i
 
 ## 9. The rails — non-negotiable rules (auth-pattern severity)
 
-Full expanded text: `MONETISATION_RULES.md` (currently in `C:\Users\denni\` — see §12 portability note). Summary, grouped by what they protect:
+Full expanded text: `MONETISATION_RULES.md` (in this repo, next to this file). Summary, grouped by what they protect:
 
 **Operator bandwidth (the load-bearing risk):**
 - **R1 — Bandwidth tripwire is hard.** Portfolio time must not drop below ~25 hrs/wk for 4 consecutive weeks; if it does, engagement intake pauses. *The factory funds the engagements, never the reverse.*
@@ -198,7 +198,7 @@ These are genuine strategy gaps the model hasn't closed (surfaced by multiple re
 ## 12. Where the detail lives (canonical sources)
 
 - **This doc** — the model, top to bottom. The entry point.
-- **`MONETISATION_RULES.md`** — full expanded text of the 15 rails. ⚠️ *Portability note:* currently at `C:\Users\denni\MONETISATION_RULES.md` (home dir) — not in any repo, so teammates/agents in other repos can't read it. Recommended: move it into `cais-shared-services` next to this file. (Not done yet to avoid an anti-fork duplicate per R6 — pending Dennis's go-ahead.)
+- **`MONETISATION_RULES.md`** — full expanded text of the 15 rails. Lives in **this repo**, next to this file (moved from `C:\Users\denni\` on 2026-05-24 so it travels with the repo + loads from any clone). A redirect stub remains at the old home path pointing here.
 - **Project memory** (`~/.claude/projects/C--Users-denni/memory/`): `project_monetisation_lanes`, `project_product_development_pipeline`, `project_lane1_product_release_pattern`, `project_portfolio_consolidation_map`, `project_singify`, `user_twenty_year_dream`, `feedback_capture_over_build`. ⚠️ *These are scoped to the home-dir slug — an agent working inside a product repo does NOT load them.* This doc exists precisely to be the portable replacement.
 - **Positioning/voice** (not the economics): `cais-shared-services/foundation/_portfolio/market-positioning.md` + `creator-style.md`.
 - **`MONETISATION_STATE.md`** (home dir) — what's true this week. **`MONETISATION_EXECUTION_PLAN.md`** (home dir) — milestone sequence.
