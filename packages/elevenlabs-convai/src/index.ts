@@ -43,6 +43,9 @@ export {
   findAgentsByName,
   defaultVoiceModelFor,
   toElevenLabsTools,
+  WORKSPACE_TOOLS_API,
+  toWorkspaceToolConfig,
+  ensureWorkspaceTools,
   buildOverrideEnablement,
 } from './agent-client.js';
 export type { AgentSummary } from './agent-client.js';
@@ -51,6 +54,7 @@ export type { AgentSummary } from './agent-client.js';
 export {
   provisionVoiceAgent,
   bindWorkspaceWebhook,
+  verifyAgentProvisioned,
   setAllowlist,
   setAgentOverrides,
   setAgentTools,

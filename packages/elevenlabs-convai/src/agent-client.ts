@@ -6,6 +6,11 @@
 import type { ConvAIAgentConfig, ElevenLabsAgentConfig, ConvAITool } from './types.js';
 
 export const ELEVENLABS_API = 'https://api.elevenlabs.io/v1/convai';
+// Workspace tool entities. Since ~April 2026 ElevenLabs no longer accepts inline agent
+// tools (conversation_config.agent.tools) — those are SILENTLY STRIPPED, leaving the
+// agent with zero tools. Tools must be created as workspace entities here, then
+// referenced by the agent via conversation_config.agent.prompt.tool_ids.
+export const WORKSPACE_TOOLS_API = `${ELEVENLABS_API}/tools`;
 
 // ElevenLabs rejects multilingual TTS models for English-only agents (April 2026).
 // English agents must use an English-only model: eleven_flash_v2 or eleven_turbo_v2.
@@ -43,6 +48,82 @@ export function toElevenLabsTools(tools: ConvAITool[], fallbackBaseUrl?: string)
         parameters: t.parameters,
       };
     });
+}
+
+/**
+ * Map a generic ConvAITool to the ElevenLabs WORKSPACE tool entity wire shape
+ * (POST /v1/convai/tools). The LLM-filled parameters become the webhook POST body,
+ * so they map to `api_schema.request_body_schema`. Supersedes the inline shape that
+ * `toElevenLabsTools` produced (which ElevenLabs now silently strips).
+ */
+export function toWorkspaceToolConfig(tool: ConvAITool, fallbackBaseUrl?: string) {
+  const derivedUrl = fallbackBaseUrl
+    ? `${fallbackBaseUrl.replace(/\/webhook$/, '')}/tools/${tool.name}`
+    : undefined;
+  return {
+    type: 'webhook' as const,
+    name: tool.name,
+    description: tool.description,
+    response_timeout_secs: 20,
+    api_schema: {
+      url: tool.webhook?.url || derivedUrl,
+      method: tool.webhook?.method || 'POST',
+      request_headers: tool.webhook?.headers || { 'Content-Type': 'application/json' },
+      request_body_schema: tool.parameters,
+    },
+  };
+}
+
+/**
+ * Ensure each webhook tool exists as a WORKSPACE tool entity; return their ids in the
+ * same order as `tools`. Idempotent on (name + url): workspace tools are workspace-scoped
+ * (shared across every agent + product), so reusing by NAME ALONE would bind product B's
+ * agent to product A's tool (which points at A's webhook URL) — the same cross-product
+ * leak class as the per-agent webhook bug. Matching name+url keeps each product on its own.
+ */
+export async function ensureWorkspaceTools(
+  apiKey: string,
+  tools: ConvAITool[],
+  fallbackBaseUrl?: string
+): Promise<string[]> {
+  const webhookTools = tools.filter((t) => t.type === 'webhook');
+  if (webhookTools.length === 0) return [];
+
+  const listRes = await fetch(WORKSPACE_TOOLS_API, { headers: { 'xi-api-key': apiKey } });
+  const existing: Array<{
+    id?: string;
+    tool_config?: { name?: string; api_schema?: { url?: string } };
+  }> = listRes.ok ? ((await listRes.json()).tools ?? []) : [];
+
+  const ids: string[] = [];
+  for (const tool of webhookTools) {
+    const cfg = toWorkspaceToolConfig(tool, fallbackBaseUrl);
+    const match = existing.find(
+      (e) =>
+        e.tool_config?.name === cfg.name &&
+        e.tool_config?.api_schema?.url === cfg.api_schema.url
+    );
+    if (match?.id) {
+      ids.push(match.id);
+      continue;
+    }
+    const res = await fetch(WORKSPACE_TOOLS_API, {
+      method: 'POST',
+      headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool_config: cfg }),
+    });
+    if (!res.ok) {
+      throw new Error(
+        `ElevenLabs workspace tool create failed for "${cfg.name}": ${res.status} ${await res.text()}`
+      );
+    }
+    const created = await res.json();
+    if (!created.id) {
+      throw new Error(`ElevenLabs workspace tool create returned no id for "${cfg.name}".`);
+    }
+    ids.push(created.id);
+  }
+  return ids;
 }
 
 // =============================================================================
@@ -122,12 +203,13 @@ export async function createAgent(
     agentConfig.platform_settings = platformSettings as ElevenLabsAgentConfig['platform_settings'];
   }
 
-  // Add webhook tools if defined
+  // Register tools as WORKSPACE tool entities and reference them by id on the prompt.
+  // The deprecated inline conversation_config.agent.tools shape is silently stripped by
+  // ElevenLabs (~April 2026) — an agent created that way ends up with zero tools.
   if (tools && tools.length > 0) {
-    const webhookTools = toElevenLabsTools(tools, config.webhookUrl);
-    if (webhookTools.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (agentConfig as any).conversation_config.agent.tools = webhookTools;
+    const toolIds = await ensureWorkspaceTools(apiKey, tools, config.webhookUrl);
+    if (toolIds.length > 0) {
+      agentConfig.conversation_config.agent.prompt.tool_ids = toolIds;
     }
   }
 

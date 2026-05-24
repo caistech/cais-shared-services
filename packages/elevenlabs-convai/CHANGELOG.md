@@ -1,5 +1,41 @@
 # @caistech/elevenlabs-convai — Changelog
 
+## 0.4.0 — 2026-05-25
+
+The tools fix every voice product needs — plus self-verifying provisioning so a
+silently-broken agent can never report "fully provisioned" again. Diagnosed live against
+Singify (agent had `prompt.tools: []` / `tool_ids: []` despite provisioning "succeeding",
+so the memory pull-loop was non-functional).
+
+### Fixed
+- **Tools were written in the deprecated inline shape and silently stripped.** `createAgent`
+  + `setAgentTools` wrote `conversation_config.agent.tools`, which ElevenLabs no longer
+  accepts (~April 2026) — agents ended up with **zero tools**, so recall/save-memory never
+  fired. Tools are now created as **workspace tool entities** (`POST /v1/convai/tools`,
+  `tool_config` envelope) and referenced by `conversation_config.agent.prompt.tool_ids`.
+  Idempotent on **name + url** (not name alone) so one product can't bind another product's
+  same-named tool (the cross-product leak class).
+- **`bindWorkspaceWebhook` discarded the signing secret.** It returned only `webhookId`; the
+  `webhook_secret` (shown once at creation) was dropped, so callers couldn't store it for
+  `verifyWebhookSignature`. It now returns `{ webhookId, webhookSecret? }`, and
+  `provisionVoiceAgent`'s result carries `webhookSecret`.
+
+### Added
+- **`verifyAgentProvisioned()` + a self-verify step in `provisionVoiceAgent`.** After
+  provisioning, the LIVE agent is re-read and asserted — `tool_ids` count matches, post-call
+  webhook bound, overrides enabled — and **throws** if not. Presence ≠ working: a 200 on every
+  PATCH no longer counts as success.
+- `ensureWorkspaceTools()` + `toWorkspaceToolConfig()` (+ `WORKSPACE_TOOLS_API`) exports.
+
+### Breaking
+- `bindWorkspaceWebhook` now returns `{ webhookId, webhookSecret? }` instead of a bare
+  `string`. (provisionVoiceAgent already handles it; update any direct caller.)
+
+### Migration
+- **Re-run `provisionVoiceAgent` for every voice agent** — anything provisioned before 0.4.0
+  likely has no tools (silent strip). Capture the returned `webhookSecret` into
+  `ELEVENLABS_WEBHOOK_SECRET` (sensitive env, per the Vercel rule).
+
 ## 0.3.3 — 2026-05-24
 
 The post-call webhook fix every consumer inherits. Both bugs were diagnosed live against

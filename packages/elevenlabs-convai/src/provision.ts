@@ -23,7 +23,7 @@ import {
   updateAgent,
   getAgent,
   findAgentsByName,
-  toElevenLabsTools,
+  ensureWorkspaceTools,
   buildOverrideEnablement,
 } from './agent-client.js';
 import type { ConvAIAgentConfig, ConvAITool } from './types.js';
@@ -99,11 +99,19 @@ export async function setAgentTools(
   agentId: string,
   tools: ConvAITool[]
 ): Promise<void> {
+  // Tools are workspace entities referenced by prompt.tool_ids (the inline agent.tools
+  // shape is silently stripped). Read the current prompt first so we add tool_ids WITHOUT
+  // clobbering prompt/llm/temperature — a PATCH that replaced conversation_config.agent.prompt
+  // would otherwise wipe the system prompt.
+  const toolIds = await ensureWorkspaceTools(apiKey, tools);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const agent = (await getAgent(apiKey, agentId)) as any;
+  const currentPrompt = (agent?.conversation_config?.agent?.prompt as Record<string, unknown>) || {};
   const res = await fetch(`${ELEVENLABS_API}/agents/${agentId}`, {
     method: 'PATCH',
     headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      conversation_config: { agent: { tools: toElevenLabsTools(tools) } },
+      conversation_config: { agent: { prompt: { ...currentPrompt, tool_ids: toolIds } } },
     }),
   });
   if (!res.ok) {
@@ -124,10 +132,14 @@ export async function bindWorkspaceWebhook(
   apiKey: string,
   agentId: string,
   opts: { name: string; url: string }
-): Promise<string> {
+): Promise<{ webhookId: string; webhookSecret?: string }> {
   // 1. Reuse an existing workspace webhook with this exact URL if present.
   //    List response: { webhooks: [{ webhook_id, webhook_url, ... }] } (verified vs live docs).
   let webhookId: string | undefined;
+  // The webhook_secret signs post-call payloads. It is shown ONLY at creation (masked on
+  // every later GET), so we return it here for the caller to store as a sensitive env;
+  // it is undefined when an existing webhook is reused (the caller must already hold it).
+  let webhookSecret: string | undefined;
   const listRes = await fetch(WORKSPACE_WEBHOOKS, { headers: { 'xi-api-key': apiKey } });
   if (listRes.ok) {
     const data = await listRes.json();
@@ -158,6 +170,7 @@ export async function bindWorkspaceWebhook(
     }
     const created = await createRes.json();
     webhookId = created.webhook_id;
+    webhookSecret = created.webhook_secret;
   }
 
   if (!webhookId) {
@@ -188,7 +201,49 @@ export async function bindWorkspaceWebhook(
     throw new Error(`ElevenLabs agent webhook bind failed: ${bindRes.status} ${await bindRes.text()}`);
   }
 
-  return webhookId;
+  return { webhookId, webhookSecret };
+}
+
+// =============================================================================
+// SELF-VERIFY (presence != working)
+// =============================================================================
+
+/**
+ * Re-read the LIVE agent and assert the provisioned config actually landed. ElevenLabs
+ * silently strips deprecated shapes, so a 200 from a PATCH is not proof the change stuck —
+ * only a GET is. Returns the issues found (empty = ok); provisionVoiceAgent throws on any.
+ * This is the behavioural gate, in the hub — the failure mode that lets a "fully provisioned"
+ * agent ship with zero tools.
+ */
+export async function verifyAgentProvisioned(
+  apiKey: string,
+  agentId: string,
+  expected: { toolCount: number; webhookId: string; overrides: boolean }
+): Promise<{ ok: boolean; issues: string[] }> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const agent = (await getAgent(apiKey, agentId)) as any;
+  const cc = agent?.conversation_config ?? {};
+  const ps = agent?.platform_settings ?? {};
+  const issues: string[] = [];
+
+  const toolIds: unknown[] = cc?.agent?.prompt?.tool_ids ?? [];
+  if (toolIds.length !== expected.toolCount) {
+    issues.push(
+      `tools: expected ${expected.toolCount} tool_ids on the agent, found ${toolIds.length} ` +
+      `(inline tools are silently stripped — tools must be workspace entities on prompt.tool_ids).`
+    );
+  }
+
+  const boundId = ps?.workspace_overrides?.webhooks?.post_call_webhook_id;
+  if (boundId !== expected.webhookId) {
+    issues.push(`post-call webhook: expected ${expected.webhookId}, agent bound ${boundId ?? 'none'}.`);
+  }
+
+  if (expected.overrides && !ps?.overrides?.conversation_config_override) {
+    issues.push('conversation_config_override not enabled — per-session overrides will be silently ignored.');
+  }
+
+  return { ok: issues.length === 0, issues };
 }
 
 // =============================================================================
@@ -217,6 +272,10 @@ export interface ProvisionResult {
   agentName: string;
   created: boolean;          // true if a new agent was created, false if an existing one was updated
   webhookId: string;
+  // Workspace webhook signing secret — present ONLY when the webhook was created this run
+  // (shown once by ElevenLabs). Undefined when an existing webhook was reused. Store it as
+  // a sensitive env (ELEVENLABS_WEBHOOK_SECRET) for verifyWebhookSignature.
+  webhookSecret?: string;
 }
 
 export async function provisionVoiceAgent(
@@ -308,10 +367,27 @@ export async function provisionVoiceAgent(
 
   // --- Workspace-scoped post-call webhook (always; create-or-reuse + bind) ---
   const webhookUrl = `${baseUrl.replace(/\/$/, '')}${postCallWebhookPath}`;
-  const webhookId = await bindWorkspaceWebhook(apiKey, agentId, {
+  const { webhookId, webhookSecret } = await bindWorkspaceWebhook(apiKey, agentId, {
     name: `${config.agentName} post-call`,
     url: webhookUrl,
   });
 
-  return { agentId, agentName: config.agentName, created, webhookId };
+  // --- Self-verify: re-read the LIVE agent and assert the config actually landed. ---
+  // Presence != working: a 200 on every PATCH does NOT mean the agent has its tools / the
+  // webhook / overrides (ElevenLabs silently strips deprecated shapes). Fail loudly here
+  // rather than report a "fully provisioned" agent that can't pull.
+  const expectedToolCount = (tools || []).filter((t) => t.type === 'webhook').length;
+  const verification = await verifyAgentProvisioned(apiKey, agentId, {
+    toolCount: expectedToolCount,
+    webhookId,
+    overrides: enableOverrides,
+  });
+  if (!verification.ok) {
+    throw new Error(
+      `provisionVoiceAgent: agent ${agentId} provisioned, but live verification FAILED — ` +
+      verification.issues.join(' ')
+    );
+  }
+
+  return { agentId, agentName: config.agentName, created, webhookId, webhookSecret };
 }

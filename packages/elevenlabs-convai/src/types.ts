@@ -80,6 +80,10 @@ export interface ElevenLabsAgentConfig {
         prompt: string;
         llm: string;
         temperature: number;
+        // Workspace tool entity ids the agent may call. The deprecated inline
+        // `agent.tools` shape is silently stripped by ElevenLabs — tools are
+        // referenced here instead (see ensureWorkspaceTools()).
+        tool_ids?: string[];
       };
       first_message: string;
       language: string;
