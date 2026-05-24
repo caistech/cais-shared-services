@@ -1,5 +1,22 @@
 # @caistech/property-launch-kit — Changelog
 
+## 0.3.2 — 2026-05-25
+
+### DesignGallery — optional per-design price label
+
+Adds an optional `priceLabel` field to the `Design` type. The price anchor
+previously hardcoded `"H&L from {price}"`, which is wrong for designs priced
+on a different basis (e.g. ancillary dwellings sold as a build only, with no
+land in the figure).
+
+- `priceLabel` defaults to `"H&L from"` — existing consumers are unaffected.
+- Set per design when the basis differs, e.g. `"House only — from"`.
+- Set to `""` to render the price with no prefix (useful for `"POA"` /
+  `"Price on application"`).
+
+Driven by Seafields, where ancillary dwellings (Joey, Koala) are priced
+house-only while the standalone homes (BigRoo, GROH 4x2, etc.) are H&L.
+
 ## 0.3.1 — 2026-05-23
 
 ### BYOK hygiene — scrub CAS-host example from daily-digest docs

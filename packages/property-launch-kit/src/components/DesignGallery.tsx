@@ -32,6 +32,11 @@ export interface Design {
   secondary?: { label: string; href: string };
   /** Price anchor shown on the card. */
   priceFrom: string;
+  /** Label shown before the price. Defaults to "H&L from". Set per design
+   * when the basis differs — e.g. "House only — from" for ancillary
+   * dwellings priced without land, or "" to show the price with no prefix
+   * (useful for "POA" / "Price on application"). */
+  priceLabel?: string;
   /** When true, the card shows a "Floor plan pending" placeholder
    * instead of the hero image, and the plan link is disabled. */
   placeholder?: boolean;
@@ -96,9 +101,13 @@ export default function DesignGallery({
               </p>
               <div className="mt-auto pt-3 border-t border-black/5 flex items-center justify-between gap-2 flex-wrap">
                 <span className="font-archivo text-sm text-deep-blue">
-                  <span className="text-slate-500 text-xs">
-                    H&amp;L from
-                  </span>{" "}
+                  {(d.priceLabel ?? "H&L from") !== "" && (
+                    <>
+                      <span className="text-slate-500 text-xs">
+                        {d.priceLabel ?? "H&L from"}
+                      </span>{" "}
+                    </>
+                  )}
                   <strong>{d.priceFrom}</strong>
                 </span>
                 <div className="flex items-center gap-3">
