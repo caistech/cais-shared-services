@@ -52,7 +52,7 @@ For any feature, ask:
 > **"Does its absence change what a viewer feels in a 3-minute demo?"**
 > Yes → **in**. No → **out**.
 
-## 3. Two refinements that catch the common errors
+## 3. Three refinements that catch the common errors
 
 1. **The quality bar lives inside the attributes that are in.** An attribute that is
    *present but weak* fails the test as surely as a missing one. (Singify's polish "worked"
@@ -62,6 +62,17 @@ For any feature, ask:
    build already demonstrated. If a day's prototype did the full loop, the slice inherits
    that loop — it does not re-derive a smaller version. Regressing the experience to "ship
    something" is the same false economy as cutting it in the first place.
+3. **Portfolio DNA is experience, not infrastructure — it is always IN.** The baseline
+   product elements every project ships by CLAUDE.md / cais rule — a **persistent nav
+   chrome + Settings page**, the **chrome-level voice agent** (the in-context guide/clarifier,
+   per the VOICE AI rule), a **landing page that sells the concept**, **responsive** layout,
+   **explanatory headers**, and the **auth-page pattern** where there's auth — are what a
+   viewer *feels*, so they belong in even the thinnest slice. "Zero scale-infrastructure"
+   means no multi-tenant / billing / dashboards / auth-backend; it does **not** mean a dull,
+   navigation-less, voice-less, un-sold shell. A singing app that looks like a tax form has
+   cut experience, not infrastructure. Stripping DNA "to save a few minutes of dev time" is
+   the same false economy as cutting a headline feature (locked after the Singify slice
+   shipped dull on 2026-05-25).
 
 ## 4. How to apply it
 
