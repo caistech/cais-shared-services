@@ -78,7 +78,8 @@ Five stages. Fully automated **except the final outbound messages** (human-in-th
 
 **Build-to-validate (critical sequencing).** Build the *cheapest demonstrable artifact first* — single-tenant, founder-only, Vercel-default URL, no domain, scoped by a PRD — **before** external validation, because building it sharpens the offer and surfaces requirements ideation can't (e.g. Singify's headphone/backing-track issue). The *cheap demo* is encouraged before go/no-go; the *expensive investment* (multi-tenant platform, billing, scaling) still waits for the GO. Domain purchase is gated on the validated GO — no domain spend before, a professional domain the instant it's earned.
 
-**Two operational gates (cockpit, at `/admin/methodology`):**
+**Three operational gates (cockpit, at `/admin/methodology`):**
+- **Gate 0 — the intake WIP gate (front door, Rule 16).** Before a *new* product or operator-originated idea is admitted, the board must be **triaged**: zero untriaged cards (every existing card is in research-or-beyond, or terminally decided as kill / personal-interest-override / redesign-to-fit). A "stop starting, start finishing" limit that stops a backlog of half-considered products from accreting. Hard block with a reasoned, logged override; the always-on ideation agent's deposits land in an inbox that doesn't count. Full text: `MONETISATION_RULES.md` Rule 16.
 - **Gate 1 — "is the thin MVP ready?"** Must be YES, because the kick-off outreach *embeds the link to the thin MVP*. No MVP → no link → no send. Releases the *research*.
 - **Gate 2 — the demand go/no-go** (validated distributor + end-user signal). Releases the *full build* + the lane assignment.
 
