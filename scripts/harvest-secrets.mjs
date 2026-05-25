@@ -55,7 +55,7 @@ if (!VERCEL_TOKEN) {
 
 // These are the keys we know are SHARED across the portfolio (same value
 // across siblings). For per-project keys, use a different tool.
-const HARVESTABLE_KEYS = ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "RESEND_API_KEY"];
+const HARVESTABLE_KEYS = ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "RESEND_API_KEY", "ELEVENLABS_API_KEY"];
 
 // --- main -------------------------------------------------------------------
 
