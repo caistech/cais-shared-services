@@ -160,13 +160,44 @@ async function magicLinkGrant() {
   return session;
 }
 
+/**
+ * @supabase/ssr changed its cookie encoding at 0.5.0, and the cookie we emit MUST
+ * match the consumer repo's installed version or the server SILENTLY rejects it
+ * (the browser loads the cookie, but the middleware's getUser() returns null and
+ * still redirects to login — verified on corporate-ai-solutions, which pins 0.1.0):
+ *   - >= 0.5.0  →  `base64-<base64url(JSON)>`, then chunk the BLOB at 3180.
+ *   - <  0.5.0  →  chunk the RAW JSON at 3180, then URL-encode each chunk.
+ * Detected from the repo's node_modules; defaults to modern if it can't be read.
+ */
+function detectLegacyCookie() {
+  try {
+    const pkg = JSON.parse(readFileSync(join(root, "node_modules/@supabase/ssr/package.json"), "utf8"));
+    const [maj, min] = String(pkg.version).split(".").map((n) => parseInt(n, 10));
+    return { legacy: maj === 0 && min < 5, version: pkg.version };
+  } catch {
+    return { legacy: false, version: "unknown" };
+  }
+}
+
 function emitSession(session) {
-  const encoded = "base64-" + toBase64Url(JSON.stringify(session));
-  const chunks = [];
-  for (let i = 0; i < encoded.length; i += MAX_CHUNK) chunks.push(encoded.slice(i, i + MAX_CHUNK));
+  const { legacy, version } = detectLegacyCookie();
+  const raw = JSON.stringify(session);
+  let chunks;
+  if (legacy) {
+    // < 0.5.0: chunk the raw JSON, URL-encode each chunk (the wire format the
+    // `cookie` serializer produces; Next decodes it back to raw JSON on read).
+    chunks = [];
+    for (let i = 0; i < raw.length; i += MAX_CHUNK) chunks.push(encodeURIComponent(raw.slice(i, i + MAX_CHUNK)));
+  } else {
+    // >= 0.5.0: base64url the whole session + prefix, then chunk the blob.
+    const encoded = "base64-" + toBase64Url(raw);
+    chunks = [];
+    for (let i = 0; i < encoded.length; i += MAX_CHUNK) chunks.push(encoded.slice(i, i + MAX_CHUNK));
+  }
 
   console.log(`✅ ${MODE.toUpperCase()} OK — real session for ${session.user?.email} (confirmed: ${session.user?.confirmed_at ? "yes" : "no"})`);
   console.log(`   expires_at: ${new Date(session.expires_at * 1000).toISOString()}`);
+  console.log(`   cookie format: ${legacy ? `legacy url-encoded JSON (@supabase/ssr ${version} < 0.5)` : `base64 (@supabase/ssr ${version})`}`);
   console.log("");
   console.log(`Set these cookie(s) on ${origin}, path=/, then navigate to a protected route:`);
   if (chunks.length === 1) {
@@ -180,9 +211,9 @@ function emitSession(session) {
   console.log(`   access_token=${session.access_token}`);
   console.log(`   refresh_token=${session.refresh_token}`);
   console.log("");
-  console.log("NOTE (best-effort): cookie encoding follows the current @supabase/ssr default");
-  console.log("(base64url, `base64-` prefix). If a version bump changes it and the server rejects");
-  console.log("the cookie, fall back to Mode A — drive the creds/link through the real /login form.");
+  console.log("NOTE: cookie encoding is auto-matched to the repo's @supabase/ssr version above.");
+  console.log("If the server still rejects the cookie, fall back to Mode A — drive the creds/link");
+  console.log("through the real /login form.");
 }
 
 (async () => {
