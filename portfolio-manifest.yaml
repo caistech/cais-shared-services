@@ -342,6 +342,15 @@ product_registry:
     team_admin_status: n/a-single-operator     # /admin cockpit is operator-only (auth-gated + ADMIN_EMAILS allowlist)
     metadata_status: customized
     distributor_gate_status: n/a-infrastructure
+  singify-platform:
+    display_name: "Singify"                     # lane-1 flagship — the Engine-1 voice/coaching vertical (BUSINESS_MODEL §7/§8)
+    tagline: "Karaoke that makes you sound amazing — with an AI vocal coach"   # draft — confirm
+    description: "Singify lets anyone sing along to a real song on camera, hear themselves pitch-corrected in their own key, and get coached by an AI that knows their voice."
+    canonical_url: "https://singify-platform.vercel.app"   # vercel alias — a real domain is Gate-2-gated (THIN_MVP_RUBRIC §4)
+    voice_agent_status: present                 # 2026-05-25 voice-audit: chrome coach FAB + per-step in-context clarifier on all 5 studio steps; memory pull-loop (get_baseline/get_singing_history + hub memory tools, HMAC-verified post-call, founder-scoped server-derived identity) verified at the code layer. Open: rule-19 hub backfill of the local @elevenlabs/react clarifier (promote-to-hub), session-init binding when auth lands, a "what the coach remembers" surface + TTL, allowlist re-verify; behavioural "welcome-back" recall needs a mic'd live pass. See singify-platform/voice-audit/2026-05-25-1000/singify-platform.md
+    team_admin_status: absent                   # deferred — multi-tenant distributor→end-user layer is post-Gate-2 (THIN_MVP_RUBRIC: no scale infra pre-GO). Build before a 2nd operator / public exposure.
+    metadata_status: customized                 # <title>/description customised (not "Create Next App"); OG image + manifest-driven favicon still TODO (PRODUCT_STANDARDS Singify appendix §7 🟡)
+    distributor_gate_status: pending            # canonical build-to-validate worked example; awaiting the stage-3 dual-stream voice loop / Gate-2 GO (BUSINESS_MODEL §4/§5)
   mmcbuild:
     display_name: "MMC Build"           # paying client — sanitise per R3 before any public artifact
     # metadata: client-owned brand — fill display_name/tagline/description from MMC Build's own brand, do not guess (R3)
