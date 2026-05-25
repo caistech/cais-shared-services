@@ -4,7 +4,7 @@ Non-negotiable rules for the methodology-monetisation operation. These are treat
 
 > **Canonical location:** `cais-shared-services/MONETISATION_RULES.md` (this file — version-controlled, travels with the repo, readable from any clone). The narrative that frames these rules is `BUSINESS_MODEL.md` next to it; §9 there summarises every rule in one line. Moved here from `C:\Users\denni\` on 2026-05-24 so the full rule text is portable.
 >
-> **Last updated:** 2026-05-24 (rules locked; header added 2026-05-25).
+> **Last updated:** 2026-05-25 (Rule 16 — pipeline intake WIP gate — added; rules locked 2026-05-24; header added 2026-05-25).
 
 **Sibling artifacts** (operator-local — these stay in the home directory, not in the repo, because they are personal/weekly-operational rather than shared doctrine):
 - State file (what's true this week): `C:\Users\denni\MONETISATION_STATE.md`
@@ -465,6 +465,47 @@ The rule also closes the failure mode revealed by the 2026-05-23 BYOK conversion
 
 ---
 
+## RULE 16 — NO NEW PIPELINE INTAKE UNTIL THE BOARD IS TRIAGED (NON-NEGOTIABLE)
+
+No new product or idea is admitted to the methodology pipeline (the cockpit at `/admin/methodology`) while any card on the board is **untriaged**. Intake is a privilege earned by clearing the backlog — *stop starting, start finishing*. Locked 2026-05-25. This is the front-door WIP limit that complements Rule 1B: Rule 1B governs *which* work to prefer once you are working; Rule 16 governs *whether you may start anything new at all*.
+
+### Definitions (computed from the cockpit's real card state)
+
+A card is **TRIAGED** (settled — does not block intake) when it is either:
+- **(i) In research or beyond** — research has been kicked off: the card is at `pipeline_stage` ∈ {`validation`, `go-no-go`, `build`, `ship`}, or `status` ∈ {`validation-in-flight`, `validated`}; OR
+- **(ii) Terminally decided** — `status` ∈ {`kill`, `personal-interest-override`, `redesign-to-fit`}, or `archived_at` is set.
+
+A card is **UNTRIAGED** (counts against the gate) when it is neither — the backlog: cards sitting in `ideation` / `feasibility` / `dialogue-complete` with no research launched and no decision recorded. **Explicitly included: a card marked thin-MVP-ready (`mvp_ready = true`) whose research has never been launched — "ready but stalled" is untriaged**, because condition (a) of this rule is that everything *gated for research is actually in research*, not parked at the gate.
+
+The **inbox carve-out:** cards deposited by the always-on ideation agent (`intake_source = 'ideation-agent'`, not yet promoted by the operator) sit in an inbox that does **not** count as untriaged. The agent keeps ideating (the North Star); the operator's *promotion* of an inbox idea is the act that admits it to the pipeline — and a promoted card immediately counts. The gate disciplines the operator, not the machine.
+
+### The gate
+
+**Manual operator intake is OPEN only when the untriaged count is zero.** While any untriaged card exists, both manual intake paths (`AddChosenProduct` — pulling a portfolio product in; operator-originated `AddNewIdea`) are blocked at the API (`412`, with the list of blocking cards) and disabled in the UI with a "drain the backlog first — N untriaged" banner. Agent deposits to the inbox are never blocked.
+
+### The reasoned override
+
+The block is hard by default but not absolute. The operator may force a single product through by supplying a written override reason, recorded on the new card (`intake_override_reason`, `intake_override_at`) and surfaced in the audit. The override is deliberately friction-ful — typing a justification — so it stays a conscious exception, not a habit. An override does not clear the backlog; the next intake is blocked again until the board is triaged.
+
+### How to apply
+
+- Before admitting any new product, the operator (or any agent acting for the operator) checks the intake gate. If blocked, the move is to triage the backlog — push each untriaged card into research or record a terminal decision (kill / personal-interest-override / redesign-to-fit) — not to override.
+- The backfill of the existing ~38-product portfolio through the pipeline (`BUSINESS_MODEL.md` §5) *is* the first draining of this backlog. Until each existing product is either in research or terminally decided, the board is not triaged and no genuinely-new product should be admitted.
+- The readiness rubric (the "ready for thin-MVP / research-stage" test — `THIN_MVP_RUBRIC.md` / `GATE_READINESS_CRITERIA.md`) sharpens *what counts as "ready for research"* (Gate 1); it does **not** change this rule. Build and enforce Rule 16 on the current Gate-1 state now; swap in the rubric-scored Gate 1 when it lands.
+- "I'll just add this one and triage later" is the failure mode this rule exists to prevent.
+
+### Why this rule exists
+
+The factory's scarce resource is operator attention (`BUSINESS_MODEL.md` §0; Rule 1B). The single most attractive failure mode for a one-operator factory is an ever-growing backlog of half-considered products, none taken to validation, while shiny new ideas keep getting admitted — the exact "half-finished initiatives / scope creep" the methodology critiques (see "Why this file exists" below). A WIP limit on the front door forces every admitted product to a decision (research or kill) before another can enter, which is the discipline that keeps the pipeline a pipeline and not a junk drawer. Dennis 2026-05-25: *"there needs to be a blocker rule on me creating any more products until all gated-for-research products are in the research stage and all other products are either moved to research stage or determined to be not worthy of progressing — this will be a good discipline for me."*
+
+### Verification heuristic before admitting any new product
+
+- Open the cockpit board. Is the untriaged count zero? If yes, intake is open. If no, the backlog is not drained — triage it first.
+- For each untriaged card: can it be pushed into research now (Gate 1 met), or does it warrant a terminal decision? Do that, don't override.
+- If you are about to use the override, can you write a one-line reason that would survive a quarterly review? If not, it is not an exception — it is the backlog talking. Triage instead.
+
+---
+
 ## When these rules apply
 
 - All current and future studio-in-residence engagements.
@@ -473,6 +514,7 @@ The rule also closes the failure mode revealed by the 2026-05-23 BYOK conversion
 - All decisions about taking on additional clients, products, or commitments that consume operator time.
 - Rules 12–14 also apply to **every hosted product purchase flow** across the portfolio — every product that exposes a paid hosted tier ships with these three rules wired in from day one.
 - Rule 15 applies to **every new product idea and every existing product still on `releaseMode: 'in-migration'`** — the distributor-first gate runs before any build/conversion work begins.
+- Rule 16 applies to **every admission to the methodology pipeline cockpit** — the intake WIP gate is checked before any new product or operator-originated idea is added, in every session and by any agent acting for the operator.
 
 ## Why this file exists
 
