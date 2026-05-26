@@ -31,6 +31,7 @@
  *   node gate-check.mjs prod-deployment <slug>                    print the live prod deployment id + commit
  *   node gate-check.mjs url-share-allowed <slug>                  exit 0 if a naive-tester PASS is bound to the live prod deployment, else 1
  *   node gate-check.mjs scale-infra-allowed <slug>               exit 0 if gate2_go, else 1
+ *   node gate-check.mjs record-readiness <slug> --source <naive-tester|voice-auditor|auto|judge> [--deployment <id> | --no-deployment] (--checks "2=pass,7=fail" | --file <results.json>) [--by name]
  */
 
 import { readFileSync, existsSync } from "node:fs";
@@ -140,6 +141,36 @@ export async function recordGate({ slug, gate, status, deploymentId, commitSha, 
   });
 }
 
+/**
+ * Append per-check readiness verdicts to the `readiness_results` table — the input the
+ * Gate-1 scorer reads. One row per check; history-preserving (the scorer takes the latest
+ * per code). Verdicts bind to the live production deployment (Delta 2) when the caller
+ * passes one. Written by the auditors: /naive-tester (the NAIVE-method checks), /voice-auditor
+ * (the VOICE-method checks), and auto-probes (the AUTO-method checks).
+ */
+export async function recordReadiness({ slug, source, checks, deploymentId = null, recordedBy = "system" }) {
+  const SOURCES = ["auto", "naive-tester", "voice-auditor", "judge"];
+  const STATUSES = ["pass", "fail", "na"];
+  if (!slug || !SOURCES.includes(source) || !Array.isArray(checks) || checks.length === 0) {
+    throw new Error("recordReadiness: slug, source(auto|naive-tester|voice-auditor|judge), and a non-empty checks[] are required");
+  }
+  const rows = checks.map((c) => {
+    if (!c.code || !STATUSES.includes(c.status)) {
+      throw new Error(`recordReadiness: each check needs {code, status(pass|fail|na)} — got ${JSON.stringify(c)}`);
+    }
+    return {
+      product_slug: slug,
+      check_code: String(c.code),
+      status: c.status,
+      source,
+      evidence: c.evidence ?? null,
+      deployment_id: deploymentId,
+      recorded_by: recordedBy,
+    };
+  });
+  return rest("readiness_results", { method: "POST", prefer: "return=representation", body: rows });
+}
+
 /** Read a card's gate2_go + build_type (the scale-infra unlock + gate-path router). */
 export async function getCard(slug) {
   const rows = await rest(
@@ -223,8 +254,30 @@ async function main() {
       console.log(ok ? `ALLOWED: gate2_go for ${slug}` : `BLOCKED: ${slug} has no Gate-2 GO — multi-tenant/billing/white-label/domain are refused (thin-MVP creator is NOT gated by this).`);
       return ok ? 0 : 1;
     }
+    case "record-readiness": {
+      const source = arg("source");
+      let deploymentId = arg("deployment") ?? null;
+      // Delta 2: bind verdicts to what production is serving now, unless told not to.
+      if (!deploymentId && !has("no-deployment")) {
+        const d = await getLiveProductionDeployment(slug).catch(() => null);
+        deploymentId = d?.deploymentId ?? null;
+      }
+      let checks = [];
+      const file = arg("file");
+      if (file) {
+        checks = JSON.parse(readFileSync(file, "utf8"));
+      } else if (arg("checks")) {
+        checks = arg("checks").split(",").map((pair) => {
+          const [code, status] = pair.split("=");
+          return { code: (code ?? "").trim(), status: (status ?? "").trim() };
+        });
+      }
+      const rows = await recordReadiness({ slug, source, checks, deploymentId, recordedBy: arg("by") ?? source });
+      console.log(`recorded ${Array.isArray(rows) ? rows.length : 0} readiness verdict(s) for ${slug} (source ${source}${deploymentId ? `, deployment ${deploymentId.slice(0, 12)}…` : ", no deployment bound"})`);
+      return 0;
+    }
     default:
-      console.error("usage: gate-check.mjs <check|record|prod-deployment|url-share-allowed|scale-infra-allowed> <slug> [gate] [status] [flags]");
+      console.error("usage: gate-check.mjs <check|record|prod-deployment|url-share-allowed|scale-infra-allowed|record-readiness> <slug> [gate] [status] [flags]");
       return 2;
   }
 }
