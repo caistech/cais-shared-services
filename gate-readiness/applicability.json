@@ -1,0 +1,33 @@
+{
+  "source": "Hand-maintained companion to criteria.json. The signed-off workbook has NO applicability column, so this file is the single source for which product feature puts each CONDITIONAL-* check in scope. extract_workbook.py merges `applies_when` onto each check; the scorer treats a conditional check as N/A (not a fail, not a pass) when the card's `features` set lacks the tag.",
+  "ratified": "2026-05-27 (Dennis — applicability decision: feature-flags + enrich criteria.json)",
+  "features": {
+    "voice": "ships a voice agent (@caistech/elevenlabs-convai) — incl. its memory, webhook-HMAC, allowlist and server-derived-identity security checks",
+    "auth": "has an authenticated user flow (login / signup / reset / magic-link)",
+    "supabase": "uses Supabase (idempotent migrations via CLI / RLS every table / no client-side service key)",
+    "third-party-content": "users create or share content built on third-party IP",
+    "address-or-abn-fields": "has address or company/ABN input fields",
+    "email": "the product sends email"
+  },
+  "applies_when": {
+    "10": "voice",
+    "11": "voice",
+    "13": "voice",
+    "14": "voice",
+    "15": "voice",
+    "16": "voice",
+    "17": "voice",
+    "18": "voice",
+    "19": "voice",
+    "20": "voice",
+    "22": "auth",
+    "23": "auth",
+    "24": "auth",
+    "25": "auth",
+    "29": "auth",
+    "33": "third-party-content",
+    "34": "address-or-abn-fields",
+    "35": "email",
+    "38": "supabase"
+  }
+}

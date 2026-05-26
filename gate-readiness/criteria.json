@@ -22,7 +22,8 @@
       "confirmed": true,
       "tier": "HARD",
       "weight": null,
-      "notes": "HARD - no live link, no Gate-1 outreach send. Non-negotiable."
+      "notes": "HARD - no live link, no Gate-1 outreach send. Non-negotiable.",
+      "applies_when": null
     },
     {
       "code": "P2",
@@ -34,7 +35,8 @@
       "confirmed": true,
       "tier": "HARD",
       "weight": null,
-      "notes": "HARD - Rule 15. \"SMBs\" on a card is itself a Gate-1 failure."
+      "notes": "HARD - Rule 15. \"SMBs\" on a card is itself a Gate-1 failure.",
+      "applies_when": null
     },
     {
       "code": "P3",
@@ -46,7 +48,8 @@
       "confirmed": true,
       "tier": "HARD",
       "weight": null,
-      "notes": "HARD - the four questions are the BizModel gate; hand-waving = redesign."
+      "notes": "HARD - the four questions are the BizModel gate; hand-waving = redesign.",
+      "applies_when": null
     },
     {
       "code": "P4",
@@ -58,7 +61,8 @@
       "confirmed": true,
       "tier": "TOO-MUCH",
       "weight": null,
-      "notes": "TOO-MUCH - team admin / billing / settings pre-GO = over-build flag."
+      "notes": "TOO-MUCH - team admin / billing / settings pre-GO = over-build flag.",
+      "applies_when": null
     },
     {
       "code": "1",
@@ -70,7 +74,8 @@
       "confirmed": true,
       "tier": "WEIGHTED",
       "weight": "Med",
-      "notes": "Empty states matter; header sells the concept on landing."
+      "notes": "Empty states matter; header sells the concept on landing.",
+      "applies_when": null
     },
     {
       "code": "2",
@@ -82,7 +87,8 @@
       "confirmed": true,
       "tier": "HARD",
       "weight": null,
-      "notes": "HARD - mobile-broken at 375 fails the naive-tester test outright."
+      "notes": "HARD - mobile-broken at 375 fails the naive-tester test outright.",
+      "applies_when": null
     },
     {
       "code": "3",
@@ -94,7 +100,8 @@
       "confirmed": true,
       "tier": "WEIGHTED",
       "weight": "High",
-      "notes": "Mobile-first portfolio - thumb-reachable is core DNA, lean HIGH."
+      "notes": "Mobile-first portfolio - thumb-reachable is core DNA, lean HIGH.",
+      "applies_when": null
     },
     {
       "code": "4",
@@ -106,7 +113,8 @@
       "confirmed": true,
       "tier": "WEIGHTED",
       "weight": "Med",
-      "notes": "Drawer/hamburger - common pattern, weight medium."
+      "notes": "Drawer/hamburger - common pattern, weight medium.",
+      "applies_when": null
     },
     {
       "code": "5",
@@ -118,7 +126,8 @@
       "confirmed": true,
       "tier": "WEIGHTED",
       "weight": "High",
-      "notes": "Landing-sells = the \"I want that\" before login. HIGH for distributor-led GTM."
+      "notes": "Landing-sells = the \"I want that\" before login. HIGH for distributor-led GTM.",
+      "applies_when": null
     },
     {
       "code": "6",
@@ -130,7 +139,8 @@
       "confirmed": true,
       "tier": "WEIGHTED",
       "weight": "High",
-      "notes": "Dull-shell failure is the Singify lesson - HIGH; emotional register is the moat."
+      "notes": "Dull-shell failure is the Singify lesson - HIGH; emotional register is the moat.",
+      "applies_when": null
     },
     {
       "code": "7",
@@ -142,7 +152,8 @@
       "confirmed": true,
       "tier": "HARD",
       "weight": null,
-      "notes": "HARD - default Next.js title is the most preventable trust-killer."
+      "notes": "HARD - default Next.js title is the most preventable trust-killer.",
+      "applies_when": null
     },
     {
       "code": "8",
@@ -154,7 +165,8 @@
       "confirmed": true,
       "tier": "DEFER",
       "weight": null,
-      "notes": "DEFER - polish; do post-Gate-2."
+      "notes": "DEFER - polish; do post-Gate-2.",
+      "applies_when": null
     },
     {
       "code": "9",
@@ -166,7 +178,8 @@
       "confirmed": true,
       "tier": "WEIGHTED",
       "weight": "High",
-      "notes": "THE central check - this is the THIN MVP test. HIGH."
+      "notes": "THE central check - this is the THIN MVP test. HIGH.",
+      "applies_when": null
     },
     {
       "code": "10",
@@ -178,7 +191,8 @@
       "confirmed": true,
       "tier": "CONDITIONAL-HARD",
       "weight": null,
-      "notes": "CONDITIONAL-HARD - portfolio voice DNA; if voiced, must be reachable."
+      "notes": "CONDITIONAL-HARD - portfolio voice DNA; if voiced, must be reachable.",
+      "applies_when": "voice"
     },
     {
       "code": "11",
@@ -190,7 +204,8 @@
       "confirmed": true,
       "tier": "CONDITIONAL-HARD",
       "weight": null,
-      "notes": "CONDITIONAL-HARD - @caistech-first; BYOK is the distribution model."
+      "notes": "CONDITIONAL-HARD - @caistech-first; BYOK is the distribution model.",
+      "applies_when": "voice"
     },
     {
       "code": "12",
@@ -202,7 +217,8 @@
       "confirmed": true,
       "tier": "WEIGHTED",
       "weight": "High",
-      "notes": "Stage-aware = the proactive moment; HIGH where voice exists."
+      "notes": "Stage-aware = the proactive moment; HIGH where voice exists.",
+      "applies_when": null
     },
     {
       "code": "13",
@@ -214,7 +230,8 @@
       "confirmed": true,
       "tier": "CONDITIONAL-HARD",
       "weight": null,
-      "notes": "CONDITIONAL-HARD - voice-auditor is the codified test."
+      "notes": "CONDITIONAL-HARD - voice-auditor is the codified test.",
+      "applies_when": "voice"
     },
     {
       "code": "14",
@@ -226,7 +243,8 @@
       "confirmed": true,
       "tier": "CONDITIONAL-HARD",
       "weight": null,
-      "notes": "CONDITIONAL-HARD - welcome-back recall is the memory promise landing."
+      "notes": "CONDITIONAL-HARD - welcome-back recall is the memory promise landing.",
+      "applies_when": "voice"
     },
     {
       "code": "15",
@@ -238,7 +256,8 @@
       "confirmed": true,
       "tier": "CONDITIONAL-WEIGHTED",
       "weight": "High",
-      "notes": "Pull-not-push pattern is core IP - HIGH where memory is in scope."
+      "notes": "Pull-not-push pattern is core IP - HIGH where memory is in scope.",
+      "applies_when": "voice"
     },
     {
       "code": "16",
@@ -250,7 +269,8 @@
       "confirmed": true,
       "tier": "CONDITIONAL-HARD",
       "weight": null,
-      "notes": "CONDITIONAL-HARD (SEC) - identity confusion = data leakage."
+      "notes": "CONDITIONAL-HARD (SEC) - identity confusion = data leakage.",
+      "applies_when": "voice"
     },
     {
       "code": "17",
@@ -262,7 +282,8 @@
       "confirmed": true,
       "tier": "CONDITIONAL-HARD",
       "weight": null,
-      "notes": "CONDITIONAL-HARD (SEC) - unverified webhook = pwned."
+      "notes": "CONDITIONAL-HARD (SEC) - unverified webhook = pwned.",
+      "applies_when": "voice"
     },
     {
       "code": "18",
@@ -274,7 +295,8 @@
       "confirmed": true,
       "tier": "CONDITIONAL-HARD",
       "weight": null,
-      "notes": "CONDITIONAL-HARD (SEC) - public agent = abused agent without allowlist."
+      "notes": "CONDITIONAL-HARD (SEC) - public agent = abused agent without allowlist.",
+      "applies_when": "voice"
     },
     {
       "code": "19",
@@ -286,7 +308,8 @@
       "confirmed": true,
       "tier": "CONDITIONAL-HARD",
       "weight": null,
-      "notes": "CONDITIONAL-HARD (SEC) - deprecated shape silently breaks."
+      "notes": "CONDITIONAL-HARD (SEC) - deprecated shape silently breaks.",
+      "applies_when": "voice"
     },
     {
       "code": "20",
@@ -298,7 +321,8 @@
       "confirmed": true,
       "tier": "CONDITIONAL-WEIGHTED",
       "weight": "Med",
-      "notes": "Founder-hardcoded id pre-auth is fine; promote later."
+      "notes": "Founder-hardcoded id pre-auth is fine; promote later.",
+      "applies_when": "voice"
     },
     {
       "code": "21",
@@ -310,7 +334,8 @@
       "confirmed": true,
       "tier": "DEFER",
       "weight": null,
-      "notes": "DEFER - GDPR-style surface; post-Gate-2."
+      "notes": "DEFER - GDPR-style surface; post-Gate-2.",
+      "applies_when": null
     },
     {
       "code": "22",
@@ -322,7 +347,8 @@
       "confirmed": true,
       "tier": "CONDITIONAL-HARD",
       "weight": null,
-      "notes": "CONDITIONAL-HARD - missing reset = blocked user, blocked outreach."
+      "notes": "CONDITIONAL-HARD - missing reset = blocked user, blocked outreach.",
+      "applies_when": "auth"
     },
     {
       "code": "23",
@@ -334,7 +360,8 @@
       "confirmed": true,
       "tier": "CONDITIONAL-HARD",
       "weight": null,
-      "notes": "CONDITIONAL-HARD - basic UX; ship shared component."
+      "notes": "CONDITIONAL-HARD - basic UX; ship shared component.",
+      "applies_when": "auth"
     },
     {
       "code": "24",
@@ -346,7 +373,8 @@
       "confirmed": true,
       "tier": "CONDITIONAL-HARD",
       "weight": null,
-      "notes": "CONDITIONAL-HARD - magic-link is the friction-free path."
+      "notes": "CONDITIONAL-HARD - magic-link is the friction-free path.",
+      "applies_when": "auth"
     },
     {
       "code": "25",
@@ -358,7 +386,8 @@
       "confirmed": true,
       "tier": "CONDITIONAL-HARD",
       "weight": null,
-      "notes": "CONDITIONAL-HARD - the smoke test = the auth gate."
+      "notes": "CONDITIONAL-HARD - the smoke test = the auth gate.",
+      "applies_when": "auth"
     },
     {
       "code": "26",
@@ -370,7 +399,8 @@
       "confirmed": true,
       "tier": "WEIGHTED",
       "weight": "Med",
-      "notes": "Active indicator = orientation; medium weight."
+      "notes": "Active indicator = orientation; medium weight.",
+      "applies_when": null
     },
     {
       "code": "27",
@@ -382,7 +412,8 @@
       "confirmed": true,
       "tier": "DEFER",
       "weight": null,
-      "notes": "DEFER - full settings surface post-Gate-2."
+      "notes": "DEFER - full settings surface post-Gate-2.",
+      "applies_when": null
     },
     {
       "code": "28",
@@ -394,7 +425,8 @@
       "confirmed": true,
       "tier": "DEFER",
       "weight": null,
-      "notes": "DEFER - data layer can lag; trigger on first auth product."
+      "notes": "DEFER - data layer can lag; trigger on first auth product.",
+      "applies_when": null
     },
     {
       "code": "29",
@@ -406,7 +438,8 @@
       "confirmed": true,
       "tier": "CONDITIONAL-WEIGHTED",
       "weight": "Med",
-      "notes": "Sign Out absence is a tell - medium weight where auth exists."
+      "notes": "Sign Out absence is a tell - medium weight where auth exists.",
+      "applies_when": "auth"
     },
     {
       "code": "30",
@@ -418,7 +451,8 @@
       "confirmed": true,
       "tier": "DEFER",
       "weight": null,
-      "notes": "DEFER - team admin = TOO-MUCH pre-GO; aligns with P4."
+      "notes": "DEFER - team admin = TOO-MUCH pre-GO; aligns with P4.",
+      "applies_when": null
     },
     {
       "code": "31",
@@ -430,7 +464,8 @@
       "confirmed": true,
       "tier": "WEIGHTED",
       "weight": "High",
-      "notes": "Irreversible/cost/outreach without confirm = trust-killer. HIGH."
+      "notes": "Irreversible/cost/outreach without confirm = trust-killer. HIGH.",
+      "applies_when": null
     },
     {
       "code": "32",
@@ -442,7 +477,8 @@
       "confirmed": true,
       "tier": "WEIGHTED",
       "weight": "High",
-      "notes": "Dead ends = exit signal. HIGH for naive-tester pass."
+      "notes": "Dead ends = exit signal. HIGH for naive-tester pass.",
+      "applies_when": null
     },
     {
       "code": "33",
@@ -454,7 +490,8 @@
       "confirmed": true,
       "tier": "CONDITIONAL-HARD",
       "weight": null,
-      "notes": "CONDITIONAL-HARD - IP acknowledgment where third-party content exists."
+      "notes": "CONDITIONAL-HARD - IP acknowledgment where third-party content exists.",
+      "applies_when": "third-party-content"
     },
     {
       "code": "34",
@@ -466,7 +503,8 @@
       "confirmed": true,
       "tier": "CONDITIONAL-WEIGHTED",
       "weight": "Med",
-      "notes": "Mapbox + ABN lookups are the AU-context expectation. Medium."
+      "notes": "Mapbox + ABN lookups are the AU-context expectation. Medium.",
+      "applies_when": "address-or-abn-fields"
     },
     {
       "code": "35",
@@ -478,7 +516,8 @@
       "confirmed": true,
       "tier": "CONDITIONAL-WEIGHTED",
       "weight": "Med",
-      "notes": "Sender domain consistency = inbox placement; medium weight."
+      "notes": "Sender domain consistency = inbox placement; medium weight.",
+      "applies_when": "email"
     },
     {
       "code": "36",
@@ -490,7 +529,8 @@
       "confirmed": true,
       "tier": "WEIGHTED",
       "weight": "High",
-      "notes": "@caistech-first compounds across portfolio. HIGH."
+      "notes": "@caistech-first compounds across portfolio. HIGH.",
+      "applies_when": null
     },
     {
       "code": "37",
@@ -502,7 +542,8 @@
       "confirmed": true,
       "tier": "WEIGHTED",
       "weight": "High",
-      "notes": "Preflight = the gate orchestrator; HIGH for build discipline."
+      "notes": "Preflight = the gate orchestrator; HIGH for build discipline.",
+      "applies_when": null
     },
     {
       "code": "38",
@@ -514,7 +555,8 @@
       "confirmed": true,
       "tier": "CONDITIONAL-HARD",
       "weight": null,
-      "notes": "CONDITIONAL-HARD (SEC) - RLS + no client service-key is non-negotiable."
+      "notes": "CONDITIONAL-HARD (SEC) - RLS + no client service-key is non-negotiable.",
+      "applies_when": "supabase"
     },
     {
       "code": "39",
@@ -526,7 +568,8 @@
       "confirmed": true,
       "tier": "HARD",
       "weight": null,
-      "notes": "HARD (SEC) - secret leak = portfolio-wide breach risk."
+      "notes": "HARD (SEC) - secret leak = portfolio-wide breach risk.",
+      "applies_when": null
     },
     {
       "code": "40",
@@ -538,7 +581,8 @@
       "confirmed": true,
       "tier": "HARD",
       "weight": null,
-      "notes": "HARD (SEC) - env hygiene; Vercel default exposes too easily."
+      "notes": "HARD (SEC) - env hygiene; Vercel default exposes too easily.",
+      "applies_when": null
     },
     {
       "code": "41",
@@ -550,7 +594,8 @@
       "confirmed": true,
       "tier": "WEIGHTED",
       "weight": "High",
-      "notes": "Naive-tester walkthrough = the codified \"I want that\" check. HIGH."
+      "notes": "Naive-tester walkthrough = the codified \"I want that\" check. HIGH.",
+      "applies_when": null
     }
   ]
 }

@@ -109,6 +109,23 @@ def extract_criteria(wb):
     return out
 
 
+def merge_applicability(criteria):
+    """Attach `applies_when` (a product-feature tag) to each CONDITIONAL-* check
+    from the hand-maintained applicability.json. The workbook has no applicability
+    column; that companion file is the source. The scorer treats a conditional
+    check as N/A (not a fail) when the card's `features` set lacks the tag."""
+    path = os.path.join(HERE, "applicability.json")
+    applies = {}
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
+            applies = (json.load(f) or {}).get("applies_when", {})
+    for c in criteria:
+        c["applies_when"] = (
+            applies.get(c["code"]) if c["tier"].startswith("CONDITIONAL") else None
+        )
+    return criteria
+
+
 def extract_promises(wb):
     products = []
     for name in wb.sheetnames:
@@ -172,13 +189,13 @@ def emit_seed_sql(criteria, products):
         "",
         "-- readiness_criteria: the ratified 45-check catalogue (List 4).",
         "INSERT INTO readiness_criteria",
-        "  (code, check_label, source, method, relevance, tier, weight, notes, sort_order)",
+        "  (code, check_label, source, method, relevance, tier, weight, applies_when, notes, sort_order)",
         "VALUES",
     ]
     vals = []
     for i, c in enumerate(criteria):
         vals.append(
-            "  (%s, %s, %s, %s, %s, %s, %s, %s, %d)"
+            "  (%s, %s, %s, %s, %s, %s, %s, %s, %s, %d)"
             % (
                 sql_lit(c["code"]),
                 sql_lit(c["check"]),
@@ -187,6 +204,7 @@ def emit_seed_sql(criteria, products):
                 sql_lit(c["relevance"]),
                 sql_lit(c["tier"]),
                 sql_lit(c["weight"]),
+                sql_lit(c.get("applies_when")),
                 sql_lit(c["notes"]),
                 i,
             )
@@ -197,6 +215,7 @@ def emit_seed_sql(criteria, products):
         "  check_label = EXCLUDED.check_label, source = EXCLUDED.source,",
         "  method = EXCLUDED.method, relevance = EXCLUDED.relevance,",
         "  tier = EXCLUDED.tier, weight = EXCLUDED.weight,",
+        "  applies_when = EXCLUDED.applies_when,",
         "  notes = EXCLUDED.notes, sort_order = EXCLUDED.sort_order;",
         "",
         "-- promise_attributes: the per-product 'X, not Y' quality bars (List 3),",
@@ -241,6 +260,7 @@ def main():
     xlsx = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_XLSX
     wb = openpyxl.load_workbook(xlsx, data_only=True)
     criteria = extract_criteria(wb)
+    merge_applicability(criteria)
     products = extract_promises(wb)
 
     tier_tally = {}
