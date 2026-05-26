@@ -1,4 +1,4 @@
-# THIN MVP RUBRIC — the "I want that" test
+# THIN MVP RUBRIC v2 — the "I want that" test
 
 > Canonical rule for deciding **what goes in a thin validation MVP** and **how to stage
 > a new product's build**. Companion to `BUSINESS_MODEL.md` (§4 build-to-validate, §7
@@ -6,7 +6,14 @@
 > NO-GO** and kills a good product, or over-builds before validation and burns the operator
 > hours the factory runs on. Imported into the global `CLAUDE.md`.
 >
-> **Last updated:** 2026-05-24.
+> **§0–5 are the conceptual model (unchanged).** **§6–8 are v2** — the ratified Gate-1
+> readiness policy folded in from the signed-off `GATE_READINESS_REVIEW_V4` workbook
+> (2026-05-26): the tiered 45-check classification, the per-product promise bars, and where
+> the machine-readable source lives. The model now decides the slice (§0–5) *and* scores its
+> readiness (§6–8) as policy rather than per-product judgement — the `BUSINESS_MODEL.md` §5
+> rubric discipline, extended to readiness.
+>
+> **Last updated:** 2026-05-26 (v2 fold-in).
 
 ---
 
@@ -111,5 +118,78 @@ nothing a viewer feels (too much).
 
 ---
 
+## 6. The Gate-1 readiness classification (v2 — ratified policy)
+
+§0–5 decide *what's in the slice*. §6 decides *whether the slice is ready to send* — the
+Gate-1 question ("is the thin MVP ready for the validation outreach link?"). It is now
+**machine-applied policy**: the 45 checks below were each assigned a tier by Dennis in the
+`GATE_READINESS_REVIEW_V4` workbook (every check `Confirm=Y`, zero overrides). The full
+catalogue with per-check source/method/notes lives in
+`gate-readiness/criteria.json` and the cockpit `readiness_criteria` table.
+
+**Five tiers (ratified tally — 45 checks):**
+
+| Tier | Count | Role at Gate 1 |
+|---|---|---|
+| **HARD** | 7 | **Blocks the Launch button.** No waiver. (P1 live link · P2 named distributor · P3 four gate questions · #2 responsive · #7 real `<title>` · #39 no committed secrets · #40 Vercel env hygiene.) |
+| **CONDITIONAL-HARD** | 14 | HARD **only when that feature exists** — auth (#22–25), voice (#10–11,13–14,16–19), IP/3rd-party content (#33), Supabase (#38). If the feature is present and the check fails → blocks. |
+| **WEIGHTED** | 13 | **Feeds the GO / REDESIGN / NO-GO score** (waivable). Carries a High/Med/Low weight. #9 (promise attributes at quality bar) is the central one. |
+| **CONDITIONAL-WEIGHTED** | 5 | Weighted **only when that feature exists** (#15 memory pattern, #20 cross-session memory, #29 Sign Out, #34 Mapbox/ABN, #35 email sender). |
+| **TOO-MUCH** | 1 | **Inverse guard** (P4): scale-infra *present* pre-GO is itself a flag (team admin / billing / settings = over-build). |
+| **DEFER** | 5 | Scale-infra, **not scored at Gate 1** (#8 OG image · #21 memory GDPR surface · #27 full settings · #28 profiles table · #30 team admin). These re-enter at Gate 2 / Tier-1 per `BUSINESS_MODEL.md` §7. |
+
+**How the gate runs (the decision logic):**
+1. **Conditional applicability first.** For each `CONDITIONAL-*` check, decide whether the
+   feature is in scope for *this* slice. If not, the check is N/A (not a fail, not a score).
+2. **HARD gate.** Every applicable `HARD` + `CONDITIONAL-HARD` check must pass. Any failure →
+   **the slice is not Gate-1-ready**; the cockpit Launch button stays blocked. No weighted
+   score is even computed. (Mirrors `BUSINESS_MODEL.md` §5 dimension-3 hard gate.)
+3. **TOO-MUCH guard.** P4 trips if scale-infra is present pre-GO — surfaced as an over-build
+   flag (the inverse failure the rubric exists to prevent), not a hard block.
+4. **WEIGHTED score.** With the HARD gate passed, the applicable `WEIGHTED` +
+   `CONDITIONAL-WEIGHTED` checks form a weighted composite (High/Med/Low). Bands follow the
+   §5 rubric shape — **GO ≥ 6.5 · REDESIGN 5.0–6.4 · NO-GO < 5.0** — and the High/Med/Low →
+   point mapping + exact bands are **calibrated on the first real run** (per the workbook
+   sign-off: "adjust after first real run as agreed"). The *tiers* are firm; the band
+   arithmetic is the tunable knob.
+
+## 7. The promise layer — the "X, not Y" quality bars (check #9)
+
+Check #9 ("promise attributes present **and at quality bar**") is the central WEIGHTED check
+and the literal THIN-MVP test (§3 refinement 1: present-but-weak fails as surely as missing).
+It is scored against a **per-product promise definition**: the Stage-0 promise broken into
+its load-bearing attributes, each with a **quality bar in "X, not Y" form**.
+
+- **20 products have ratified bars** (Dennis `Approve=Y`): Singify, Connexions, Kira,
+  RaiseReady, LingoPure, DealFindrs, InvestorPilot, PartnerPilot, NDIS SDA, R&D Tax, CQR,
+  rehearsals-ai, LaunchReady, UniversalLingo, TourLingo, OutreachReady, TenderWatch,
+  F2K Checkpoint, Disaster Support, Easy Claude Code (89 attribute bars in total).
+- **The rest set their bar as they near Gate 1** — the bar *is* the judgement, set per
+  product when it becomes a Gate-1 candidate (infra/engine/kill-lane products may never get
+  one).
+- The bars live in `gate-readiness/promise-attributes.json` and the cockpit
+  `promise_attributes` table (keyed by `product_slug`), surfaced on each card in
+  `/admin/methodology`.
+
+Singify stays the worked example (§5): *karaoke = real backing in-ear, not speaker bleed ·
+polish = "wow" on first playback, not "sounds better" · coach = a voice agent that initiates,
+not text tips · knows-your-voice = a baseline the agent pulls and references a prior session,
+not "welcome back" · see-yourself = in-browser video, not audio-only.*
+
+## 8. Where the ratified data lives (canonical sources)
+
+- **`gate-readiness/criteria.json`** — the 45-check catalogue (ratified tiers + weights). The
+  single source the cockpit table and this doc both reflect.
+- **`gate-readiness/promise-attributes.json`** — the per-product "X, not Y" bars.
+- **`gate-readiness/extract_workbook.py`** — regenerates both JSONs + the SQL seed from the
+  signed-off workbook. Re-run it if the workbook changes; never hand-edit the JSON.
+- **Cockpit tables** `readiness_criteria` + `promise_attributes` (Corporate-AI-Solutions,
+  migration `20260526000000_readiness_criteria.sql`) — the runtime copy the cockpit reads.
+- **`GATE_READINESS_CRITERIA.md`** (this repo) — the source prose each check derives from;
+  **`GATE_READINESS_REVIEW_GUIDE.md`** — the workbook guide (what each cell means).
+
+---
+
 **Summary in one line:** *the thin MVP is the smallest build that makes the validation
-audience feel the whole promise — full experience, zero scale-infrastructure.*
+audience feel the whole promise — full experience, zero scale-infrastructure — and §6's
+tiered gate decides, as policy, whether that slice is ready to send.*

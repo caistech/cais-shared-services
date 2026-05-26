@@ -1,0 +1,1395 @@
+{
+  "source": "GATE_READINESS_REVIEW_V4.xlsx — Promise Attributes (List 3)",
+  "products_with_bars": 20,
+  "products_total": 34,
+  "products": [
+    {
+      "tab": "Singify",
+      "slug": "singify",
+      "needed": "Y",
+      "promise": "Karaoke on camera with real in-ear backing, pitch-corrected into your own key, coached by an AI that knows your voice",
+      "distributor": "Singing teachers & academies",
+      "attributes": [
+        {
+          "attribute": "Karaoke / sing-along",
+          "quality_bar": "real backing audible IN-EAR with vocal clearly on top, latency under ~60ms - not noticeable lag or speaker bleed",
+          "claude_draft": "real backing IN HEADPHONES - not metronome or speaker bleed",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Worked example - Singify lesson encoded in the bar"
+        },
+        {
+          "attribute": "Vocal polish",
+          "quality_bar": "untrained-ear listener says \"wow\" on first playback (the share-trigger moment) - not \"that sounds better\"",
+          "claude_draft": "DRAMATIC pitch-corrected output (\"I sound amazing\") - not subtle",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "The \"let me do that again and share it\" moment"
+        },
+        {
+          "attribute": "Voice coach",
+          "quality_bar": "voice agent initiates the next coaching step proactively - not waits to be asked",
+          "claude_draft": "a VOICE agent that talks to you - not text tips",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "'Knows your voice'",
+          "quality_bar": "agent references a specific prior session detail in turn one (\"last time your bridge was flat\") - not just \"welcome back\"",
+          "claude_draft": "baseline the agent PULLS + references - not read-in by a prompt",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Pull-not-push memory pattern from VMS"
+        },
+        {
+          "attribute": "See yourself",
+          "quality_bar": "video record + playback in one tab, no extra setup - not external camera app",
+          "claude_draft": "in-browser VIDEO capture - not audio-only",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Distributor pull",
+          "quality_bar": "studio dashboard shows per-student improvement curve + share-back to teacher - not just usage stats",
+          "claude_draft": "studio/teacher gets branded student-practice surface + visible improvement - not just a referral link",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "Distributor feel: \"this scales my studio and my brand\""
+        }
+      ],
+      "bars_filled": 6
+    },
+    {
+      "tab": "Connexions",
+      "slug": "connexions",
+      "needed": "Y",
+      "promise": "White-label AI voice interviewer that runs adaptive conversations and returns structured insight - not raw transcripts",
+      "distributor": "Research & CX firms, recruiters, compliance auditors",
+      "attributes": [
+        {
+          "attribute": "Voice interviewer",
+          "quality_bar": "interviewee interrupts/redirects and the agent adapts mid-sentence - not a fixed script that resumes",
+          "claude_draft": "a natural, ADAPTIVE voice conversation (\"felt like a real conversation\") - not a typed survey",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Insight capture",
+          "quality_bar": "output includes themes + supporting quotes + confidence per theme - not just bullet list of themes",
+          "claude_draft": "STRUCTURED extracted signal (themes, confirms/contradicts) - not a raw transcript dump",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "The \"insights in minutes\" promise to distributors"
+        },
+        {
+          "attribute": "White-label",
+          "quality_bar": "distributor logo, domain, voice persona configurable end-to-end with zero Connexions branding visible - not \"powered by\"",
+          "claude_draft": "distributor brands it as theirs end-to-end - not \"powered by Connexions\"",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Distributor pull: \"under my brand\""
+        },
+        {
+          "attribute": "Scale at quality",
+          "quality_bar": "demonstrated run of 100+ interviews same day with consistent insight schema - not a small-N pilot",
+          "claude_draft": "thousands of interviews at consistent quality - not \"we will scale soon\"",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "The scale claim must be demonstrable, not aspirational"
+        }
+      ],
+      "bars_filled": 4
+    },
+    {
+      "tab": "Kira",
+      "slug": "kira",
+      "needed": "Y",
+      "promise": "A patient AI companion that guides you through learning a skill, planning a project, or mastering anything; each Kira is personalised",
+      "distributor": "Coaching, wellness & education platforms",
+      "attributes": [
+        {
+          "attribute": "Patient companion (voice)",
+          "quality_bar": "agent waits, asks clarifying follow-ups, accepts long pauses - not a fast-turn chat cadence",
+          "claude_draft": "a VOICE you talk to that doesn't hurry you - not a chat text box",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Remembers + personalises",
+          "quality_bar": "session-1 setup is referenced in session-3 turn-1 without prompting - not generic small-talk recall",
+          "claude_draft": "opens with prior context, shaped to YOUR goal (\"a brilliant friend available anytime\") - not blank slate",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Welcome-back recall = memory promise landing"
+        },
+        {
+          "attribute": "Each Kira is yours",
+          "quality_bar": "distributor picks name, persona, scope; their members see \"Their Kira\", not \"Kira by CAIS\" - not surface-level skin",
+          "claude_draft": "distinct persona per user/distributor (\"MY Kira\") - not a single shared agent",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Distributor pull: \"a personal AI guide for my members, under my brand\""
+        },
+        {
+          "attribute": "Cross-domain (skill / project / mastery)",
+          "quality_bar": "one continuous thread spans skill + project + mastery for the same user - not three menu options",
+          "claude_draft": "same agent handles learning + planning + mastery - not three separate tools",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        }
+      ],
+      "bars_filled": 4
+    },
+    {
+      "tab": "RaiseReady",
+      "slug": "raiseready-template",
+      "needed": "Y",
+      "promise": "White-label AI pitch-rehearsal coach - founders practise the raise out loud, get scored, and improve",
+      "distributor": "VC accelerators & incubators",
+      "attributes": [
+        {
+          "attribute": "Pitch rehearsal",
+          "quality_bar": "founder speaks for ≥60s uninterrupted, system catches at least 3 specific delivery issues - not \"good rehearsal\"",
+          "claude_draft": "founder delivers the pitch OUT LOUD + gets coached (\"walked in ready, not nervous\") - not deck feedback",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Out-loud delivery = the promise"
+        },
+        {
+          "attribute": "Coaching",
+          "quality_bar": "feedback timestamped to the second + names the issue (\"0:43 you said 'um' 4 times in 10s\") - not paragraph summary",
+          "claude_draft": "specific, timestamped delivery feedback + a score - not \"be more confident\"",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Martin VC feedback: lead with how the coaching works, not outcomes"
+        },
+        {
+          "attribute": "Knows your pitch",
+          "quality_bar": "system quotes founder's own slide 4 in its critique - not generic pitch advice",
+          "claude_draft": "references your actual deck/goal - not generic pitch tips",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Cohort/program impact",
+          "quality_bar": "accelerator dashboard shows cohort-level Δ score from rehearsal 1 → rehearsal 5 - not founder-by-founder PDFs",
+          "claude_draft": "accelerator sees aggregate cohort pitch improvement - not per-founder anecdotes",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "Distributor pull: \"stronger deal flow, a more valuable program\""
+        },
+        {
+          "attribute": "White-label",
+          "quality_bar": "accelerator domain, logo, persona, custom rubrics; founders never see \"RaiseReady\" - not co-branded header",
+          "claude_draft": "accelerator brands it as theirs - not co-branded",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        }
+      ],
+      "bars_filled": 5
+    },
+    {
+      "tab": "LingoPure",
+      "slug": "lingopure-ai",
+      "needed": "Y",
+      "promise": "Voice-led English/language upskilling with gap-scored micro-learning and CEFR certification; employer cohort dashboards",
+      "distributor": "Employers & language schools",
+      "attributes": [
+        {
+          "attribute": "Gap detection",
+          "quality_bar": "AI names the specific gap (e.g. \"your /θ/ becomes /t/ in word-initial position\") - not \"work on pronunciation\"",
+          "claude_draft": "AI hears the specific gap + scores it (\"someone finally heard my gap\") - not a generic level test",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Prior draft (acting scene partner) was WRONG - corrected per overview"
+        },
+        {
+          "attribute": "Micro-learning targeted to gap",
+          "quality_bar": "next exercise drills the named gap specifically + retest closes it - not next-lesson-in-sequence",
+          "claude_draft": "practice exercises target the detected gap - not a generic curriculum",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "CEFR certification",
+          "quality_bar": "cert is mapped to CEFR descriptors with auditable evidence per descriptor - not a number + a badge",
+          "claude_draft": "issues an externally credible CEFR cert - not a self-graded badge",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "Certification = the distributor trust signal"
+        },
+        {
+          "attribute": "Cohort dashboard",
+          "quality_bar": "employer sees individual CEFR delta over time + can export proof for compliance - not aggregate score only",
+          "claude_draft": "employer sees provable team improvement over time - not anecdotes",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Distributor pull: \"I can prove my team's English improvement\""
+        }
+      ],
+      "bars_filled": 4
+    },
+    {
+      "tab": "DealFindrs",
+      "slug": "dealfindrs",
+      "needed": "Y",
+      "promise": "AI property-deal assessment - instant Green/Amber/Red on every opportunity",
+      "distributor": "Buyers' agents & property firms",
+      "attributes": [
+        {
+          "attribute": "Instant verdict",
+          "quality_bar": "G/A/R verdict + headline reason renders in <3s p95 on a fresh deal - not a 30-second processing wait",
+          "claude_draft": "GREEN/AMBER/RED in seconds per deal (\"stop guessing\") - not a long report",
+          "verify": "NAIVE/AUTO",
+          "approved": true,
+          "notes": "The G/A/R is the headline, not the back-end work"
+        },
+        {
+          "attribute": "The 'why'",
+          "quality_bar": "the \"why\" cites the specific metric thresholds breached/met (yield, comparable, planning risk) - not a paragraph of prose",
+          "claude_draft": "clear reason + the numbers behind each verdict - not just a colour",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Trust moment for regulated/professional buyers"
+        },
+        {
+          "attribute": "Coverage",
+          "quality_bar": "tested live on 5 unrelated deal types (resi, commercial, off-market, dev site, regional) without breaking - not \"works on most\"",
+          "claude_draft": "works on any deal you throw at it - not a curated subset",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Distributor edge",
+          "quality_bar": "agent's client portal shows the agent's curated G/A/R deals - not a link out to dealfindrs.com",
+          "claude_draft": "agent shows clients a \"steady flow of scored deals\" - not \"I have a tool you can use\"",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "Distributor pull: \"I look like I have an edge\""
+        }
+      ],
+      "bars_filled": 4
+    },
+    {
+      "tab": "InvestorPilot",
+      "slug": "investor-pilot",
+      "needed": "Y",
+      "promise": "Multi-channel direct outreach - discover, score, draft, approve, send across LinkedIn + email; compliance-aware, audit-logged",
+      "distributor": "VC & advisory firms",
+      "attributes": [
+        {
+          "attribute": "Discover + score",
+          "quality_bar": "each contact card shows ≥3 signal-based reasons (\"they led the last 2 rounds in your sector at your stage\") - not a fit %",
+          "claude_draft": "named investors/partners with the \"why them\" + a fit score - not a generic list",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Draft personalised",
+          "quality_bar": "first sentence of draft names the specific shared signal - not \"Hi, I saw your work and...\"",
+          "claude_draft": "drafted outreach references the specific \"why\" per contact - not a mail-merge",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Approve before send",
+          "quality_bar": "send is blocked until human ticks approve + edits visible since last approval - not a \"review then send\" toast",
+          "claude_draft": "human-in-the-loop approval gate - not auto-send",
+          "verify": "NAIVE/AUTO",
+          "approved": true,
+          "notes": "Consequence-clarity (criterion #31) lives here"
+        },
+        {
+          "attribute": "Multi-channel: LinkedIn + email",
+          "quality_bar": "one send action goes out across both channels with channel-appropriate phrasing - not the same copy on both",
+          "claude_draft": "one workflow sends across both - not two separate tools",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Compliance-aware + audit-logged",
+          "quality_bar": "audit log captures sender, recipient, content hash, approval timestamp, consent basis - not just sent/not-sent",
+          "claude_draft": "every send logged with consent/compliance context - not a black-box outreach tool",
+          "verify": "AUTO/JUDGE",
+          "approved": true,
+          "notes": "Distinguishes from Instantly.ai-class spray"
+        },
+        {
+          "attribute": "Warm pipeline feel",
+          "quality_bar": "founder can name 3 reasons they're messaging this person before sending - not \"you generated 50 contacts\"",
+          "claude_draft": "founder feels \"researched, not cold guessing\" - not a contact dump",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": ""
+        }
+      ],
+      "bars_filled": 6
+    },
+    {
+      "tab": "PartnerPilot",
+      "slug": "partner-pilot",
+      "needed": "Y",
+      "promise": "Discovers, scores, and preps outreach for ideal channel partners from an ICP",
+      "distributor": "Agencies & BD-as-a-service",
+      "attributes": [
+        {
+          "attribute": "Partner discovery from ICP",
+          "quality_bar": "ICP is captured before search runs (no defaults), and unmatched results explain WHY they didn't match - not silent filtering",
+          "claude_draft": "scored partners matching your defined ICP - not \"SMBs\"",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Rule 15 lives at the product level here"
+        },
+        {
+          "attribute": "The 'why each partner fits'",
+          "quality_bar": "rationale names what the partner brings that you can't deliver today (capability, channel, geography) - not industry/size match",
+          "claude_draft": "specific fit rationale per partner (\"knew why each partner fit before I reached out\") - not just a score",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Outreach drafted",
+          "quality_bar": "first paragraph references the specific capability gap - not \"We help SaaS companies grow\"",
+          "claude_draft": "personalised outreach drafted per partner - not generic",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Productised BD across clients",
+          "quality_bar": "one agency runs ≥10 distinct client ICPs in parallel without cross-contamination - not \"supports multiple users\"",
+          "claude_draft": "agency uses it across multiple clients (\"partner discovery at scale\") - not a one-off tool",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "Distributor pull: \"productised BD\""
+        },
+        {
+          "attribute": "Upstream ICP stages (on horizon)",
+          "quality_bar": "ICP Discovery + Prioritisation + Partner ICP Derivation are visible stages BEFORE search runs - not search-first",
+          "claude_draft": "ICP Discovery + Prioritisation + Partner ICP Derivation stages exist - not partner search only",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Per Dennis memory - planned enhancement; mark when shipped"
+        }
+      ],
+      "bars_filled": 5
+    },
+    {
+      "tab": "NDIS SDA",
+      "slug": "ndis-sda-automate",
+      "needed": "Y",
+      "promise": "Automates NDIS SDA claims, reconciliation, and property management",
+      "distributor": "NDIS providers & SDA consultants",
+      "attributes": [
+        {
+          "attribute": "Claims automation",
+          "quality_bar": "submission-ready claim file generated end-to-end from raw inputs - not a pre-filled form to finish manually",
+          "claude_draft": "produces the actual SDA claim (\"paperwork that used to terrify me just got done\") - not a checklist",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Reconciliation",
+          "quality_bar": "reconciliation flags every payment-vs-claim gap with line-item evidence - not a totals mismatch",
+          "claude_draft": "reconciles claims against payments end-to-end - not a partial export",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "The Engine 4 financial-cycle promise"
+        },
+        {
+          "attribute": "Property management",
+          "quality_bar": "property record shows participants, claims, compliance state, next-action - not a separate property table",
+          "claude_draft": "tracks SDA-eligible properties + their participants - not a separate spreadsheet",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Auditable",
+          "quality_bar": "each finding shows the NDIS rule reference + the source record (form, invoice, plan) - not \"compliant: yes\"",
+          "claude_draft": "each step traceable to NDIS rule + source record - not opaque pass/fail",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "Compliance bar - \"no close enough\" in NDIS"
+        },
+        {
+          "attribute": "Capacity unlocked",
+          "quality_bar": "provider takes on ≥1 new participant without adding admin headcount - measurable, not anecdotal",
+          "claude_draft": "provider takes on more participants without more admin - not \"saves you time\"",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "Distributor pull: \"compliance stops being my bottleneck\""
+        }
+      ],
+      "bars_filled": 5
+    },
+    {
+      "tab": "R&D Tax",
+      "slug": "rnd-tax-tracker",
+      "needed": "Y",
+      "promise": "Captures eligible R&D work as it happens and preps the tax-incentive claim",
+      "distributor": "Accountancy firms",
+      "attributes": [
+        {
+          "attribute": "Capture-as-you-go",
+          "quality_bar": "work captured passively during the activity (commit, doc, meeting) - not a \"remember to log\" prompt",
+          "claude_draft": "eligible R&D work captured at the moment (\"my claim wrote itself from work I'd already done\") - not retro reconstruction",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "The \"wrote itself\" moment is the promise"
+        },
+        {
+          "attribute": "Claim prep",
+          "quality_bar": "claim doc reads as a coherent technical narrative with activity → uncertainty → experiment mapping - not bullets of inputs",
+          "claude_draft": "assembles the claim narrative + eligible-activity mapping - not a spreadsheet of inputs",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Evidence-linked",
+          "quality_bar": "click any claim line, see the source artefact (git commit, doc, transcript) - not \"evidence file attached\"",
+          "claude_draft": "each claim line ties to a captured source record - not unsupported assertions",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "The audit-defence standard"
+        },
+        {
+          "attribute": "Accountancy-fit",
+          "quality_bar": "output imports directly into the accountant's lodgement tool (or 1-step export) - not a PDF the accountant retypes",
+          "claude_draft": "output drops into the accountant's claim process - not a separate workflow they have to learn",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "Distributor pull: \"higher-margin advisory\""
+        }
+      ],
+      "bars_filled": 4
+    },
+    {
+      "tab": "CQR",
+      "slug": "cqr",
+      "needed": "Y",
+      "promise": "Answers community questions in your brand voice (BYOK, free, self-host)",
+      "distributor": "Dev shops & community operators",
+      "attributes": [
+        {
+          "attribute": "Brand voice fidelity",
+          "quality_bar": "A/B blind test: ≥70% of operator's community can't distinguish CQR answer from operator-written - not \"sounds like our brand\"",
+          "claude_draft": "responses sound like YOU/your brand (\"instant, on-brand answer\") - not generic AI boilerplate",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "BYOK self-host",
+          "quality_bar": "clone → configure key → first answer in <10 minutes documented - not \"minutes\" handwave",
+          "claude_draft": "running on operator's own keys/infra in minutes - not a hosted signup",
+          "verify": "AUTO/NAIVE",
+          "approved": true,
+          "notes": "The distribution model"
+        },
+        {
+          "attribute": "MIT/public",
+          "quality_bar": "fork on day 1 builds and runs without contacting Dennis - not \"open source with steps in the README that may work\"",
+          "claude_draft": "fully open + forkable - not a \"free tier\" with locks",
+          "verify": "AUTO",
+          "approved": true,
+          "notes": "Lane 4 lane = awareness, not revenue - score appropriately"
+        },
+        {
+          "attribute": "Factory demonstration",
+          "quality_bar": "CQR landing links to ≥1 paid CAIS product page with measurable referral - not standalone GitHub repo",
+          "claude_draft": "serves as a public taste of the CAIS factory - not a standalone product",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "Distributor pull: \"a taste of the factory\""
+        }
+      ],
+      "bars_filled": 4
+    },
+    {
+      "tab": "Universal Interviews",
+      "slug": "universal-interviews",
+      "needed": "?",
+      "promise": "A reusable AI interviewer engine across domains",
+      "distributor": null,
+      "attributes": [
+        {
+          "attribute": "Reusable engine",
+          "quality_bar": null,
+          "claude_draft": "one interviewer config + multi-domain templates - not a hard-coded vertical app",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW - Not in PRODUCT_OVERVIEWS - confirm if this is a separate product or substrate to Connexions"
+        },
+        {
+          "attribute": "Domain adaptation",
+          "quality_bar": null,
+          "claude_draft": "interview logic shifts per domain config - not a generic catch-all script",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW - Likely Connexions infrastructure - may not need a separate gate"
+        },
+        {
+          "attribute": "Structured output",
+          "quality_bar": null,
+          "claude_draft": "normalised insight schema across runs - not freeform notes",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW"
+        }
+      ],
+      "bars_filled": 0
+    },
+    {
+      "tab": "rehearsals-ai",
+      "slug": "rehearsals-ai",
+      "needed": "Y",
+      "promise": "AI voice coaches that play your toughest audience; practise, get scored, perfect before the moment",
+      "distributor": "Professional associations & training orgs",
+      "attributes": [
+        {
+          "attribute": "Audience-as-AI",
+          "quality_bar": "AI interrupts, asks hostile questions, expresses scepticism - not a passive listener",
+          "claude_draft": "AI plays a realistic toughest-audience role (\"practised against a real audience\") - not solo talking-to-self",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "The \"real audience\" feel is the differentiator"
+        },
+        {
+          "attribute": "Scored practice",
+          "quality_bar": "each rehearsal scored on ≥3 named axes (clarity, pace, handling pushback) with rubric visible - not a single overall score",
+          "claude_draft": "each rehearsal scored on specifics - not vibes-based feedback",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Improvement over reps",
+          "quality_bar": "rehearsal 5 shows measurable lift in at least one axis vs rehearsal 1 for the same user - not \"you got better\"",
+          "claude_draft": "visible improvement across rehearsals - not one-shot feedback",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Member-success reflects on distributor",
+          "quality_bar": "association sees member usage + outcome and can publicise wins - not a vanity dashboard",
+          "claude_draft": "association sees members presenting better - not a tool buried in a portal",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "Distributor pull: \"their success reflects on me\""
+        }
+      ],
+      "bars_filled": 4
+    },
+    {
+      "tab": "LaunchReady",
+      "slug": "launchready",
+      "needed": "Y",
+      "promise": "Voice-guided IP protection for founders - automate trademark filing, capture evidence, launch with confidence",
+      "distributor": "Accelerators & IP / legal firms",
+      "attributes": [
+        {
+          "attribute": "IP protection (not \"launch prep\")",
+          "quality_bar": "product files the trademark application within itself (or generates the exact ready-to-lodge file) - not \"here's how to do it\"",
+          "claude_draft": "trademark filing happens through the product - not advice to go file separately",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Prior draft (launch-prep coach) was WRONG - corrected; objective is IP"
+        },
+        {
+          "attribute": "Voice-guided",
+          "quality_bar": "voice agent leads the entire IP flow start-to-finish; user could be eyes-off the screen - not voice as helper button",
+          "claude_draft": "voice agent walks founder through it - not a form to read",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Voice DNA placement"
+        },
+        {
+          "attribute": "Evidence capture",
+          "quality_bar": "evidence captured includes timestamped creation artefacts (drafts, dated files) - not user-asserted dates",
+          "claude_draft": "captures creation evidence as you go - not retroactive reconstruction",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Defensibility for the founder later"
+        },
+        {
+          "attribute": "Confidence-to-launch",
+          "quality_bar": "founder can articulate \"I own X, registered on Y, in jurisdictions Z\" after a session - not \"I've started the process\"",
+          "claude_draft": "founder feels \"protected before someone else takes it\" - not \"I should do this someday\"",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Distributor white-label",
+          "quality_bar": "accelerator/IP firm domain, persona, branded outputs; their founders never see LaunchReady - not co-branded",
+          "claude_draft": "accelerator/IP firm brands it as theirs - not co-branded",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Distributor pull: \"guided IP protection for my founders, under my brand\""
+        }
+      ],
+      "bars_filled": 5
+    },
+    {
+      "tab": "UniversalLingo",
+      "slug": "universallingo",
+      "needed": "Y",
+      "promise": "Real-time translation per industry (clinics, hotels, government, education), white-label",
+      "distributor": "Clinics, hotels, councils, schools",
+      "attributes": [
+        {
+          "attribute": "Real-time translation",
+          "quality_bar": "two-way conversation flows turn-by-turn with sub-second translation per turn - not record-then-translate",
+          "claude_draft": "two-way live translation in the moment (\"I was understood in my own language\") - not a phrasebook",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Prior draft (pronunciation coach) was WRONG - corrected"
+        },
+        {
+          "attribute": "Industry-specific vocabulary",
+          "quality_bar": "tested live against 20 sector-specific terms (clinical/civic/hospitality) with correct rendering - not \"handles industry terms\"",
+          "claude_draft": "clinical/hospitality/civic terminology handled correctly - not consumer-grade translation",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "The vertical claim must show in a single demo"
+        },
+        {
+          "attribute": "Named vertical, not \"every industry\"",
+          "quality_bar": "one landing page = one named vertical, with vertical-specific examples and case studies - not a multi-vertical homepage",
+          "claude_draft": "landing page targets ONE named vertical - not \"any industry\"",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Per status note - GTM Rule 15 applied to messaging"
+        },
+        {
+          "attribute": "White-label",
+          "quality_bar": "distributor's domain, branding, persona, with no UL footer or attribution - not \"powered by\"",
+          "claude_draft": "distributor brands it as theirs - not co-branded",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Distributor pull: \"branded as mine\""
+        }
+      ],
+      "bars_filled": 4
+    },
+    {
+      "tab": "TourLingo",
+      "slug": "tourlingo",
+      "needed": "Y",
+      "promise": "Real-time, two-way translation guides use live on tour",
+      "distributor": "Tour operators & travel companies",
+      "attributes": [
+        {
+          "attribute": "Two-way real-time translation",
+          "quality_bar": "guide speaks, traveller hears native-language audio in <1.5s without unmute/replay - not transcript only",
+          "claude_draft": "guide + traveller can speak in own language live (\"could actually speak in the moment\") - not phrasebook lookup",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Prior draft (travel-language coach) was WRONG - corrected"
+        },
+        {
+          "attribute": "On-tour reliability",
+          "quality_bar": "works at ≥75dB ambient + on a 3G connection without breaking - not \"best in quiet room\"",
+          "claude_draft": "works in tour conditions (noise, intermittent signal) - not a quiet-room demo",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Branded for the operator",
+          "quality_bar": "operator brand visible on traveller's phone screen during use - not just on the booking page",
+          "claude_draft": "tour company brands it as their differentiator - not generic translation app",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Distributor pull: \"a branded differentiator\""
+        },
+        {
+          "attribute": "Hero rewrite pending",
+          "quality_bar": "hero copy names the \"speak in the moment\" promise above the fold + a demo button - not feature list",
+          "claude_draft": "landing copy lands the \"in the moment\" promise - currently does not",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Known gap per status note - pre-Gate-1 blocker"
+        }
+      ],
+      "bars_filled": 4
+    },
+    {
+      "tab": "mova",
+      "slug": "mova",
+      "needed": "?",
+      "promise": "(define) - passion / override lane",
+      "distributor": null,
+      "attributes": [
+        {
+          "attribute": "Promise",
+          "quality_bar": null,
+          "claude_draft": "TBD - define before Gate-1 candidacy",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW - Not in PRODUCT_OVERVIEWS - promise undefined"
+        },
+        {
+          "attribute": "Attribute 2",
+          "quality_bar": null,
+          "claude_draft": "TBD",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW"
+        },
+        {
+          "attribute": "Attribute 3",
+          "quality_bar": null,
+          "claude_draft": "TBD",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW"
+        }
+      ],
+      "bars_filled": 0
+    },
+    {
+      "tab": "storyverse",
+      "slug": "storyverse",
+      "needed": "?",
+      "promise": "(define) - passion / override lane",
+      "distributor": null,
+      "attributes": [
+        {
+          "attribute": "Promise",
+          "quality_bar": null,
+          "claude_draft": "TBD - define before Gate-1 candidacy",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW - Not in PRODUCT_OVERVIEWS - promise undefined"
+        },
+        {
+          "attribute": "Attribute 2",
+          "quality_bar": null,
+          "claude_draft": "TBD",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW"
+        },
+        {
+          "attribute": "Attribute 3",
+          "quality_bar": null,
+          "claude_draft": "TBD",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW"
+        }
+      ],
+      "bars_filled": 0
+    },
+    {
+      "tab": "F2K Projects",
+      "slug": "f2k-projects",
+      "needed": "Y",
+      "promise": "Property-estate marketing + admin (Seafields / Branscombe / Hemp Homes)",
+      "distributor": null,
+      "attributes": [
+        {
+          "attribute": "Estate-specific surfaces",
+          "quality_bar": null,
+          "claude_draft": "Seafields/Branscombe/Hemp landing pages with their own narrative - not a shared shell",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW - Not in PRODUCT_OVERVIEWS - confirm if internal F2K op tool vs distributed product"
+        },
+        {
+          "attribute": "Admin automation",
+          "quality_bar": null,
+          "claude_draft": "enquiry intake + qualification handled by an agent - not a manual inbox",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW - Distributor archetype unclear - possibly N/A (F2K-internal)"
+        },
+        {
+          "attribute": "Founder-credibility frame",
+          "quality_bar": null,
+          "claude_draft": "lead with the F2K build pedigree - not generic property marketing",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW - Built-by-builder narrative"
+        }
+      ],
+      "bars_filled": 0
+    },
+    {
+      "tab": "LGA Planning DB",
+      "slug": "lga-planning-db",
+      "needed": "Y",
+      "promise": "Pre-built Australian council planning rules",
+      "distributor": null,
+      "attributes": [
+        {
+          "attribute": "Rule coverage",
+          "quality_bar": null,
+          "claude_draft": "every Australian LGA rule queryable - not a sample",
+          "verify": "AUTO/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW - Not in PRODUCT_OVERVIEWS - likely substrate, not a distributed product"
+        },
+        {
+          "attribute": "Rule traceability",
+          "quality_bar": null,
+          "claude_draft": "each rule cites the source planning instrument - not paraphrased",
+          "verify": "AUTO/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW - Auditability for regulated buyers"
+        },
+        {
+          "attribute": "Machine-queryable",
+          "quality_bar": null,
+          "claude_draft": "callable as a substrate by other portfolio products - not a static PDF index",
+          "verify": "AUTO/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW - May be infrastructure (like Storefront MCP / Property Services) - distributor N/A"
+        }
+      ],
+      "bars_filled": 0
+    },
+    {
+      "tab": "LeadSpark",
+      "slug": "leadspark",
+      "needed": "?",
+      "promise": "Lead generation",
+      "distributor": null,
+      "attributes": [
+        {
+          "attribute": "Lead discovery",
+          "quality_bar": null,
+          "claude_draft": "named leads matching ICP with rationale - not a scraped list",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW - Not in PRODUCT_OVERVIEWS - confirm differentiation from InvestorPilot/PartnerPilot/OutreachReady"
+        },
+        {
+          "attribute": "Signal-triggered",
+          "quality_bar": null,
+          "claude_draft": "leads surface on trigger events (funding, hire, RFP) - not point-in-time scrape",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW - Relationship-led GTM thesis encoded"
+        },
+        {
+          "attribute": "Enrichment depth",
+          "quality_bar": null,
+          "claude_draft": "usable contact + context per lead - not raw email guesses",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW - Overlap risk with portfolio - consider consolidation"
+        }
+      ],
+      "bars_filled": 0
+    },
+    {
+      "tab": "OutreachReady",
+      "slug": "outreachready",
+      "needed": "Y",
+      "promise": "Researches each prospect and drafts the outreach, so every send is relevant",
+      "distributor": "Sales agencies",
+      "attributes": [
+        {
+          "attribute": "Per-prospect research",
+          "quality_bar": "dossier includes ≥5 prospect-specific signals (role, recent activity, company event, mutual ref, content trail) - not LinkedIn snippet",
+          "claude_draft": "each prospect gets a real dossier before drafting - not just name + company",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Drafted with the research baked in",
+          "quality_bar": "first sentence of every draft names a specific finding from the dossier - not generic \"I saw your company\"",
+          "claude_draft": "draft references the specific finding (\"personalised, not spray-and-pray\") - not a mail-merge",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Cross-client scaling",
+          "quality_bar": "agency runs ≥10 client campaigns in parallel from one console with isolated data - not one-client-at-a-time",
+          "claude_draft": "agency runs it across many clients without proportional headcount - not per-rep grind",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "Distributor pull: \"personalised outreach across clients without scaling headcount\""
+        },
+        {
+          "attribute": "Hero rewrite pending",
+          "quality_bar": "hero copy: \"research → draft → relevant send\" promise above fold with a demo - not feature paragraph",
+          "claude_draft": "landing copy lands \"research → draft\" promise - currently does not",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Known gap per status note - pre-Gate-1 blocker"
+        }
+      ],
+      "bars_filled": 4
+    },
+    {
+      "tab": "TenderWatch",
+      "slug": "tenderwatch",
+      "needed": "?",
+      "promise": "AI tender intelligence - matches + summarises Australian government tenders so you never miss one",
+      "distributor": "Bid-writing & consulting firms",
+      "attributes": [
+        {
+          "attribute": "Never-miss matching",
+          "quality_bar": "matches against your stated capabilities not just keywords; missed-relevance rate <5% in audit - not \"matches AusTender feed\"",
+          "claude_draft": "every relevant AU gov tender matched to your capability (\"never miss a relevant tender\") - not a daily digest",
+          "verify": "AUTO/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Useful summary per tender",
+          "quality_bar": "summary states scope + value + deadline + go/no-go reason in ≤5 lines - not a paragraph excerpt",
+          "claude_draft": "go/no-go signal + scope summary - not just title + link",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Retention hook for distributors",
+          "quality_bar": "consulting firm runs across ≥5 client capability profiles with separated tender feeds - not single-tenant",
+          "claude_draft": "consulting firm uses it across all their clients - not per-client",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "Distributor pull: \"a retention hook\""
+        },
+        {
+          "attribute": "ETL stable",
+          "quality_bar": "ETL has run continuously for 14 days with zero gaps and is monitored - not \"ETL is in progress\"",
+          "claude_draft": "feeds stable and current before Gate-1 - currently ETL/in-progress",
+          "verify": "AUTO",
+          "approved": true,
+          "notes": "Mark N until ETL stabilises"
+        }
+      ],
+      "bars_filled": 4
+    },
+    {
+      "tab": "F2K Checkpoint",
+      "slug": "checkpoint",
+      "needed": "Y",
+      "promise": "Construction compliance + stage sign-off workflow (built by a builder, Factory2Key)",
+      "distributor": "Modular builders & principals",
+      "attributes": [
+        {
+          "attribute": "Stage sign-off workflow",
+          "quality_bar": "a stage cannot close until its required artefacts are present + signed; the system blocks - not flags",
+          "claude_draft": "every stage signed off cleanly with audit trail (\"no scramble at inspection\") - not a kanban",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "NCC compliance baked in",
+          "quality_bar": "compliance check IDs a specific NCC 2025 clause per finding - not \"passes/fails compliance\"",
+          "claude_draft": "compliance check fires on the relevant stage - not a separate audit",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "NCC 2025 depth = the moat"
+        },
+        {
+          "attribute": "Audit trail certifiers trust",
+          "quality_bar": "certifier can read the full audit trail unaided in <5 minutes without back-and-forth - not \"audit trail exists\"",
+          "claude_draft": "certifier can verify history without back-and-forth - not a screenshot dump",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "Distributor pull: \"clear compliance faster, with an audit trail certifiers trust\""
+        },
+        {
+          "attribute": "Built-by-a-builder credibility",
+          "quality_bar": "Dennis's Factory2Key story is in the hero + a \"built on our own site\" proof point - not buried in About",
+          "claude_draft": "origin story (Factory2Key) front-and-centre - not generic SaaS positioning",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "Basecamp/Shopify-style founder narrative - the differentiator"
+        }
+      ],
+      "bars_filled": 4
+    },
+    {
+      "tab": "F2K Fund Token",
+      "slug": "f2k-fund-tokenisation",
+      "needed": "N",
+      "promise": "Fund tokenisation compliance",
+      "distributor": null,
+      "attributes": [
+        {
+          "attribute": "Tokenisation pipeline",
+          "quality_bar": null,
+          "claude_draft": "a compliant token issuance flow for the fund - not a generic token mint",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW - Not in PRODUCT_OVERVIEWS - regulatory complexity high; confirm priority"
+        },
+        {
+          "attribute": "Investor disclosures",
+          "quality_bar": null,
+          "claude_draft": "auto-generated regulator-ready disclosures - not a manual PDF",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW"
+        },
+        {
+          "attribute": "Compliance traceability",
+          "quality_bar": null,
+          "claude_draft": "each disclosure cites the regulation - not unsupported",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW"
+        }
+      ],
+      "bars_filled": 0
+    },
+    {
+      "tab": "Disaster Support",
+      "slug": "disaster-support",
+      "needed": "Y",
+      "promise": "Multi-channel AI support for disaster-affected communities; agencies deploy in 24 hours",
+      "distributor": "Disaster-recovery agencies (gov / NFP)",
+      "attributes": [
+        {
+          "attribute": "Multi-channel intake",
+          "quality_bar": "same case progresses across voice, SMS, web without the person re-identifying themselves - not channel-linked accounts",
+          "claude_draft": "people reach help via voice/SMS/web - not one channel only",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "No-repeat routing",
+          "quality_bar": "context carries means: zero re-asking of name, location, situation across ≥2 channels - measurable, not \"less repeat\"",
+          "claude_draft": "context carries across channels (\"without me re-telling my story five times\") - not siloed intake",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "The \"I get helped, not re-interviewed\" moment"
+        },
+        {
+          "attribute": "24-hour deploy",
+          "quality_bar": "agency can deploy a branded instance, configured for their event, in <24h - measurable not aspirational",
+          "claude_draft": "agency stands it up in 24h for a live event - not a procurement cycle",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "The \"speed-to-aid\" promise - critical for disaster context"
+        },
+        {
+          "attribute": "Coordinated triage for the agency",
+          "quality_bar": "triage dashboard shows real-time prioritisation + handover state - not a contact list",
+          "claude_draft": "agency sees faster coordinated response, less manual triage - not just a chatbot",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "Distributor pull: \"faster coordinated response with less manual triage\""
+        }
+      ],
+      "bars_filled": 4
+    },
+    {
+      "tab": "AIFTIS",
+      "slug": "aiftis",
+      "needed": "?",
+      "promise": "(define) compliance workflow",
+      "distributor": null,
+      "attributes": [
+        {
+          "attribute": "Promise",
+          "quality_bar": null,
+          "claude_draft": "TBD - compliance domain to be defined",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW - Not in PRODUCT_OVERVIEWS - clarify domain + needed-or-not"
+        },
+        {
+          "attribute": "Attribute 2",
+          "quality_bar": null,
+          "claude_draft": "TBD",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW"
+        },
+        {
+          "attribute": "Attribute 3",
+          "quality_bar": null,
+          "claude_draft": "TBD",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW"
+        }
+      ],
+      "bars_filled": 0
+    },
+    {
+      "tab": "Lessons Learned",
+      "slug": "lessonslearned",
+      "needed": "Y",
+      "promise": "Voice-capture a learning on the go",
+      "distributor": null,
+      "attributes": [
+        {
+          "attribute": "Voice-capture",
+          "quality_bar": null,
+          "claude_draft": "one-tap voice note + auto-distil to a lesson - not typing on a phone",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW - Not in PRODUCT_OVERVIEWS - likely internal tool; distributor archetype may be N/A"
+        },
+        {
+          "attribute": "Searchable",
+          "quality_bar": null,
+          "claude_draft": "recall by tag/situation, not chronological scroll - not a notes app",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW"
+        },
+        {
+          "attribute": "Pull-back at point of need",
+          "quality_bar": null,
+          "claude_draft": "surfaces the relevant lesson when context matches - not passive archive",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW - VMS distil-then-recall pattern"
+        }
+      ],
+      "bars_filled": 0
+    },
+    {
+      "tab": "Easy Claude Code",
+      "slug": "easy-claude-code",
+      "needed": "Y",
+      "promise": "Browser dashboard to manage local Claude Code sessions - no terminals",
+      "distributor": "Dev shops & tool vendors",
+      "attributes": [
+        {
+          "attribute": "No terminals required",
+          "quality_bar": "every CC primitive (start/stop/permissions/files/diff) reachable in-browser - not \"most things, fall back to terminal for the rest\"",
+          "claude_draft": "every Claude Code action available in-browser (\"every project, one dashboard\") - not a terminal wrapper",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Manages LOCAL sessions",
+          "quality_bar": "sessions visibly run on the developer's machine (process list, local FS) - not ambiguous remote-vs-local",
+          "claude_draft": "connects to the dev's local CC instances - not a remote managed runtime",
+          "verify": "AUTO/JUDGE",
+          "approved": true,
+          "notes": "Trust point - \"I control the permissions\""
+        },
+        {
+          "attribute": "Permission control",
+          "quality_bar": "permission grants are per-session, scoped, auditable, and revocable mid-session - not all-or-nothing",
+          "claude_draft": "developer controls scope/permissions per session - not blanket access",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": ""
+        },
+        {
+          "attribute": "Upload + version + push (on horizon)",
+          "quality_bar": "paste-plan → versioned doc → push to a named GitHub repo in one flow - not three separate tools to glue",
+          "claude_draft": "paste/upload plans, version history, GitHub push - identified first-priority workstream",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "Per Dennis memory - planned next; mark when shipped"
+        },
+        {
+          "attribute": "Team-fit for dev shops",
+          "quality_bar": "dev shop admin can see + manage all their devs' sessions from one view - not per-dev silos",
+          "claude_draft": "a managed surface a dev shop can give their team - not solo dev only",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "Distributor pull: \"a managed Claude Code surface for my team\""
+        }
+      ],
+      "bars_filled": 5
+    },
+    {
+      "tab": "Storefront MCP",
+      "slug": "storefront-mcp",
+      "needed": "Y",
+      "promise": "Storefront integration via MCP",
+      "distributor": null,
+      "attributes": [
+        {
+          "attribute": "Agent-discoverable",
+          "quality_bar": null,
+          "claude_draft": "a business is queryable by external agents via MCP - not just a website",
+          "verify": "AUTO/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW - Not in PRODUCT_OVERVIEWS - shared-infrastructure / agent-readiness layer"
+        },
+        {
+          "attribute": "Protocol completeness",
+          "quality_bar": null,
+          "claude_draft": "covers inventory/pricing/availability surfaces - not just static info",
+          "verify": "AUTO/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW"
+        },
+        {
+          "attribute": "Portfolio leverage",
+          "quality_bar": null,
+          "claude_draft": "every CAIS product can be agent-exposed via this layer - not one-off integrations",
+          "verify": "AUTO/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW - Connective tissue thesis - the portfolio multiplier; distributor N/A"
+        }
+      ],
+      "bars_filled": 0
+    },
+    {
+      "tab": "Preflight",
+      "slug": "preflight",
+      "needed": "Y",
+      "promise": "Feature pre-flight tooling",
+      "distributor": null,
+      "attributes": [
+        {
+          "attribute": "Manifest-driven check",
+          "quality_bar": null,
+          "claude_draft": "a per-feature manifest of pre-launch checks runs automatically - not a wiki checklist",
+          "verify": "AUTO",
+          "approved": true,
+          "notes": "🟡 REVIEW - Not in PRODUCT_OVERVIEWS - internal tooling; feeds criterion #37"
+        },
+        {
+          "attribute": "Block-on-fail",
+          "quality_bar": null,
+          "claude_draft": "gates the deploy when a Hard check fails - not advisory only",
+          "verify": "AUTO",
+          "approved": true,
+          "notes": "🟡 REVIEW - Hooks into Platform Trust scan model"
+        },
+        {
+          "attribute": "Portfolio-wide",
+          "quality_bar": null,
+          "claude_draft": "one config drives every project - not per-repo duplication",
+          "verify": "AUTO",
+          "approved": true,
+          "notes": "🟡 REVIEW - Global CLAUDE.md / gstacks pattern"
+        }
+      ],
+      "bars_filled": 0
+    },
+    {
+      "tab": "SmartBoard",
+      "slug": "smartboard",
+      "needed": "N",
+      "promise": "Airline boarding MVP",
+      "distributor": null,
+      "attributes": [
+        {
+          "attribute": "Boarding flow",
+          "quality_bar": null,
+          "claude_draft": "a passenger boarding sequence the airline can drop in - not a custom build",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW - Not in PRODUCT_OVERVIEWS - outside construction/regulated-AU thesis; consider deprioritising"
+        },
+        {
+          "attribute": "Operations view",
+          "quality_bar": null,
+          "claude_draft": "gate-agent dashboard mirrors the passenger state - not separate apps",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW"
+        },
+        {
+          "attribute": "Airline-brandable",
+          "quality_bar": null,
+          "claude_draft": "theme + carrier logic configurable - not hardcoded",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW"
+        }
+      ],
+      "bars_filled": 0
+    },
+    {
+      "tab": "Hair Stylist AI",
+      "slug": "hairstylist-ai",
+      "needed": "N",
+      "promise": "(likely-kill) - define if pursued",
+      "distributor": null,
+      "attributes": [
+        {
+          "attribute": "Promise",
+          "quality_bar": null,
+          "claude_draft": "TBD - flagged likely-kill",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW - Not in PRODUCT_OVERVIEWS - memory flags as likely-kill; recommend N"
+        },
+        {
+          "attribute": "Attribute 2",
+          "quality_bar": null,
+          "claude_draft": "TBD",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW"
+        },
+        {
+          "attribute": "Attribute 3",
+          "quality_bar": null,
+          "claude_draft": "TBD",
+          "verify": "JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW"
+        }
+      ],
+      "bars_filled": 0
+    },
+    {
+      "tab": "OMQ Offshore",
+      "slug": "f2k-offshore-modular",
+      "needed": "N",
+      "promise": "Offshore modular manufacturer qualification (likely-kill)",
+      "distributor": null,
+      "attributes": [
+        {
+          "attribute": "Manufacturer qualification",
+          "quality_bar": null,
+          "claude_draft": "a vetted, scored offshore modular MFR shortlist - not a directory",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW - Not in PRODUCT_OVERVIEWS - memory flags as likely-kill; recommend N unless F2K demand is real"
+        },
+        {
+          "attribute": "Compliance check",
+          "quality_bar": null,
+          "claude_draft": "each MFR mapped to AU NCC/standards - not just country of origin",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW"
+        },
+        {
+          "attribute": "Engagement-ready",
+          "quality_bar": null,
+          "claude_draft": "intro-able with a dossier - not raw contact details",
+          "verify": "NAIVE/JUDGE",
+          "approved": true,
+          "notes": "🟡 REVIEW"
+        }
+      ],
+      "bars_filled": 0
+    }
+  ]
+}
