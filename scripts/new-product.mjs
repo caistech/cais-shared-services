@@ -48,6 +48,7 @@ import { homedir } from "node:os";
 import { dirname, join, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
+import { getCard, recordGate } from "./gate-check.mjs";
 
 // ---------------------------------------------------------------------------
 // args + config
@@ -86,6 +87,9 @@ const CONFIG = {
   private: !flags["public"],
   skipPortfolio: !!flags["skip-portfolio"], // skip onboard + platform-trust (e.g. smoke tests)
   authCallbackPath: "/auth/callback",
+  // Scale-infra (Delta 1): a domain is GATED on a Gate-2 GO. The thin-MVP run is NOT —
+  // pass --domain <name> only once the cockpit records the validated go/no-go.
+  domain: flags.domain ?? null,
 };
 
 function readToken(envName, file) {
@@ -369,8 +373,30 @@ async function stepDeploy(prjId) {
     body: { name: SLUG, project: prjId, target: "production", gitSource: { type: "github", repoId, ref: CONFIG.branch } },
   });
   const d = await r.json().catch(() => ({}));
-  if (!r.ok) { warn(`deploy trigger failed: ${d.error?.message || JSON.stringify(d).slice(0, 120)}`); return; }
+  if (!r.ok) { warn(`deploy trigger failed: ${d.error?.message || JSON.stringify(d).slice(0, 120)}`); return null; }
   ok(`production deploy triggered: ${d.id || "(queued)"} — env now live at https://${SLUG}.vercel.app`);
+  return d.id || null;
+}
+
+// ---------------------------------------------------------------------------
+// step: scale-infra gate (Delta 1) — a domain waits for a Gate-2 GO
+// ---------------------------------------------------------------------------
+// The thin-MVP run is NOT gated (its live link is the Gate-1 outreach payload).
+// Only multi-tenant/billing/DOMAIN provisioning waits for the validated go/no-go.
+// Here we enforce the domain half: refuse --domain unless the cockpit ledger shows
+// gate2_go for this product. Fails CLOSED — if we can't verify the GO, we refuse.
+
+async function stepScaleInfraGuard() {
+  if (!CONFIG.domain) return;
+  step("Scale-infra gate (Delta 1) — domain requires a Gate-2 GO");
+  if (DRY) { info(`DRY: verify gate2_go for ${SLUG} before provisioning domain ${CONFIG.domain}`); return; }
+  let card;
+  try { card = await getCard(SLUG); }
+  catch (e) { fail(`Cannot verify the Gate-2 GO for a domain provision (${e.message}). Refusing — fix the cockpit gate creds (CAIS_GATES_* or Corporate-AI-Solutions/.env.local) and retry.`); }
+  if (!card?.gate2_go) {
+    fail(`Refusing to provision domain '${CONFIG.domain}' for ${SLUG}: no Gate-2 GO recorded in the pipeline ledger. The thin-MVP creator runs free, but multi-tenant / billing / domain wait for the validated go/no-go (Delta 1). Record the Gate-2 GO in the cockpit, then re-run with --domain.`);
+  }
+  ok(`Gate-2 GO confirmed for ${SLUG} — domain provisioning allowed.`);
 }
 
 // ---------------------------------------------------------------------------
@@ -543,6 +569,7 @@ function stepRegisterAndGit(ref) {
 (async () => {
   console.log(`\n=== new-product: ${SLUG ?? "(no slug)"} ${DRY ? "[DRY RUN]" : ""} ===`);
   preflight();
+  await stepScaleInfraGuard();     // Delta 1: refuse a domain without a Gate-2 GO (no-op without --domain)
   stepGithub();
   const ref = await stepSupabase();
   stepHarvestLocal();
@@ -551,7 +578,17 @@ function stepRegisterAndGit(ref) {
   stepOnboard(ref);
   await stepVoice();
   stepRegisterAndGit(ref);
-  await stepDeploy(prjId);         // promote the working branch to production (env now live)
+  const deployId = await stepDeploy(prjId);  // promote the working branch to production (env now live)
+
+  // Record the provisioning on the cockpit ledger — visible on the card, and the
+  // ledger entry the gate reads. (Informational; the URL-share gate keys on a
+  // separate naive-tester PASS bound to the live deployment.)
+  if (deployId && !DRY) {
+    try {
+      await recordGate({ slug: SLUG, gate: "provisioned", status: "pass", deploymentId: deployId, recordedBy: "new-product.mjs" });
+      ok("recorded 'provisioned' in the pipeline ledger");
+    } catch (e) { warn(`could not record provisioned gate (non-fatal): ${e.message}`); }
+  }
 
   step("Done — remaining manual steps");
   info(`Local: ${join(PORTFOLIO_BASE, SLUG)}  (open in PyCharm yourself)`);
