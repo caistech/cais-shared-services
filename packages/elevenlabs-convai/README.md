@@ -2,7 +2,7 @@
 
 Shared ElevenLabs Conversational AI service. Originated in Kira. Provides the full voice conversation loop with persistent memory: idempotent agent provisioning, drop-in Next.js webhook routes, conversation continuity, and ephemeral anonymous sessions.
 
-> Server-side entry point. The React `VoiceWidget` ships from the subpath `@caistech/elevenlabs-convai/react` (in progress) so this entry stays React-free for server-only consumers.
+> Server-side entry point. The React `VoiceWidget` ships from the subpath `@caistech/elevenlabs-convai/react` (shipped v0.3+) so this entry stays React-free for server-only consumers.
 
 ## What this replaces
 
@@ -142,6 +142,15 @@ export function VoiceConcierge() {
 
 If you need lower-level control, the raw `@elevenlabs/react` `useConversation` hook is
 still available — but prefer `VoiceWidget` so every product shares one voice surface.
+
+**DOM contract (what an audit should assert).** `VoiceWidget` renders via the
+`@elevenlabs/react` SDK, not the ElevenLabs CDN embed — so it **never emits an
+`<elevenlabs-convai>` element or loads `convai-widget/index.js`**. "Voice is present and
+working" = the launcher `.convai-launch` / `.convai-btn` renders (with `<style data-convai>`
+injected) → clicking opens `.convai-panel` with its header → it connects via WebRTC, or shows
+the text fallback when there's no mic (degrade-don't-fake) → no console errors. Checking for
+`<elevenlabs-convai>` is a false negative against this widget (it cost the Pipeline-Gate
+cockpit a bogus voice ❌ on 2026-05-27).
 
 ## Scaffold wizard
 
