@@ -19,7 +19,6 @@
   },
   "include": ["src/**/*"],
   "exclude": [
-    "src/abn-lookup",
-    "src/address-autocomplete"
+    "src/abn-lookup"
   ]
 }
