@@ -77,8 +77,10 @@ In Connexions:
    block (lines ~131–135) and its import (line 9).
 2. Delete `lib/webhooks/intake-completed.ts` (+ its test, if any).
 3. Leave `INVESTORPILOT_INTAKE_WEBHOOK_URL` env in place until CAS's relay ships, then remove.
-In CAS cockpit: on the `/api/methodology/sync` handler, after recording the evidence, update the
-IP campaign/partner (PATCH IP by `ip_campaign_id` + `ref`).
+In CAS cockpit: on the `/api/methodology/sync` handler, after recording the evidence, relay to IP
+to mark the partner interviewed. **Fully specced in `CAS_RELAY_SESSION_BRIEF.md`** (Option A reuses
+IP's existing `/api/webhooks/connexions-intake` receiver — match-by-`ref` + dedup already built, so
+**zero IP changes**; CAS just becomes a second authorized caller).
 
 ### If Option B — generalize the legacy forwarder
 In `lib/webhooks/intake-completed.ts`:
