@@ -13,3 +13,7 @@ dist/
 AUDIT_PHONE_HOME_REPORT.md
 audit-phone-home-report.json
 .audit-results-*/
+.gstack/
+
+# Supabase CLI scratch (linked-project / cli-latest — local state, not source)
+supabase/.temp/
