@@ -153,6 +153,32 @@ catalogue with per-check source/method/notes lives in
    sign-off: "adjust after first real run as agreed"). The *tiers* are firm; the band
    arithmetic is the tunable knob.
 
+### Locked engine policy (signed off 2026-05-27 — recalibrate after the first live deploys)
+
+The 8 implementation knobs §6 left open are now ratified (full context + rationale:
+`SCORING_ENGINE_OPEN_QUESTIONS.md`). The tiers/weights stay firm; these fix *how the engine
+behaves*. Explicitly tunable after the first few repos go live.
+
+1. **Feature set (applicability source)** — **hybrid**: auto-detect the card's features from a
+   repo/deploy scan, operator confirms/overrides. Stored on `methodology_hypothesis_cards.features`.
+2. **Weight → points + normalization** — start **High=3 / Med=2 / Low=1**, score =
+   (Σ earned ÷ Σ applicable) × 10, bands **GO ≥6.5 / REDESIGN 5.0–6.4 / NO-GO <5.0**.
+   Provisional — flag the first 3 real scores for a calibration review.
+3. **Missing evidence** — **never silently N/A**: a missing **HARD** result fails the HARD gate
+   (no score computed); a missing **WEIGHTED** result counts as **fail**. Prove, don't assume.
+4. **TOO-MUCH guard (P4)** — **non-blocking flag** on the card (over-build wastes hours but does
+   not invalidate the validation signal); never blocks Launch.
+5. **#9 promise-attribute rollup** — **proportional** (fraction of attribute bars met) **with a
+   load-bearing floor**: any flagged load-bearing attribute below bar caps #9 at REDESIGN.
+6. **Source precedence on disagreement** — **live pass (naive-tester / voice-auditor) > judge
+   (LLM) > auto-probe**. Record all, score the top. (Also resolves the SDK-vs-CDN voice
+   false-negative class — the live voice-auditor PASS outranks the wrong-signature auto-probe.)
+7. **Re-score trigger** — **on-demand + mark stale**: a newer deployment or audit result marks
+   the snapshot stale (visible "re-score"), never silently recomputes.
+8. **NO-GO override** — reuse the reasoned-+-logged override ledger; a weighted-band override
+   needs a logged reason; **overriding a HARD-gate failure needs an explicit per-check confirm**
+   ("I understand <check> failed").
+
 ## 7. The promise layer — the "X, not Y" quality bars (check #9)
 
 Check #9 ("promise attributes present **and at quality bar**") is the central WEIGHTED check
@@ -187,6 +213,8 @@ not "welcome back" · see-yourself = in-browser video, not audio-only.*
   migration `20260526000000_readiness_criteria.sql`) — the runtime copy the cockpit reads.
 - **`GATE_READINESS_CRITERIA.md`** (this repo) — the source prose each check derives from;
   **`GATE_READINESS_REVIEW_GUIDE.md`** — the workbook guide (what each cell means).
+- **`SCORING_ENGINE_OPEN_QUESTIONS.md`** (this repo) — the 8 engine-policy decisions (LOCKED
+  2026-05-27), folded into §6's "Locked engine policy" block above. The build-side spec.
 
 ---
 
