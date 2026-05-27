@@ -64,4 +64,25 @@
 ---
 
 ## Status
-All four **NOT STARTED** as of 2026-05-27. The spine + cockpit they build on are live — see project memory `pipeline-gate-live` (SayFix slug) + `methodology-intake-gate-live`. Implementation lands mostly in the **Corporate-AI-Solutions** cockpit (+ the rubric data here in `gate-readiness/`, + IP's discovery engine for #4).
+
+> **Updated 2026-05-27** — verified against the live Corporate-AI-Solutions cockpit code
+> (the original "all four NOT STARTED" capture is superseded). The rubric/data foundation
+> lives here in `gate-readiness/`; the engine *execution* landed in the cockpit repo.
+
+- **#1 Scoring engine — SHIPPED.** Cockpit migration `20260527000000_readiness_scoring.sql`
+  (`readiness_results` table + `applies_when` on `readiness_criteria` + `features[]` on cards),
+  `src/lib/methodology/score.ts` (HARD gate → TOO-MUCH flag → WEIGHTED composite → bands),
+  `GET /api/methodology/cards/[slug]/score`, and per-check render in `CockpitControls.tsx`.
+- **#2 Derive `mvp_ready` — SHIPPED.** The manual checkbox is gone; `mvp_ready` is now a
+  read-only harness-derived badge ("set by the harness, not by hand"); the validate route
+  enforces the Gate-1 HARD gate via `loadCardScore` / `readiness.ts`.
+- **Stage-3 relay (Option A) — SHIPPED.** `src/app/api/methodology/sync/route.ts` fires
+  `relayInterviewedToInvestorPilot()` (HMAC + `INVESTORPILOT_INTAKE_WEBHOOK_URL`) after sync.
+- **#4 Hybrid pool-discovery — PARTIAL.** `feature-manifests/pool-discovery.json`,
+  `src/lib/methodology/pool-discovery.ts`, `POST .../pools/assess`, and the
+  `distributor` / `end_user_pool` card fields exist; the **Phase-1 `/office-hours` ingestion
+  gate is still stubbed** (the dialogue half). See `BUILD4_POOL_DISCOVERY_BRIEF.md`.
+- **#3 Evidence-proposed triage / decision — NOT STARTED** (resequenced to run after #4).
+
+The spine + cockpit they build on are live — see project memory `pipeline-gate-live`
+(SayFix slug) + `methodology-intake-gate-live`.
