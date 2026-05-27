@@ -22,6 +22,7 @@ ENTRIES=(
   "HairStylistAI|package.json"
   "mmcbuild|package.json"
   "community-question-responder|package.json"
+  "sayfix|package.json"
 )
 
 for entry in "${ENTRIES[@]}"; do

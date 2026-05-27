@@ -274,6 +274,22 @@ projects:
       - GITHUB_PACKAGES_TOKEN
     envs:
       NEXT_PUBLIC_APP_URL: "https://preflight-phi.vercel.app"
+  - name: sayfix
+    vercel_project_id: prj_7N65GURc3slhs5QL013Bo95AxD7i
+    supabase_project_ref: vwvfmsuquohlgxcpzdjo
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
+    envs:
+      PLATFORM_TRUST_PROJECT_ID:
+        ref: $secret:platform_trust_project_id_sayfix
+      NEXT_PUBLIC_SUPABASE_URL:
+        from_supabase: url
+      NEXT_PUBLIC_SUPABASE_ANON_KEY:
+        from_supabase: anon_key
+      SUPABASE_SERVICE_ROLE_KEY:
+        from_supabase: service_role_key
 
 # -----------------------------------------------------------------------------
 # Vercel projects in the Corporate AI Solutions team that are NOT in the
@@ -334,25 +350,29 @@ unaudited_vercel_projects:
 # -----------------------------------------------------------------------------
 product_registry:
   corporate-ai-solutions:
-    display_name: "Corporate AI Solutions"     # marketing/marketplace + the methodology pipeline cockpit (/admin/methodology)
-    tagline: "AI products, built by a one-operator factory"   # draft — confirm
-    description: "Corporate AI Solutions builds and validates AI products on a shared @caistech substrate, then runs the methodology pipeline that decides what to build next."
-    canonical_url: "https://www.corporateaisolutions.com"   # confirm — marketing domain, not a vercel alias
-    voice_agent_status: absent                 # 2026-05-25 voice-audit: the "Talk to Morgan" FAB is a marketing MOCK (TODO-integrate, canned replies, local @/lib/elevenlabs), not a real agent; the Required in-context clarifier on Gate-1/Launch + the decision controls is being wired. See Corporate-AI-Solutions/voice-audit/2026-05-25/methodology-cockpit.md
-    team_admin_status: n/a-single-operator     # /admin cockpit is operator-only (auth-gated + ADMIN_EMAILS allowlist)
+    display_name: "Corporate AI Solutions" # marketing/marketplace + the methodology pipeline cockpit (/admin/methodology)
+    tagline: "AI products, built by a one-operator factory" # draft — confirm
+    description: "Corporate AI Solutions builds and validates AI products on a
+      shared @caistech substrate, then runs the methodology pipeline that
+      decides what to build next."
+    canonical_url: "https://www.corporateaisolutions.com" # confirm — marketing domain, not a vercel alias
+    voice_agent_status: absent # 2026-05-25 voice-audit: the "Talk to Morgan" FAB is a marketing MOCK (TODO-integrate, canned replies, local @/lib/elevenlabs), not a real agent; the Required in-context clarifier on Gate-1/Launch + the decision controls is being wired. See Corporate-AI-Solutions/voice-audit/2026-05-25/methodology-cockpit.md
+    team_admin_status: n/a-single-operator # /admin cockpit is operator-only (auth-gated + ADMIN_EMAILS allowlist)
     metadata_status: customized
     distributor_gate_status: n/a-infrastructure
   singify-platform:
-    display_name: "Singify"                     # lane-1 flagship — the Engine-1 voice/coaching vertical (BUSINESS_MODEL §7/§8)
-    tagline: "Karaoke that makes you sound amazing — with an AI vocal coach"   # draft — confirm
-    description: "Singify lets anyone sing along to a real song on camera, hear themselves pitch-corrected in their own key, and get coached by an AI that knows their voice."
-    canonical_url: "https://singify-platform.vercel.app"   # vercel alias — a real domain is Gate-2-gated (THIN_MVP_RUBRIC §4)
-    voice_agent_status: present                 # 2026-05-25 voice-audit: chrome coach FAB + per-step in-context clarifier on all 5 studio steps; memory pull-loop (get_baseline/get_singing_history + hub memory tools, HMAC-verified post-call, founder-scoped server-derived identity) verified at the code layer. Open: rule-19 hub backfill of the local @elevenlabs/react clarifier (promote-to-hub), session-init binding when auth lands, a "what the coach remembers" surface + TTL, allowlist re-verify; behavioural "welcome-back" recall needs a mic'd live pass. See singify-platform/voice-audit/2026-05-25-1000/singify-platform.md
-    team_admin_status: absent                   # deferred — multi-tenant distributor→end-user layer is post-Gate-2 (THIN_MVP_RUBRIC: no scale infra pre-GO). Build before a 2nd operator / public exposure.
-    metadata_status: customized                 # <title>/description customised (not "Create Next App"); OG image + manifest-driven favicon still TODO (PRODUCT_STANDARDS Singify appendix §7 🟡)
-    distributor_gate_status: pending            # canonical build-to-validate worked example; awaiting the stage-3 dual-stream voice loop / Gate-2 GO (BUSINESS_MODEL §4/§5)
+    display_name: "Singify" # lane-1 flagship — the Engine-1 voice/coaching vertical (BUSINESS_MODEL §7/§8)
+    tagline: "Karaoke that makes you sound amazing — with an AI vocal coach" # draft — confirm
+    description: "Singify lets anyone sing along to a real song on camera, hear
+      themselves pitch-corrected in their own key, and get coached by an AI that
+      knows their voice."
+    canonical_url: "https://singify-platform.vercel.app" # vercel alias — a real domain is Gate-2-gated (THIN_MVP_RUBRIC §4)
+    voice_agent_status: present # 2026-05-25 voice-audit: chrome coach FAB + per-step in-context clarifier on all 5 studio steps; memory pull-loop (get_baseline/get_singing_history + hub memory tools, HMAC-verified post-call, founder-scoped server-derived identity) verified at the code layer. Open: rule-19 hub backfill of the local @elevenlabs/react clarifier (promote-to-hub), session-init binding when auth lands, a "what the coach remembers" surface + TTL, allowlist re-verify; behavioural "welcome-back" recall needs a mic'd live pass. See singify-platform/voice-audit/2026-05-25-1000/singify-platform.md
+    team_admin_status: absent # deferred — multi-tenant distributor→end-user layer is post-Gate-2 (THIN_MVP_RUBRIC: no scale infra pre-GO). Build before a 2nd operator / public exposure.
+    metadata_status: customized # <title>/description customised (not "Create Next App"); OG image + manifest-driven favicon still TODO (PRODUCT_STANDARDS Singify appendix §7 🟡)
+    distributor_gate_status: pending # canonical build-to-validate worked example; awaiting the stage-3 dual-stream voice loop / Gate-2 GO (BUSINESS_MODEL §4/§5)
   mmcbuild:
-    display_name: "MMC Build"           # paying client — sanitise per R3 before any public artifact
+    display_name: "MMC Build" # paying client — sanitise per R3 before any public artifact
     # metadata: client-owned brand — fill display_name/tagline/description from MMC Build's own brand, do not guess (R3)
     voice_agent_status: unaudited
     team_admin_status: unaudited
@@ -360,8 +380,9 @@ product_registry:
     distributor_gate_status: unaudited
   deal-findrs:
     display_name: "DealFindrs"
-    tagline: "Find off-market property deals with AI"   # draft — confirm
-    description: "DealFindrs surfaces and scores off-market property opportunities so you move before the market does."
+    tagline: "Find off-market property deals with AI" # draft — confirm
+    description: "DealFindrs surfaces and scores off-market property opportunities
+      so you move before the market does."
     canonical_url: "https://deal-findrs-corporate-ai-solutions.vercel.app"
     voice_agent_status: unaudited
     team_admin_status: unaudited
@@ -369,32 +390,35 @@ product_registry:
     distributor_gate_status: unaudited
   f2k-checkpoint-new:
     display_name: "F2K Checkpoint"
-    tagline: "Compliance checkpoints for modular builds"   # draft — confirm
-    description: "F2K Checkpoint tracks the compliance gates and sign-offs across an offshore modular construction programme."
-    canonical_url: "https://f2k-checkpoint-new-corporate-ai-solutions.vercel.app"   # confirm slug
+    tagline: "Compliance checkpoints for modular builds" # draft — confirm
+    description: "F2K Checkpoint tracks the compliance gates and sign-offs across an
+      offshore modular construction programme."
+    canonical_url: "https://f2k-checkpoint-new-corporate-ai-solutions.vercel.app" # confirm slug
     voice_agent_status: unaudited
     team_admin_status: unaudited
     metadata_status: unaudited
     distributor_gate_status: unaudited
   f2-k-offshore-modular:
-    display_name: "F2K Offshore Modular (OMQ)"   # offshore modular manufacturer qualification
-    tagline: "Qualify offshore modular manufacturers"   # draft — confirm
-    description: "F2K Offshore Modular Qualified (OMQ) screens and qualifies offshore modular manufacturers against the Factory2Key standard."
-    canonical_url: "https://f2-k-offshore-modular-corporate-ai-solutions.vercel.app"   # confirm slug
-    voice_agent_status: absent                 # 2026-05-25 voice-audit (F2K-OffshoreModular session): the OMQ Stage 1 voice assistant is provisioned via scripts/provision-omq-agent.ts but not surfaced/wired in the deployed app (agent-id env unset) → effectively absent. Confirm + wire per VOICE_MEMORY_STANDARD.
+    display_name: "F2K Offshore Modular (OMQ)" # offshore modular manufacturer qualification
+    tagline: "Qualify offshore modular manufacturers" # draft — confirm
+    description: "F2K Offshore Modular Qualified (OMQ) screens and qualifies
+      offshore modular manufacturers against the Factory2Key standard."
+    canonical_url: "https://f2-k-offshore-modular-corporate-ai-solutions.vercel.app" # confirm slug
+    voice_agent_status: absent # 2026-05-25 voice-audit (F2K-OffshoreModular session): the OMQ Stage 1 voice assistant is provisioned via scripts/provision-omq-agent.ts but not surfaced/wired in the deployed app (agent-id env unset) → effectively absent. Confirm + wire per VOICE_MEMORY_STANDARD.
     team_admin_status: unaudited
     metadata_status: unaudited
     distributor_gate_status: unaudited
   property-services:
-    display_name: "Property Services"   # substrate/edge-functions — likely n/a-non-ui; confirm at audit
+    display_name: "Property Services" # substrate/edge-functions — likely n/a-non-ui; confirm at audit
     voice_agent_status: unaudited
     team_admin_status: unaudited
     metadata_status: unaudited
     distributor_gate_status: unaudited
   platform-trust:
-    display_name: "Platform Trust"      # infrastructure — likely n/a-infrastructure; confirm at audit
-    tagline: "Trust and security for AI agents"   # draft — confirm
-    description: "Platform Trust adds rate limiting, audit logging, evals, and security scanning to every product on the portfolio substrate."
+    display_name: "Platform Trust" # infrastructure — likely n/a-infrastructure; confirm at audit
+    tagline: "Trust and security for AI agents" # draft — confirm
+    description: "Platform Trust adds rate limiting, audit logging, evals, and
+      security scanning to every product on the portfolio substrate."
     canonical_url: "https://platform-trust-corporate-ai-solutions.vercel.app"
     voice_agent_status: unaudited
     team_admin_status: unaudited
@@ -402,8 +426,9 @@ product_registry:
     distributor_gate_status: unaudited
   universal-interviews:
     display_name: "Universal Interviews"
-    tagline: "Structured AI voice interviews at scale"   # draft — confirm
-    description: "Universal Interviews runs and transcribes structured voice interviews so you gather insight without scheduling a call."
+    tagline: "Structured AI voice interviews at scale" # draft — confirm
+    description: "Universal Interviews runs and transcribes structured voice
+      interviews so you gather insight without scheduling a call."
     canonical_url: "https://universal-interviews-corporate-ai-solutions.vercel.app"
     voice_agent_status: unaudited
     team_admin_status: unaudited
@@ -411,8 +436,9 @@ product_registry:
     distributor_gate_status: unaudited
   launchready:
     display_name: "LaunchReady"
-    tagline: "Get your product launch-ready"   # DRAFT/GUESS — confirm purpose
-    description: "LaunchReady walks a team through the checks and assets a product needs before it goes live."
+    tagline: "Get your product launch-ready" # DRAFT/GUESS — confirm purpose
+    description: "LaunchReady walks a team through the checks and assets a product
+      needs before it goes live."
     canonical_url: "https://launchready-corporate-ai-solutions.vercel.app"
     voice_agent_status: unaudited
     team_admin_status: unaudited
@@ -420,8 +446,9 @@ product_registry:
     distributor_gate_status: unaudited
   connexions:
     display_name: "Connexions"
-    tagline: "AI voice interviews that build your profile"   # draft — confirm
-    description: "Connexions interviews you by voice and turns the conversation into a structured product or project profile."
+    tagline: "AI voice interviews that build your profile" # draft — confirm
+    description: "Connexions interviews you by voice and turns the conversation into
+      a structured product or project profile."
     canonical_url: "https://connexions-corporate-ai-solutions.vercel.app"
     voice_agent_status: unaudited
     team_admin_status: unaudited
@@ -429,13 +456,14 @@ product_registry:
     distributor_gate_status: unaudited
   kira:
     display_name: "Kira"
-    tagline: "Your personal AI thinking partner"   # draft — confirm
-    description: "Kira is a personal AI thinking partner for working through ideas and decisions."
+    tagline: "Your personal AI thinking partner" # draft — confirm
+    description: "Kira is a personal AI thinking partner for working through ideas
+      and decisions."
     canonical_url: "https://kira-corporate-ai-solutions.vercel.app"
     voice_agent_status: unaudited
     team_admin_status: unaudited
     metadata_status: unaudited
-    distributor_gate_status: personal-interest-override   # R15 named example (personal AI thinking partner)
+    distributor_gate_status: personal-interest-override # R15 named example (personal AI thinking partner)
   smart-board:
     display_name: "SmartBoard"
     # metadata: no draft copy — purpose unclear (likely-kill, BUSINESS_MODEL §8); confirm before customize-metadata.sh
@@ -452,17 +480,19 @@ product_registry:
     distributor_gate_status: unaudited
   raiseready-template:
     display_name: "RaiseReady"
-    tagline: "Get investor-ready before you pitch"   # draft — confirm
-    description: "RaiseReady coaches founders through pitch and fundraising preparation with AI feedback."
-    canonical_url: "https://raiseready-template-corporate-ai-solutions.vercel.app"   # template demo URL
+    tagline: "Get investor-ready before you pitch" # draft — confirm
+    description: "RaiseReady coaches founders through pitch and fundraising
+      preparation with AI feedback."
+    canonical_url: "https://raiseready-template-corporate-ai-solutions.vercel.app" # template demo URL
     voice_agent_status: unaudited
     team_admin_status: unaudited
     metadata_status: unaudited
     distributor_gate_status: unaudited
   easy-claude-code:
     display_name: "Easy Claude Code"
-    tagline: "Claude Code, made approachable"   # DRAFT/GUESS — confirm purpose
-    description: "Easy Claude Code helps newcomers install, configure, and get productive with Claude Code."
+    tagline: "Claude Code, made approachable" # DRAFT/GUESS — confirm purpose
+    description: "Easy Claude Code helps newcomers install, configure, and get
+      productive with Claude Code."
     canonical_url: "https://easy-claude-code-corporate-ai-solutions.vercel.app"
     voice_agent_status: unaudited
     team_admin_status: unaudited
@@ -470,8 +500,9 @@ product_registry:
     distributor_gate_status: unaudited
   hair-stylist-ai:
     display_name: "Hair Stylist AI"
-    tagline: "Try on hairstyles before the chair"   # draft — confirm
-    description: "Hair Stylist AI previews cuts and colours from a photo so clients and stylists agree before a single snip."
+    tagline: "Try on hairstyles before the chair" # draft — confirm
+    description: "Hair Stylist AI previews cuts and colours from a photo so clients
+      and stylists agree before a single snip."
     canonical_url: "https://hair-stylist-ai-corporate-ai-solutions.vercel.app"
     voice_agent_status: unaudited
     team_admin_status: unaudited
@@ -479,17 +510,19 @@ product_registry:
     distributor_gate_status: unaudited
   lessonslearned:
     display_name: "Lessons Learned"
-    tagline: "Capture lessons learned before they're lost"   # DRAFT/GUESS — confirm purpose
-    description: "Lessons Learned captures and organises team learnings so hard-won insight stays reusable."
+    tagline: "Capture lessons learned before they're lost" # DRAFT/GUESS — confirm purpose
+    description: "Lessons Learned captures and organises team learnings so hard-won
+      insight stays reusable."
     canonical_url: "https://lessonslearned-corporate-ai-solutions.vercel.app"
     voice_agent_status: unaudited
     team_admin_status: unaudited
     metadata_status: unaudited
     distributor_gate_status: unaudited
   community-question-responder:
-    display_name: "Community Question Responder"   # CQR
-    tagline: "Draft answers from your knowledge base"   # draft — confirm
-    description: "CQR turns your docs and past answers into high-confidence draft replies to community and support questions."
+    display_name: "Community Question Responder" # CQR
+    tagline: "Draft answers from your knowledge base" # draft — confirm
+    description: "CQR turns your docs and past answers into high-confidence draft
+      replies to community and support questions."
     canonical_url: "https://community-question-responder-corporate-ai-solutions.vercel.app"
     voice_agent_status: unaudited
     team_admin_status: unaudited
@@ -497,8 +530,9 @@ product_registry:
     distributor_gate_status: unaudited
   preflight:
     display_name: "Preflight"
-    tagline: "Catch missing keys before you ship"   # draft — confirm
-    description: "Preflight surfaces every env var and external dependency a feature needs, up front, before the first test run."
+    tagline: "Catch missing keys before you ship" # draft — confirm
+    description: "Preflight surfaces every env var and external dependency a feature
+      needs, up front, before the first test run."
     canonical_url: "https://preflight-phi.vercel.app"
     voice_agent_status: unaudited
     team_admin_status: unaudited

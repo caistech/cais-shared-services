@@ -35,6 +35,7 @@ SLUGS=(
   easy-claude-code
   hair-stylist-ai
   community-question-responder
+  sayfix
 )
 
 echo "== Setting GITHUB_PACKAGES_TOKEN in each Vercel project =="

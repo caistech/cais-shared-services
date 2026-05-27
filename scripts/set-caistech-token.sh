@@ -50,6 +50,7 @@ REPOS=(
   omq-outreach
   mmcbuild
   community-question-responder
+  sayfix
 )
 
 # Map GitHub repo folder → Vercel project slug (they differ in several cases)
@@ -74,6 +75,7 @@ declare -A VERCEL_SLUG=(
   [omq-outreach]=omq-outreach
   [mmcbuild]=mmcbuild
   [community-question-responder]=community-question-responder
+  [sayfix]=sayfix
 )
 
 # --- Step 1: write .env.local per repo ----------------------------------------

@@ -22,6 +22,7 @@ ENTRIES=(
   "HairStylistAI|."
   "mmcbuild|."
   "community-question-responder|."
+  "sayfix|."
 )
 
 COMMIT_MSG='chore(deps): bump @caistech/* to compiled-dist versions
