@@ -33,7 +33,9 @@ If any box is unchecked, the page is not done.
 
 Before signing off on **any new build or build update** — a new product, a new feature, or a revamp of an existing surface — run the **`/naive-tester`** skill against the live (or preview) URL. It walks the product as a real human persona **and** cross-checks every UI-observable item in this checklist, closing with a **Standards Check** (✅ / ❌ / — per item). **Any ❌ is a release-blocking finding, same severity as a bug — nothing ships with an open ❌.**
 
-This is the catch-all that stops items in this checklist being silently missed: the per-page §0 gate is the author's self-check; `/naive-tester` is the independent human-eyes sweep before "done." It loads *this file* as its rubric, so the two never drift. For public-facing or multi-surface builds run the relevant personas (`auto` picks them) — at minimum a domain-operator pass plus Mobile Marcus for anything mobile-reachable. *(Wired 2026-05-25 — naive-tester consumes PRODUCT_STANDARDS.md.)*
+This is the catch-all that stops items in this checklist being silently missed: the per-page §0 gate is the author's self-check; `/naive-tester` is the independent human-eyes sweep before "done." It loads *this file* as its rubric, so the two never drift. For public-facing or multi-surface builds run the relevant personas (`auto` picks them) — at minimum a domain-operator pass plus Mobile Marcus for anything mobile-reachable. 
+
+**For products with dual-auth portals (§8.5):** Run `/naive-tester` once, with sections for Landing → User Path → Admin Path → Cross-Path Issues. One report, not two — the tester walks both flows sequentially and flags any cross-access bugs (user reaching admin, admin excluded from user surfaces, etc.) in a single report. *(Wired 2026-05-25 — naive-tester consumes PRODUCT_STANDARDS.md.)*
 
 ---
 
@@ -112,6 +114,25 @@ This is the catch-all that stops items in this checklist being silently missed: 
 - [ ] Invite flow (signed single-use token, 14-day expiry, Resend email); pending invites + revoke.
 - [ ] Per-user usage attribution on metered rows. Manifest carries `team_admin_status`.
 
+## 8.5 DUAL-AUTH PORTAL (admin control panel + user functional UI)
+*Source: CLAUDE.md "DUAL-AUTH PORTAL CONFIGURATION".*
+
+Every product with an auth gate ships **two separate auth flows and UIs from day one**: one for **admins** (operators managing the product) and one for **users** (end consumers). Same person can have both roles, but they log in through different entry points and see completely different UIs.
+
+- [ ] **Landing page** (`/welcome` or `/`) explains the product to visitors and has **two distinct CTAs**: "Admin Login" and "User Sign Up/Login" (or "Start as User"), each routing to its own auth flow.
+- [ ] **User auth flow** (`/login` → `/today` or equivalent authenticated route): standard signup/login/forgot-password/magic-link tabs; takes users to the **functional product UI** (what they came for).
+- [ ] **Admin auth flow** (`/admin/login` → `/admin` or equivalent dashboard): same auth tabs, but **gates access via `ADMIN_EMAILS` allowlist**; rejected logins are non-admins, and the reject happens at callback (post-auth), not at the form level. Takes admins to the **control panel** (product management, user management, metrics, permissions, billing).
+- [ ] **Auth middleware segregates the two**: `/pipeline/*` routes require standard auth (anyone with an account); `/admin/*` routes require BOTH standard auth AND `ADMIN_EMAILS` allowlist match (checked via middleware or API gate).
+- [ ] **Both flows have full auth pattern** (§2): forgot-password link, password visibility toggle, working magic-link. Both link to password-reset pages scoped to their flow (`/password-reset` and `/admin/password-reset`).
+- [ ] **Landing page is public** — no auth gate, no redirect to login. Visitors read the marketing message and choose their path.
+- [ ] **Admin and user both see their own navbar** (§4) — same auth chrome (Settings + Sign Out) but different sidebar/menu items reflecting their role.
+- [ ] **Cross-access protection** — users cannot navigate to `/admin/*` (401 / redirect); admins can navigate to `/today` / user routes (because they *are* users too, unless deliberately restricted). The standard pattern: user paths are open, admin paths are gated, so an admin *can* see both; a user can see neither admin paths nor the admin landing cta.
+
+**Testing (naive-tester):**
+- One naive-tester run covering both portals in a single report (not two separate reports), with sections for Landing → User Path → Admin Path → Cross-path Issues (if a user can somehow reach admin, or vice versa). *(Codified 2026-05-25.)*
+
+---
+
 ## 9. CODICILS (other non-negotiables that bite)
 
 - [ ] **Consequence clarity** — any irreversible (delete/kill), cost-incurring (real API discovery), or outreach-firing action names its consequence *before* the click and requires confirm + (for terminal) a reason. *(Cross-cut of UX-flow-first + the human-in-the-loop principle; reinforced by the 2026-05-25 cockpit naive-test.)*
@@ -132,6 +153,42 @@ This is the catch-all that stops items in this checklist being silently missed: 
 - [ ] **Automated-tester auth — a real QA account, never a backdoor.** Every repo with an auth gate ships the means for automated testers (`/naive-tester`, `/qa`, `/benchmark`) to authenticate *as a real account*: a **persistent, email-confirmed QA `owner` account** (password in the password manager — never committed, never pasted into a report); a **`docs/TESTING.md`** documenting **Mode A** (type the real login form — this also *tests* the auth path, the default) and **Mode B** (inject a real session cookie to skip the flaky form for deep surface testing); and the shared **session-minter** (`cais-shared-services/scripts/qa-session.mjs` — emits the `@supabase/ssr` cookie, auto-matched to the repo's installed `@supabase/ssr` version: `base64-` for ≥0.5, URL-encoded JSON for <0.5 — a mismatch is silently rejected; consume it, don't fork). **Magic-link-only products (no password field — `signInWithOtp` logins) are the canonical hard case** and use the SAME minter's **`--magic-link` mode**: it mints the real QA session via the service-role `admin.generate_link` → `verify` (needs `QA_TEST_EMAIL` + `SUPABASE_SERVICE_ROLE_KEY`; no email round-trip, no PKCE/redirect-allowlist dependency) — the password grant cannot serve these. To ALSO exercise email delivery, request the link from the real form and read it from a **dedicated, API-readable QA mailbox — never the operator's personal inbox** — then navigate it in the same browser context. **Preview deploys behind Vercel deployment protection** additionally need a **Protection-Bypass-for-Automation** token (the app login is unreachable otherwise — a `vercel.com/login` 401 wall). One-time provisioning per repo (record in `docs/TESTING.md`): create the email-confirmed QA `owner` account, add its email to the admin allowlist (e.g. `ADMIN_EMAILS`), and allowlist `localhost` + the preview `/auth/callback` in the provider's redirect list. **No route or flag may skip authentication** — a test auth-bypass is a critical vulnerability, same severity as an unguarded endpoint. Testers TYPE creds (never DOM-inject — React ignores injected values) and work around the `/browse` daemon by warm-chaining + saving/reloading auth state. *(mmcbuild split QA, 2026-05-25; magic-link canon added 2026-05-25 from the corporate-ai-solutions cockpit naive-test — magic-link-only login + Vercel preview SSO + un-allowlisted localhost callback blocked every other path.)*
 - [ ] **Pipeline intake WIP gate — no new product until the board is triaged.** No new product or operator-originated idea is admitted to the methodology cockpit (`/admin/methodology`) while any card is **untriaged** (not in-research-or-beyond and not terminally decided — incl. "thin-MVP-ready but research never launched"). Hard block at the intake API + disabled UI with a "drain the backlog first" banner; a friction-ful **reasoned, logged override**; the always-on ideation agent's deposits land in an inbox that does not count. *Stop starting, start finishing.* Full rule + the *why*: `MONETISATION_RULES.md` **Rule 16**; pipeline framing: `BUSINESS_MODEL.md` §4 (Gate 0). *(Codified 2026-05-25.)*
 - [ ] **Single-operator deferral trigger** *(when-relevant rule)*. A single-operator internal tool MAY defer the **§8 team-admin org/member layer** and the **full §4 Settings Profile/Notifications sections + the `profiles` table** (auth + persistent nav + Sign Out + a lean Settings are still required). But these become **REQUIRED the moment**: (a) a **second operator** needs access, or (b) the surface gains **public / customer exposure**. The deferral is a *conscious, tracked* decision — record it in the surface's audit + `team_admin_status` in `portfolio-manifest.yaml` — **never a permanent skip.** When the trigger fires, build the org/member layer + the full settings page **before** the second user is onboarded (retrofitting after they're in is the failure mode the TEAM ADMIN rule exists to prevent). *(Codified 2026-05-25 from the methodology cockpit: single-operator → auth-gate + chrome + lean Settings shipped; team-admin + full Profile/Notifications queued behind this trigger.)*
+
+---
+
+## 9.5. STANDARD ADMIN + TEST USER ACCOUNTS (scaffold-time provisioning)
+
+Every product with an auth gate ships **pre-configured with three standard accounts** — two permanent admins and one permanent test user — so that QA, development, and monitoring can run without per-project setup. These accounts are provisioned at scaffold time and remain constant across all products.
+
+**Permanent Admin Accounts (both have FULL operator access):**
+- `dennis@corporateaisolutions.com` — Dennis (primary operator)
+- `mcmdennis@gmail.com` — Dennis alt (backup operator)
+
+**Permanent Test User (non-admin):**
+- `dennis@factory2key.com.au` — Test/QA account (can access product surfaces but not `/admin/*`)
+
+**Configuration:**
+- Add both admin emails to the **`ADMIN_EMAILS` environment variable** (colon or comma-separated, depending on project) at scaffold time. This populates the allowlist in `middleware.ts` (or equivalent auth gate) so unauth requests → `/login`.
+- The test user is a **regular authenticated user** — not on the admin list, so they cannot access `/admin/*` routes. Use this account for QA, user-flow testing, and monitoring.
+- Both admins' emails are in `portfolio-manifest.yaml` under a new **`shared:` → `admin_users`** block so every product bootstrap script can auto-populate `ADMIN_EMAILS` (when environment-sync / onboarding scripts run).
+
+**Why this matters:**
+- **Eliminates per-project setup waste** — no more "add an admin email here, create a test account there" for every new product.
+- **Enables cross-product automation** — `/naive-tester`, `/qa`, and monitoring agents can run using the same `dennis@factory2key.com.au` credentials across all products.
+- **Reduces onboarding friction** — a new product is immediately testable without manual account creation.
+
+**Implementation:**
+1. **Scaffold script** (`scripts/onboard-new-project.sh` or equivalent) calls `configure-admin-accounts.sh <project-slug>` after the project is created.
+2. **`configure-admin-accounts.sh`** (new script in cais-shared-services/scripts):
+   - Reads `portfolio-manifest.yaml` for `shared: admin_users`
+   - Sets `ADMIN_EMAILS` on Vercel (via `vercel env add`) with both admin emails
+   - Sets `ADMIN_EMAILS` in `.env.local` for local development
+   - Creates Supabase Auth invites for both admin emails (auto-verified links)
+   - Logs each step so the operator knows what happened
+3. **Test user `dennis@factory2key.com.au`** is created via the same Supabase invite flow but is NOT added to `ADMIN_EMAILS`, so it's a regular user for QA purposes.
+
+**Per-project opt-out (rare):**
+If a product has custom admin requirements (e.g., only one admin, or different admins), the bootstrap script allows `--custom-admins "email1,email2"` to override the defaults. Document the override in the product's `docs/TESTING.md`.
 
 ---
 
