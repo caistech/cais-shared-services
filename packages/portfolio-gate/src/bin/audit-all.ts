@@ -27,6 +27,8 @@ import { runSampleAudit } from '../audit/sample.js'
 import { runExplanatoryHeaderAudit } from '../audit/explanatory-header.js'
 import { runTrustPanelAudit } from '../audit/trust-panel.js'
 import { runResponsiveAudit } from '../audit/responsive.js'
+import { runCommitmentPanelAudit } from '../audit/commitment-panel.js'
+import { runVoiceAgentAudit } from '../audit/voice-agent.js'
 import { type AuditResult, formatAuditResult } from '../audit/shared.js'
 import { parseAuditArgs } from './_cli.js'
 
@@ -69,6 +71,8 @@ async function main(): Promise<void> {
       run: () => runExplanatoryHeaderAudit(opts),
     },
     { name: 'trust-panel', run: () => runTrustPanelAudit(opts) },
+    { name: 'commitment-panel', run: () => runCommitmentPanelAudit(opts) },
+    { name: 'voice-agent', run: () => runVoiceAgentAudit(opts) },
     {
       name: 'responsive',
       run: () =>
