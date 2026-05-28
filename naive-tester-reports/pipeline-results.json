@@ -1,0 +1,53 @@
+{
+  "parts": {
+    "a_admin_portal": {
+      "status": "passed",
+      "checks": {
+        "admin_access": { "status": "passed", "note": "Admin can access /admin/pipeline" },
+        "settings_profile": { "status": "passed", "note": "Profile fields rendered" },
+        "settings_password": { "status": "passed", "note": "Eye toggle present" },
+        "settings_notifications": { "status": "passed", "note": "Toggles rendered" },
+        "sign_out_everywhere": { "status": "passed", "note": "Sign Out works" },
+        "delete_account": { "status": "passed", "note": "Delete account functional" }
+      }
+    },
+    "b_user_portal": {
+      "status": "passed",
+      "checks": {
+        "user_access": { "status": "passed", "note": "User can access /pipeline/today" },
+        "admin_denied": { "status": "passed", "note": "Test user blocked from /admin" },
+        "settings_user": { "status": "passed", "note": "Can update own profile" },
+        "sign_out": { "status": "passed", "note": "Session cleared" },
+        "feature_nav": { "status": "passed", "note": "Core surfaces load OK" }
+      }
+    },
+    "c_auth_flows": {
+      "status": "warning",
+      "checks": {
+        "signup": { "status": "passed", "note": "Signup flow works" },
+        "login": { "status": "passed", "note": "Login with eye toggle works" },
+        "forgot_password": { "status": "passed", "note": "Reset email delivered" },
+        "magic_link": { "status": "warning", "note": "Magic link rate limited (3/hour on default Supabase SMTP)" }
+      }
+    },
+    "d_scaffold": {
+      "status": "passed",
+      "checks": {
+        "admin_emails": { "status": "passed", "note": "Both admins in ADMIN_EMAILS" },
+        "test_user_created": { "status": "passed", "note": "dennis@factory2key.com.au provisioned" },
+        "test_user_non_admin": { "status": "passed", "note": "Correctly blocked from /admin" },
+        "profiles_table": { "status": "passed", "note": "Schema correct" },
+        "profiles_trigger": { "status": "passed", "note": "Trigger fires on signup" },
+        "profiles_rls": { "status": "passed", "note": "RLS enforced" },
+        "email_infrastructure": { "status": "passed", "note": "All from noreply@updates.corporateaisolutions.com" }
+      }
+    }
+  },
+  "findings": [
+    "Magic link rate limited (3/hour on default Supabase SMTP) -> Fix: Use Resend custom SMTP",
+    "Voice agent not yet integrated -> Will be added in Phase 2"
+  ],
+  "overall_status": "warning",
+  "tester": "dennis@corporateaisolutions.com",
+  "duration_minutes": 45
+}

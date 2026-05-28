@@ -17,6 +17,10 @@ export type {
   SuitabilityAssessment,
   DeriveResponse,
   AssessResponse,
+  PriceEstimate,
+  ComparableSale,
+  PriceComparison,
+  ComparablesResponse,
 } from './types'
 
 // Client

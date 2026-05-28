@@ -2,7 +2,7 @@
  * Property Services API client.
  * Lightweight fetch-based client — no axios dependency.
  */
-import type { PropertyProfile, SuitabilityAssessment, DeriveResponse, AssessResponse } from './types'
+import type { PropertyProfile, SuitabilityAssessment, DeriveResponse, AssessResponse, ComparablesResponse } from './types'
 
 export interface PropertyServicesConfig {
   /** Supabase project URL for property-services */
@@ -85,6 +85,21 @@ export class PropertyServicesClient {
       ...params,
       product: this.product,
     })
+  }
+
+  /**
+   * Address-driven price comparison — Domain AVM estimate for the subject
+   * property (+ a comparables list when the data source's sold-listings tier
+   * is available). Resolves the propertyId server-side; pass the same address
+   * string you used for `derive`.
+   */
+  async comparables(params: {
+    address: string
+    suburb?: string
+    state?: string
+    postcode?: string
+  }): Promise<ComparablesResponse> {
+    return this.request<ComparablesResponse>('/comparables', params)
   }
 
   private async request<T>(path: string, body: unknown): Promise<T> {

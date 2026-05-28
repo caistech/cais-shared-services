@@ -31,7 +31,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { PropertyServicesClient } from './client'
 import type { PropertyServicesConfig } from './client'
-import type { PropertyProfile, SuitabilityAssessment } from './types'
+import type { PropertyProfile, SuitabilityAssessment, PriceComparison } from './types'
 
 export type OnboardingStage =
   | 'idle'          // waiting for address
@@ -48,6 +48,8 @@ export interface UsePropertyOnboardingReturn {
   profile: PropertyProfile | null
   /** AI suitability assessment (null until assessed) */
   assessment: SuitabilityAssessment | null
+  /** Domain price comparison for the subject (null until fetched) */
+  priceComparison: PriceComparison | null
   /** Lookup ID for the cached profile (pass to assess) */
   lookupId: string | null
   /** Whether any operation is in progress */
@@ -68,6 +70,14 @@ export interface UsePropertyOnboardingReturn {
   /** Run AI suitability assessment for a use case */
   assess: (useCase: string) => Promise<SuitabilityAssessment | null>
 
+  /** Fetch the Domain price comparison for an address (resolves propertyId server-side) */
+  comparables: (params: {
+    address: string
+    suburb?: string
+    state?: string
+    postcode?: string
+  }) => Promise<PriceComparison | null>
+
   /** Reset everything (e.g., user changes address) */
   reset: () => void
 }
@@ -78,6 +88,7 @@ export function usePropertyOnboarding(
   const [stage, setStage] = useState<OnboardingStage>('idle')
   const [profile, setProfile] = useState<PropertyProfile | null>(null)
   const [assessment, setAssessment] = useState<SuitabilityAssessment | null>(null)
+  const [priceComparison, setPriceComparison] = useState<PriceComparison | null>(null)
   const [lookupId, setLookupId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -165,10 +176,36 @@ export function usePropertyOnboarding(
     [profile, lookupId]
   )
 
+  const comparables = useCallback(
+    async (params: {
+      address: string
+      suburb?: string
+      state?: string
+      postcode?: string
+    }): Promise<PriceComparison | null> => {
+      try {
+        const client = getClient()
+        const res = await client.comparables(params)
+        if (res.success && res.data) {
+          setPriceComparison(res.data)
+          return res.data
+        }
+        // Non-fatal: price comparison is supplementary to the main flow.
+        setPriceComparison(null)
+        return null
+      } catch {
+        setPriceComparison(null)
+        return null
+      }
+    },
+    []
+  )
+
   const reset = useCallback(() => {
     setStage('idle')
     setProfile(null)
     setAssessment(null)
+    setPriceComparison(null)
     setLookupId(null)
     setError(null)
   }, [])
@@ -177,11 +214,13 @@ export function usePropertyOnboarding(
     stage,
     profile,
     assessment,
+    priceComparison,
     lookupId,
     loading: stage === 'deriving' || stage === 'assessing',
     error,
     derive,
     assess,
+    comparables,
     reset,
   }
 }

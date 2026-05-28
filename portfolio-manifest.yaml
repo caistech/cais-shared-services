@@ -44,6 +44,14 @@ shared:
   ANTHROPIC_API_KEY: { ref: "$secret:anthropic_api_key" }
   OPENAI_API_KEY: { ref: "$secret:openai_api_key" }
 
+  # Standard accounts — created in every product's Supabase project by
+  # scripts/provision-qa-accounts.mjs. See PRODUCT_STANDARDS.md §9.5.
+  admin_users:
+    - email: dennis@corporateaisolutions.com
+    - email: mcmdennis@gmail.com
+  test_user:
+    email: dennis@factory2key.com.au
+
   # Property-services shared infra (one Supabase project + edge functions
   # for property intelligence across F2K, mmcbuild, deal-findrs).
   # As of 2026-04-30 the /derive and /assess functions are deployed
@@ -284,6 +292,24 @@ projects:
     envs:
       PLATFORM_TRUST_PROJECT_ID:
         ref: $secret:platform_trust_project_id_sayfix
+      NEXT_PUBLIC_SUPABASE_URL:
+        from_supabase: url
+      NEXT_PUBLIC_SUPABASE_ANON_KEY:
+        from_supabase: anon_key
+      SUPABASE_SERVICE_ROLE_KEY:
+        from_supabase: service_role_key
+
+  - name: f2k-projects
+    vercel_project_id: "prj_4XqK9PjHvZ2YnLMtR6JwS8DmEfU5"
+    supabase_project_ref: "tbd"
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
+      - ANTHROPIC_API_KEY
+    envs:
+      PLATFORM_TRUST_PROJECT_ID:
+        ref: $secret:platform_trust_project_id_f2k_projects
       NEXT_PUBLIC_SUPABASE_URL:
         from_supabase: url
       NEXT_PUBLIC_SUPABASE_ANON_KEY:

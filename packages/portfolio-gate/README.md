@@ -170,6 +170,8 @@ env var `GITHUB_PACKAGES_TOKEN` so `.npmrc` continues to read it under that name
 | **R4** — Auth smoke-test on every memory save | [Portfolio Standard](../../foundation/PORTFOLIO_STANDARD.md#r4--every-memory-save-triggers-an-auth-smoke-test) | `runAuthSmoke()` (also fires from the `PostToolUse` hook in `~/.claude/settings.json`) |
 | **R10** — No verbatim Postgres errors in API responses | [Portfolio Standard](../../foundation/PORTFOLIO_STANDARD.md#r10--no-verbatim-postgres-errors-in-api-responses--new-2026-05-19) | `errorResponse()` |
 | **R13** — Route smoke test on every deploy | [Portfolio Standard](../../foundation/PORTFOLIO_STANDARD.md#r13--route-smoke-test-on-every-deploy--new-2026-05-19) | `runRouteSmoke()` + `gate.yml` |
+| **R19** — CommitmentPanel before outreach | [Portfolio Standard](../../foundation/PORTFOLIO_STANDARD.md#r19--commitmentpanel-presence-before-outreach--new-2026-05-28) | `runCommitmentPanelAudit()` |
+| **R20** — Voice agent mandatory | [Portfolio Standard](../../foundation/PORTFOLIO_STANDARD.md#r20--voice-agent-mandatory-on-product-surfaces--new-2026-05-28) | `runVoiceAgentAudit()` |
 
 ## Roadmap
 

@@ -66,8 +66,10 @@
 ## Status
 
 > **Updated 2026-05-27** — verified against the live Corporate-AI-Solutions cockpit code
-> (the original "all four NOT STARTED" capture is superseded). The rubric/data foundation
-> lives here in `gate-readiness/`; the engine *execution* landed in the cockpit repo.
+> (the original "all four NOT STARTED" capture is superseded). A later cockpit session the
+> same day finished **#4** and built **#3** (route + UI live on `main`, pending a live data
+> run). The rubric/data foundation lives here in `gate-readiness/`; the engine *execution*
+> landed in the cockpit repo. **All four builds are now done or built-and-live.**
 
 - **#1 Scoring engine — SHIPPED.** Cockpit migration `20260527000000_readiness_scoring.sql`
   (`readiness_results` table + `applies_when` on `readiness_criteria` + `features[]` on cards),
@@ -78,11 +80,18 @@
   enforces the Gate-1 HARD gate via `loadCardScore` / `readiness.ts`.
 - **Stage-3 relay (Option A) — SHIPPED.** `src/app/api/methodology/sync/route.ts` fires
   `relayInterviewedToInvestorPilot()` (HMAC + `INVESTORPILOT_INTAKE_WEBHOOK_URL`) after sync.
-- **#4 Hybrid pool-discovery — PARTIAL.** `feature-manifests/pool-discovery.json`,
-  `src/lib/methodology/pool-discovery.ts`, `POST .../pools/assess`, and the
-  `distributor` / `end_user_pool` card fields exist; the **Phase-1 `/office-hours` ingestion
-  gate is still stubbed** (the dialogue half). See `BUILD4_POOL_DISCOVERY_BRIEF.md`.
-- **#3 Evidence-proposed triage / decision — NOT STARTED** (resequenced to run after #4).
+- **#4 Hybrid pool-discovery — DONE** (per the later 2026-05-27 cockpit session). The
+  data layer (`pool-discovery.ts`, `POST .../pools/assess`) + `distributor`/`end_user_pool`
+  card fields shipped earlier; the remaining **Phase-1 `/office-hours` ingestion dialogue
+  half is now wired**, completing the build. See `BUILD4_POOL_DISCOVERY_BRIEF.md`.
+- **#3 Evidence-proposed triage / decision — BUILT + LIVE on `main`** (route + UI shipped;
+  pending a live data run). A `propose` capability — **Gate-0 desk pass always; Gate-2
+  evidence pass when interviews exist** — plus a "Propose decision" button in
+  `DecisionControls` that renders the §5 breakdown, highlights the recommended decision, and
+  pre-fills the reason; the operator still confirms (human-in-the-loop). Verified: `tsc`
+  clean, 52/52 methodology tests pass. **Remaining:** live verification — the Gate-2
+  (evidence) proposal only yields real verdicts once a two-stream voice interview completes;
+  the Gate-0 (desk-hypothesis) proposal works today.
 
 The spine + cockpit they build on are live — see project memory `pipeline-gate-live`
 (SayFix slug) + `methodology-intake-gate-live`.

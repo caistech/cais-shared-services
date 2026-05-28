@@ -43,6 +43,25 @@ export type {
   GenericTrustPanelProps,
 } from './trust';
 
+// Portfolio Standard R5 — public product card for validation pipeline showcase.
+// Displays read-only product with validation fields, gate scores, and pipeline status.
+// Used in: methodology cockpit public tour, email campaigns, landing pages.
+export { PublicProductCard } from './PublicProductCard';
+export type { PublicProductCardProps } from './PublicProductCard';
+
+// Portfolio Standard R16 — Commitment surface for validation readiness.
+// Every product MUST include a CommitmentPanel on its main surface before
+// outreach begins. This is the bridge between "interesting" and "action".
+// See ./validation/CommitmentPanel.tsx for the full surface.
+export { CommitmentPanel } from './validation/CommitmentPanel';
+export type {
+  CommitmentPanelProps,
+  RunResult,
+  ReportResult,
+  PilotData,
+  PilotResult,
+} from './validation/CommitmentPanel';
+
 // Copy-paste components live under:
 //   src/abn-lookup/      — ABN lookup + ABR search (requires shadcn/ui Input/Label/Badge + lucide-react + @caistech/abn-lookup)
 //   src/address-autocomplete/ — Mapbox address autocomplete (requires shadcn/ui Input + lucide-react + @caistech/mapbox)

@@ -33,7 +33,9 @@
     "portfolio-gate-audit-explanatory-header": "dist/bin/audit-explanatory-header.js",
     "portfolio-gate-audit-trust-panel": "dist/bin/audit-trust-panel.js",
     "portfolio-gate-audit-responsive": "dist/bin/audit-responsive.js",
-    "portfolio-gate-audit-all": "dist/bin/audit-all.js"
+    "portfolio-gate-audit-all": "dist/bin/audit-all.js",
+    "portfolio-gate-audit-commitment-panel": "dist/bin/audit-commitment-panel.js",
+    "portfolio-gate-audit-voice-agent": "dist/bin/audit-voice-agent.js"
   },
   "scripts": {
     "build": "tsc",

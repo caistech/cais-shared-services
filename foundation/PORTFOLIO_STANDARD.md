@@ -298,6 +298,30 @@ Each rule has the same structure:
 
 **Added.** 2026-05-19 (naive-tester portfolio root-cause RC2 — 11 products experienced cross-product session hijacks via ConvAI widget).
 
+### R19 — CommitmentPanel presence before outreach — *NEW 2026-05-28*
+
+**Rule.** Every product MUST have a CommitmentPanel on its main surface before outreach begins for validation. This is the bridge between "interesting" and "action" — it includes RunOnYourData (primary), GetReport (secondary), and JoinPilot/BookSetup (high-intent). Without this, the product cannot be validated because there's no way to measure real commitment.
+
+**Enforcement.**
+- `portfolio-gate` static audit scans for `<CommitmentPanel/>` import on key pages.
+- Pre-outreach gate in the pipeline cockpit blocks validation outreach until R19 passes.
+
+**Repo-local fix.** Add `<CommitmentPanel/>` from `@caistech/corporate-components` to the product's main page (e.g., `app/page.tsx`, `app/(product)/page.tsx`). Implement the `onRun`, `onReport`, and optionally `onPilot` handlers.
+
+**Added.** 2026-05-28 (validation pipeline hardening — converts "interest" signals into "commitment" signals).
+
+### R20 — Voice agent mandatory on product surfaces — *NEW 2026-05-28*
+
+**Rule.** Voice agent is NOT optional — it's the clarifier layer for any nuanced UI question. Every product surface with multi-step user input (forms, wizards, onboarding, setup flows) must have a voice agent reachable in 3 clicks or fewer. This is mandatory, not nice-to-have.
+
+**Enforcement.**
+- `portfolio-gate` static audit scans for voice widget imports (`VoiceWidget`, `ElevenLabsConvai`, `<elevenlabs-convai>`) on key product pages.
+- Naive-tester verifies voice agent presence as part of the Standards Check.
+
+**Repo-local fix.** Add `<VoiceWidget/>` from `@caistech/elevenlabs-convai/react` to the product's chrome (sidebar, header, or FAB). Ensure it's reachable from any authenticated surface.
+
+**Added.** 2026-05-28 (voice agent is a core differentiator, not an afterthought).
+
 ---
 
 ## Enforcement architecture (the cure summary)

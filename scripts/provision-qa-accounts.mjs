@@ -1,0 +1,550 @@
+#!/usr/bin/env node
+/**
+ * scripts/provision-qa-accounts.mjs
+ *
+ * Portfolio-wide fix: create the standard QA accounts (from
+ * portfolio-manifest.yaml shared.admin_users + shared.test_user) in a
+ * product's Supabase project and persist QA_TEST_EMAIL + QA_TEST_PASSWORD
+ * to its .env.local.
+ *
+ * Why this exists (2026-05-28):
+ *   Every naive-tester run on every product needs a persistent QA account.
+ *   SayFix had one -> SayFix got full auth-gated coverage. The other 4
+ *   products didn't -> they were limited to landing-page-only testing.
+ *   Per-product manual account creation doesn't scale across ~30 products.
+ *   This script makes it a one-command portfolio-wide fix.
+ *
+ * Usage:
+ *   Single product:
+ *     node scripts/provision-qa-accounts.mjs --slug sayfix [--dry-run]
+ *   All products:
+ *     node scripts/provision-qa-accounts.mjs --all [--dry-run]
+ *   With explicit repo root (when auto-detect fails):
+ *     node scripts/provision-qa-accounts.mjs --slug sayfix --root ../SayFix
+ *   With explicit supabase ref (when auto-detect fails):
+ *     node scripts/provision-qa-accounts.mjs --slug sayfix --supabase-ref vwvfmsuquohlgxcpzdjo
+ *   Also push to Vercel as sensitive env vars:
+ *     node scripts/provision-qa-accounts.mjs --slug sayfix --vercel
+ *
+ * Supabase ref resolution order:
+ *   1. --supabase-ref CLI arg
+ *   2. manifest.projects[].supabase_project_ref
+ *   3. manifest.projects[].inherit_shared → PLATFORM_TRUST_SUPABASE_URL
+ *      (extracts ref from the URL)
+ *   4. .env.local NEXT_PUBLIC_SUPABASE_URL (auto-discovered from repo root)
+ *   5. Skip (notify user)
+ *
+ * Env / tokens:
+ *   SUPABASE_MANAGEMENT_TOKEN — Management API token (falls back to
+ *     ~/.supabase-token). Used to fetch the service_role key from a
+ *     Supabase project.
+ *
+ * Idempotent: safe to re-run. Existing accounts are skipped; missing
+ * accounts are created. Only the test user's password is written to .env.local.
+ */
+
+import { readFileSync, existsSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join, resolve as resolvePath } from "node:path";
+import { fileURLToPath } from "node:url";
+import { parse as parseYaml } from "yaml";
+import { randomBytes } from "node:crypto";
+
+// ---------------------------------------------------------------------------
+// Paths
+// ---------------------------------------------------------------------------
+const HUB_ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), "..");
+const MANIFEST_PATH = resolvePath(HUB_ROOT, "portfolio-manifest.yaml");
+const PORTFOLIO_BASE = process.env.PORTFOLIO_BASE ?? resolvePath(HUB_ROOT, "..");
+
+// ---------------------------------------------------------------------------
+// CLI args
+// ---------------------------------------------------------------------------
+const args = {};
+for (let i = 2; i < process.argv.length; i++) {
+  const a = process.argv[i];
+  if (a === "--slug") args.slug = process.argv[++i];
+  else if (a === "--all") args.all = true;
+  else if (a === "--dry-run") args.dryRun = true;
+  else if (a === "--root") args.root = process.argv[++i];
+  else if (a === "--supabase-ref") args.supabaseRef = process.argv[++i];
+  else if (a === "--service-key") args.serviceKey = process.argv[++i];
+  else if (a === "--vercel") args.vercel = true;
+}
+
+if (!args.slug && !args.all) {
+  console.error("Usage: node provision-qa-accounts.mjs --slug <slug> | --all [--dry-run] [--root <path>] [--supabase-ref <ref>] [--service-key <key>] [--vercel]");
+  process.exit(1);
+}
+
+// ---------------------------------------------------------------------------
+// Manifest
+// ---------------------------------------------------------------------------
+if (!existsSync(MANIFEST_PATH)) {
+  console.error(`ERROR: manifest not found: ${MANIFEST_PATH}`);
+  process.exit(1);
+}
+const manifest = parseYaml(readFileSync(MANIFEST_PATH, "utf-8"));
+const shared = manifest.shared ?? {};
+
+// Build lookup maps from the manifest
+const projects = (manifest.projects ?? []).reduce((acc, p) => {
+  acc[p.name] = p;
+  return acc;
+}, {});
+const registry = manifest.product_registry ?? {};
+
+const adminUsers = shared.admin_users ?? [];
+const testUser = shared.test_user ?? null;
+
+if (!adminUsers.length || !testUser?.email) {
+  console.error("ERROR: manifest.shared.admin_users or shared.test_user not configured.");
+  console.error("  Add them to portfolio-manifest.yaml:");
+  console.error("    shared:");
+  console.error("      admin_users:");
+  console.error("        - email: dennis@corporateaisolutions.com");
+  console.error("        - email: mcmdennis@gmail.com");
+  console.error("      test_user:");
+  console.error("        email: dennis@factory2key.com.au");
+  process.exit(1);
+}
+
+// ---------------------------------------------------------------------------
+// Token resolution
+// ---------------------------------------------------------------------------
+function getManagementToken() {
+  const t = process.env.SUPABASE_MANAGEMENT_TOKEN ?? process.env.SUPABASE_ACCESS_TOKEN;
+  if (t) return t;
+  const f = join(homedir(), ".supabase-token");
+  if (existsSync(f)) return readFileSync(f, "utf-8").trim();
+  return null;
+}
+const SUPABASE_TOKEN = getManagementToken();
+
+// ---------------------------------------------------------------------------
+// Supabase Management API — fetch service_role key from project ref
+// ---------------------------------------------------------------------------
+async function fetchServiceRoleKey(projectRef) {
+  if (args.serviceKey) return args.serviceKey;
+  if (!SUPABASE_TOKEN) {
+    console.error("ERROR: no Supabase Management token. Set SUPABASE_MANAGEMENT_TOKEN or create ~/.supabase-token.");
+    console.error("  Or pass --service-key <key> to skip the Management API.");
+    process.exit(1);
+  }
+  const url = `https://api.supabase.com/v1/projects/${encodeURIComponent(projectRef)}/api-keys`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${SUPABASE_TOKEN}` },
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Supabase Management API ${res.status} for ${projectRef}/api-keys: ${body.slice(0, 200)}`);
+  }
+  const keys = await res.json();
+  const found = keys.find((k) => k.name === "service_role");
+  if (!found) throw new Error(`Supabase project ${projectRef} returned no service_role key`);
+  return found.api_key;
+}
+
+// ---------------------------------------------------------------------------
+// Resolve a product's Supabase configuration
+// ---------------------------------------------------------------------------
+function extractRefFromUrl(url) {
+  try {
+    const hostname = new URL(url).hostname;
+    const m = hostname.match(/^([^.]+)\.supabase\.co$/);
+    return m ? m[1] : null;
+  } catch { return null; }
+}
+
+function readEnvFile(envPath) {
+  if (!existsSync(envPath)) return {};
+  const raw = readFileSync(envPath, "utf-8");
+  const out = {};
+  for (const line of raw.split(/\r?\n/)) {
+    const m = line.match(/^([A-Z0-9_]+)="?([^"\r\n]*)"?\s*$/);
+    if (m) out[m[1]] = m[2];
+  }
+  return out;
+}
+
+function findSupabaseRef(slug) {
+  // 1. --supabase-ref CLI override
+  if (args.supabaseRef) return args.supabaseRef;
+
+  // 2. manifest.projects[].supabase_project_ref
+  const proj = projects[slug];
+  if (proj?.supabase_project_ref) return proj.supabase_project_ref;
+
+  // 3. manifest.projects[].inherit_shared → PLATFORM_TRUST_SUPABASE_URL
+  if (proj?.inherit_shared?.includes("PLATFORM_TRUST_SUPABASE_URL")) {
+    const trustUrl = shared.PLATFORM_TRUST_SUPABASE_URL;
+    if (trustUrl) {
+      const ref = extractRefFromUrl(trustUrl);
+      if (ref) return { ref, isPlatformTrust: true };
+    }
+  }
+
+  // 4. Try .env.local from the repo root
+  const repoRoot = resolveRepoRoot(slug);
+  if (existsSync(repoRoot)) {
+    const envPath = join(repoRoot, ".env.local");
+    if (existsSync(envPath)) {
+      const env = readEnvFile(envPath);
+      if (env.NEXT_PUBLIC_SUPABASE_URL) {
+        const ref = extractRefFromUrl(env.NEXT_PUBLIC_SUPABASE_URL);
+        if (ref) return ref;
+      }
+    }
+  }
+
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Resolve a product's repo root directory
+// ---------------------------------------------------------------------------
+function resolveRepoRoot(slug) {
+  if (args.root) return resolvePath(args.root);
+
+  const base = PORTFOLIO_BASE;
+  const candidates = [
+    slug,
+    slug.replace(/-/g, ""),
+    slug.charAt(0).toUpperCase() + slug.slice(1),
+    slug.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(""),
+  ];
+  // Known name-to-directory mappings
+  const KNOWN = {
+    "r-and-d-tax-eligibility-work-recording": "R-and-D-Tax-Eligibility-Work-Recording",
+    "rehearsals-ai": "RehearsalsAI",
+    "singify-platform": "singify-platform",
+    "sayfix": "SayFix",
+    "deal-findrs": "deal-findrs",
+  };
+  if (KNOWN[slug]) candidates.unshift(KNOWN[slug]);
+
+  for (const c of candidates) {
+    const p = join(base, c);
+    if (existsSync(p)) return p;
+  }
+  return join(base, slug); // best guess
+}
+
+function buildSupabaseUrl(refOrObj) {
+  if (typeof refOrObj === "object" && refOrObj.isPlatformTrust) {
+    return { url: shared.PLATFORM_TRUST_SUPABASE_URL, ref: refOrObj.ref, isPlatformTrust: true };
+  }
+  const ref = typeof refOrObj === "string" ? refOrObj : refOrObj?.ref;
+  return { url: `https://${ref}.supabase.co`, ref };
+}
+
+// ---------------------------------------------------------------------------
+// Supabase Admin API — user operations
+// ---------------------------------------------------------------------------
+async function createUser(supabaseUrl, serviceKey, email, password) {
+  const url = `${supabaseUrl}/auth/v1/admin/users`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email,
+      password,
+      email_confirm: true,
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    const parsed = JSON.parse(body);
+    if (parsed?.error_code === "email_exists") {
+      // Fetch user ID by email to update password
+      const uid = await findUserIdByEmail(supabaseUrl, serviceKey, email);
+      if (uid) {
+        await updateUserPassword(supabaseUrl, serviceKey, uid, password);
+        return { created: false, uid };
+      }
+      return { skipped: true, reason: "email_exists" };
+    }
+    throw new Error(`Admin API ${res.status} for ${email}: ${body.slice(0, 200)}`);
+  }
+  return res.json();
+}
+
+async function findUserIdByEmail(supabaseUrl, serviceKey, email) {
+  const url = `${supabaseUrl}/auth/v1/admin/users`;
+  const res = await fetch(url, {
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+    },
+  });
+  if (!res.ok) return null;
+  const body = await res.json();
+  const users = Array.isArray(body) ? body : (body.users ?? []);
+  const found = users.find((u) => u.email === email);
+  return found?.id ?? null;
+}
+
+async function updateUserPassword(supabaseUrl, serviceKey, uid, password) {
+  const url = `${supabaseUrl}/auth/v1/admin/users/${encodeURIComponent(uid)}`;
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ password, email_confirm: true }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Admin API PUT ${res.status} for user ${uid}: ${body.slice(0, 200)}`);
+  }
+  return res.json();
+}
+
+function generatePassword() {
+  return "QA_" + randomBytes(12).toString("base64").replace(/[+/=]/g, "x").slice(0, 16);
+}
+
+// ---------------------------------------------------------------------------
+// .env.local I/O
+// ---------------------------------------------------------------------------
+function writeEnvVars(envPath, vars) {
+  const existing = existsSync(envPath) ? readFileSync(envPath, "utf-8") : "";
+  const env = readEnvFile(envPath);
+  for (const [k, v] of Object.entries(vars)) {
+    env[k] = v;
+  }
+
+  const lines = [];
+  const seen = new Set();
+  if (existing) {
+    for (const line of existing.split(/\r?\n/)) {
+      const m = line.match(/^([A-Z0-9_]+)=/);
+      if (m && vars[m[1]] !== undefined) {
+        lines.push(`${m[1]}=${vars[m[1]]}`);
+        seen.add(m[1]);
+      } else {
+        lines.push(line);
+      }
+    }
+  }
+  for (const [k, v] of Object.entries(vars)) {
+    if (!seen.has(k)) {
+      lines.push(`${k}=${v}`);
+    }
+  }
+
+  writeFileSync(envPath, lines.join("\n") + "\n", "utf-8");
+  console.log(`  ✓ wrote ${Object.keys(vars).length} var(s) to ${envPath}`);
+}
+
+// ---------------------------------------------------------------------------
+// Vercel env push (optional --vercel)
+// ---------------------------------------------------------------------------
+async function pushToVercel(vercelProjectId, vars) {
+  const token = process.env.VERCEL_TOKEN;
+  if (!token) {
+    console.log("  ⚠ VERCEL_TOKEN not set — skipping Vercel push");
+    return;
+  }
+  const teamId = manifest.team_id;
+  for (const [key, value] of Object.entries(vars)) {
+    const url = `https://api.vercel.com/v10/projects/${vercelProjectId}/env?teamId=${teamId}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        key,
+        value,
+        type: "sensitive",
+        target: ["production", "preview"],
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      if (res.status === 409) {
+        console.log(`  ⚠ ${key} already exists on Vercel (HTTP 409) — update via dashboard or --overwrite`);
+      } else {
+        console.log(`  ⚠ Vercel env push ${key}: HTTP ${res.status} — ${body.slice(0, 100)}`);
+      }
+    } else {
+      console.log(`  ✓ pushed ${key} to Vercel (production+preview, sensitive)`);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Gather target slugs
+// ---------------------------------------------------------------------------
+function gatherTargetSlugs() {
+  if (args.slug) return [args.slug];
+
+  // --all: merge projects + product_registry
+  const all = new Set();
+  for (const p of manifest.projects ?? []) all.add(p.name);
+  for (const key of Object.keys(manifest.product_registry ?? {})) all.add(key);
+  return [...all].sort();
+}
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
+async function main() {
+  const slugs = gatherTargetSlugs();
+  const total = slugs.length;
+
+  console.log(`Portfolio QA account provisioner`);
+  console.log(`Accounts: ${adminUsers.length} admin(s) + 1 test user`);
+  console.log(`Target: ${args.all ? `all ${total} products` : `'${args.slug}'`}`);
+  if (args.dryRun) console.log(`\n⚠ DRY RUN — no changes will be made\n`);
+  console.log("");
+
+  let totalCreated = 0;
+  let totalSkipped = 0;
+  let totalErrors = 0;
+
+  for (const slug of slugs) {
+    console.log(`\n${"=".repeat(60)}`);
+    console.log(`Product: ${slug}`);
+
+    // Resolve Supabase ref
+    const supabaseRef = findSupabaseRef(slug);
+    if (!supabaseRef) {
+      console.log(`  SKIPPED — could not determine Supabase project ref.`);
+      console.log(`    Pass --supabase-ref <ref> to specify directly, e.g.:`);
+      console.log(`    node scripts/provision-qa-accounts.mjs --slug ${slug} --supabase-ref XXXXX`);
+      continue;
+    }
+
+    const supabase = buildSupabaseUrl(supabaseRef);
+    console.log(`  Supabase: ${supabase.url}`);
+
+    // Fetch service role key
+    let serviceKey;
+    try {
+      serviceKey = await fetchServiceRoleKey(supabase.ref);
+    } catch (e) {
+      console.error(`  ERROR: ${e.message}`);
+      totalErrors++;
+      continue;
+    }
+
+    // Resolve repo root (for .env.local write)
+    const repoRoot = resolveRepoRoot(slug);
+    const hasRepoRoot = existsSync(repoRoot);
+    if (!hasRepoRoot) {
+      console.log(`  ⚠ Repo root not found at ${repoRoot} — .env.local write skipped`);
+    }
+
+    // Admin users
+    console.log(`\n  Admin accounts:`);
+    for (const admin of adminUsers) {
+      const email = admin.email;
+      if (args.dryRun) {
+        console.log(`  → would create admin: ${email}`);
+        continue;
+      }
+      try {
+        const pw = generatePassword();
+        const result = await createUser(supabase.url, serviceKey, email, pw);
+        if (result.skipped) {
+          console.log(`  ✓ ${email} — already exists (skipped)`);
+          totalSkipped++;
+        } else if (result.created === false) {
+          console.log(`  ✓ ${email} — already exists, password reset`);
+          totalCreated++;
+        } else {
+          console.log(`  ✓ ${email} — created`);
+          totalCreated++;
+        }
+      } catch (e) {
+        console.error(`  ✗ ${email} — ${e.message}`);
+        totalErrors++;
+      }
+    }
+
+    // Test user
+    const testEmail = testUser.email;
+    console.log(`\n  Test account:`);
+    if (args.dryRun) {
+      console.log(`  → would create test user: ${testEmail}`);
+    } else {
+      try {
+        const pw = generatePassword();
+        const result = await createUser(supabase.url, serviceKey, testEmail, pw);
+        if (result.skipped) {
+          console.log(`  ✓ ${testEmail} — already exists (password unknown — reset with --reset-pw)`);
+          totalSkipped++;
+        } else {
+          const label = result.created === false ? "password reset" : "created";
+          console.log(`  ✓ ${testEmail} — ${label}, password: ${pw}`);
+          totalCreated++;
+
+          // Write to .env.local if repo root exists
+          if (hasRepoRoot) {
+            const envPath = join(repoRoot, ".env.local");
+            const existingEnv = readEnvFile(envPath);
+            if (existingEnv.QA_TEST_EMAIL) {
+              // Preserve existing QA creds — append new ones as _2 variant
+              if (existingEnv.QA_TEST_EMAIL === testEmail) {
+                writeEnvVars(envPath, { QA_TEST_PASSWORD: pw });
+              } else {
+                console.log(`  ⚠ ${envPath} already has QA_TEST_EMAIL=${existingEnv.QA_TEST_EMAIL} — appending as QA_TEST_EMAIL_2`);
+                writeEnvVars(envPath, {
+                  QA_TEST_EMAIL_2: testEmail,
+                  QA_TEST_PASSWORD_2: pw,
+                });
+              }
+            } else {
+              writeEnvVars(envPath, {
+                QA_TEST_EMAIL: testEmail,
+                QA_TEST_PASSWORD: pw,
+              });
+            }
+          }
+
+          // Push to Vercel if --vercel
+          if (args.vercel) {
+            const proj = projects[slug];
+            if (proj?.vercel_project_id) {
+              await pushToVercel(proj.vercel_project_id, {
+                QA_TEST_EMAIL: testEmail,
+                QA_TEST_PASSWORD: pw,
+              });
+            } else {
+              console.log(`  ⚠ No vercel_project_id for ${slug} — Vercel push skipped`);
+              console.log(`    Add vercel_project_id to the manifest projects entry, or set VERCEL_PROJECT_ID env.`);
+            }
+          }
+        }
+      } catch (e) {
+        console.error(`  ✗ ${testEmail} — ${e.message}`);
+        totalErrors++;
+      }
+    }
+
+    console.log(`\n  Done — ${slug}`);
+  }
+
+  // Summary
+  console.log(`\n${"=".repeat(60)}`);
+  console.log(`Summary:`);
+  console.log(`  Products processed: ${slugs.filter((s) => findSupabaseRef(s)).length} / ${total}`);
+  console.log(`  Accounts created: ${totalCreated}`);
+  console.log(`  Already existed: ${totalSkipped}`);
+  console.log(`  Errors: ${totalErrors}`);
+  if (args.dryRun) console.log(`\n  DRY RUN — no changes persisted. Re-run without --dry-run to apply.`);
+}
+
+main().catch((e) => {
+  console.error(`\nFATAL: ${e.message}`);
+  process.exit(1);
+});

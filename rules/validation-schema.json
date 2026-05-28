@@ -1,0 +1,638 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Product Validation Schema",
+  "description": "Gate-1 readiness: each product pre-declares its promise, distributor, hypotheses, and success criteria. This schema defines what those declarations must include. The readiness criteria (gate-readiness/criteria.json) then audit against this filled schema.",
+  "type": "object",
+  "properties": {
+    "meta": {
+      "type": "object",
+      "description": "Metadata about this validation document",
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "Where this validation came from (e.g. 'gate-readiness/promise-attributes.json', 'manual')"
+        },
+        "last_updated": {
+          "type": "string",
+          "format": "date",
+          "description": "ISO 8601 date this validation was last updated"
+        },
+        "validated_by": {
+          "type": "string",
+          "description": "The person or process that validated this product"
+        },
+        "gate_readiness_status": {
+          "type": "string",
+          "enum": ["pending", "candidate", "ready", "blocked", "deferred"],
+          "description": "Current Gate-1 readiness state"
+        }
+      },
+      "required": ["last_updated", "gate_readiness_status"]
+    },
+    "product": {
+      "type": "object",
+      "description": "Core product identity",
+      "properties": {
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]+$",
+          "description": "URL-safe product identifier (e.g. 'sayfix', 'singify')"
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name of the product (e.g. 'SayFix', 'Singify')"
+        },
+        "one_line_pitch": {
+          "type": "string",
+          "maxLength": 140,
+          "description": "The promise in one sentence, max 140 chars. Answers: what does the user GET that they couldn't before?"
+        },
+        "promise_statement": {
+          "type": "string",
+          "description": "The full promise (3-5 sentences). What the product delivers, for whom, and why it matters."
+        }
+      },
+      "required": ["slug", "name", "one_line_pitch", "promise_statement"]
+    },
+    "distributor": {
+      "type": "object",
+      "description": "Distributor hypothesis: who sells this, and how they benefit",
+      "properties": {
+        "archetype": {
+          "type": "string",
+          "description": "The named distributor type (e.g. 'singing teachers & academies', 'accelerators', 'research & CX firms'). NOT 'SMBs' or generic."
+        },
+        "hypothesis": {
+          "type": "string",
+          "description": "The distributor's exact value prop: what does this product let them do or sell?"
+        },
+        "pain_point_solved": {
+          "type": "string",
+          "description": "The concrete pain the distributor's current workflow has. This is the friction the product removes."
+        },
+        "go_to_market": {
+          "type": "string",
+          "enum": ["white-label", "co-branded", "powered-by", "standalone", "internal"],
+          "description": "How does the distributor offer this? White-label = their brand only; co-branded = both; powered-by = our brand visible; standalone = direct consumer; internal = no distributor."
+        }
+      },
+      "required": ["archetype", "hypothesis", "pain_point_solved", "go_to_market"]
+    },
+    "end_user": {
+      "type": "object",
+      "description": "End-user hypothesis: who actually uses the product, and what they want",
+      "properties": {
+        "persona": {
+          "type": "string",
+          "description": "The named end-user (e.g. 'singing students', 'VCs', 'NDIS providers')"
+        },
+        "job_to_be_done": {
+          "type": "string",
+          "description": "What job does the user hire this product to do? (e.g. 'practise my pitch out loud and get specific feedback')"
+        },
+        "friction_before": {
+          "type": "string",
+          "description": "What is the current friction/pain the end-user faces? (e.g. 'I can't hear if my pitch lands until I'm in the room')"
+        },
+        "success_moment": {
+          "type": "string",
+          "description": "The moment the user feels the product worked: the 'I want that' / 'wow' instant."
+        }
+      },
+      "required": ["persona", "job_to_be_done", "friction_before", "success_moment"]
+    },
+    "friction_point": {
+      "type": "object",
+      "description": "The core friction this product exists to remove",
+      "properties": {
+        "statement": {
+          "type": "string",
+          "description": "A one-sentence articulation of the friction."
+        },
+        "today_workaround": {
+          "type": "string",
+          "description": "How do users solve this TODAY? (manual, external tool, doesn't exist, etc.)"
+        },
+        "why_it_matters": {
+          "type": "string",
+          "description": "Why is this friction worth fixing? (cost, speed, quality loss, risk, etc.)"
+        }
+      },
+      "required": ["statement", "today_workaround"]
+    },
+    "success_criteria": {
+      "type": "array",
+      "description": "What does success look like? 3-5 measurable outcomes the product must deliver.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "criterion": {
+            "type": "string",
+            "description": "The measurable outcome"
+          },
+          "evidence": {
+            "type": "string",
+            "description": "How will we know if this is true? What is the proof?"
+          },
+          "phase": {
+            "type": "string",
+            "enum": ["gate1", "gate2", "live"],
+            "description": "When must this be demonstrated? Gate-1 thin MVP, Gate-2 full build, or live?"
+          }
+        },
+        "required": ["criterion", "evidence", "phase"]
+      },
+      "minItems": 3,
+      "maxItems": 5
+    },
+    "promise_attributes": {
+      "type": "array",
+      "description": "The product's core promises: each with a quality bar that is measurable and non-negotiable.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "attribute": {
+            "type": "string",
+            "description": "The named promise (e.g. 'Karaoke / sing-along', 'Knows your voice', 'White-label')"
+          },
+          "quality_bar": {
+            "type": "string",
+            "description": "The specific, measurable quality bar. NOT vague. (e.g. 'real backing audible IN-EAR with latency under 60ms' not 'high quality audio'). This is the bar a naive-tester uses to verify it actually works."
+          },
+          "how_verified": {
+            "type": "string",
+            "enum": ["NAIVE", "AUTO", "JUDGE", "VOICE"],
+            "description": "How is this verified? NAIVE=human walkthrough, AUTO=automated check, JUDGE=subjective judgment, VOICE=voice-auditor"
+          },
+          "gate_readiness_relevance": {
+            "type": "string",
+            "enum": ["IN", "IN-core", "COND", "SEC", "SCALE", "DEFER"],
+            "description": "IN=must be present in thin MVP, IN-core=the central promise, COND=only if feature exists, SEC=security/always, SCALE=post-Gate-2, DEFER=polish"
+          },
+          "essential": {
+            "type": "boolean",
+            "description": "If true, absence of this attribute = hard no on Gate-1. If false, it's important but not blocking."
+          }
+        },
+        "required": ["attribute", "quality_bar", "how_verified", "gate_readiness_relevance", "essential"]
+      },
+      "minItems": 3
+    },
+    "commitment_surface": {
+      "type": "object",
+      "description": "How does the product ship? What does the distributor (and end-user) need to commit to using it?",
+      "properties": {
+        "deployment_model": {
+          "type": "string",
+          "enum": ["SaaS", "white-label-SaaS", "self-hosted", "hybrid", "API"],
+          "description": "How is it deployed?"
+        },
+        "run_on_your_data": {
+          "type": "object",
+          "description": "BYOK / self-hosted details if applicable",
+          "properties": {
+            "supported": {
+              "type": "boolean",
+              "description": "Can users run this on their own infrastructure/keys?"
+            },
+            "what_you_supply": {
+              "type": "string",
+              "description": "What does the user need to provide? (e.g. 'your own ElevenLabs key', 'Anthropic API key', 'Supabase project')"
+            },
+            "setup_time_minutes": {
+              "type": "integer",
+              "description": "How long to get running with your own keys? (target for Gate-1)"
+            },
+            "documentation": {
+              "type": "string",
+              "description": "Link to or summary of setup docs"
+            }
+          }
+        },
+        "output_format": {
+          "type": "object",
+          "description": "What does the user get back? How do they integrate it?",
+          "properties": {
+            "primary_output": {
+              "type": "string",
+              "description": "What does the product produce? (e.g. 'MP3 file', 'API response', 'dashboard', 'PDF report')"
+            },
+            "format_details": {
+              "type": "string",
+              "description": "Specifics: schema, size, latency, reproducibility (e.g. 'JSON with voice + text transcript, <100ms latency')"
+            },
+            "integrations": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Common integrations at Gate-1 (e.g. 'Slack', 'Zapier', 'native API')"
+            }
+          },
+          "required": ["primary_output"]
+        },
+        "pilot_path": {
+          "type": "object",
+          "description": "How does a distributor / end-user get started?",
+          "properties": {
+            "minimum_viable_pilot": {
+              "type": "string",
+              "description": "What's the smallest real use the distributor can run in Week 1? (not 'sign up and explore')"
+            },
+            "success_signal": {
+              "type": "string",
+              "description": "How does the distributor know the pilot is working? (e.g. 'student completes 1 session and rates coach 4+/5')"
+            },
+            "time_to_value_days": {
+              "type": "integer",
+              "description": "How many days until distributor sees tangible value?"
+            }
+          },
+          "required": ["minimum_viable_pilot", "success_signal"]
+        }
+      },
+      "required": ["deployment_model", "output_format", "pilot_path"]
+    },
+    "gate_scores": {
+      "type": "object",
+      "description": "Readiness measurement: how well does this product meet the Gate-1 criteria?",
+      "properties": {
+        "hard_gates": {
+          "type": "array",
+          "description": "Criteria that MUST pass (no exceptions). If any fail, Gate-1 is blocked.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "The criterion code from gate-readiness/criteria.json (e.g. 'P1', '2', '7')"
+              },
+              "check": {
+                "type": "string",
+                "description": "The criterion description"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["pass", "fail", "pending", "waived"],
+                "description": "Current status"
+              },
+              "evidence": {
+                "type": "string",
+                "description": "What shows this passes (link to PR, screenshot, deploy URL, etc.)"
+              },
+              "waiver_reason": {
+                "type": "string",
+                "description": "If waived, why? (logged decision, not a silent skip)"
+              }
+            },
+            "required": ["code", "check", "status"]
+          }
+        },
+        "weighted_gates": {
+          "type": "array",
+          "description": "Criteria with weights. Aggregate score: sum(weight) for passed / sum(all weight). Target: 80%+.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "Criterion code"
+              },
+              "check": {
+                "type": "string",
+                "description": "Criterion description"
+              },
+              "weight": {
+                "type": "string",
+                "enum": ["Low", "Med", "High"],
+                "description": "Importance weight"
+              },
+              "weight_numeric": {
+                "type": "number",
+                "description": "Numeric: Low=1, Med=2, High=3"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["pass", "fail", "pending"],
+                "description": "Current status"
+              },
+              "evidence": {
+                "type": "string",
+                "description": "Proof of pass/fail"
+              }
+            },
+            "required": ["code", "check", "weight", "status"]
+          }
+        },
+        "conditional_gates": {
+          "type": "array",
+          "description": "Criteria that apply only IF a certain feature is present (e.g. auth, voice, email). If feature absent, N/A.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "check": {
+                "type": "string"
+              },
+              "applies_when": {
+                "type": "string",
+                "description": "Feature trigger (e.g. 'voice', 'auth', 'email')"
+              },
+              "feature_present": {
+                "type": "boolean",
+                "description": "Does the triggering feature exist in this product?"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["pass", "fail", "N/A", "pending"]
+              },
+              "evidence": {
+                "type": "string"
+              }
+            },
+            "required": ["code", "check", "applies_when", "feature_present", "status"]
+          }
+        },
+        "composite_score": {
+          "type": "object",
+          "description": "Aggregate readiness score",
+          "properties": {
+            "hard_gates_passed": {
+              "type": "integer",
+              "description": "Number of hard gates passed"
+            },
+            "hard_gates_total": {
+              "type": "integer",
+              "description": "Total hard gates applicable"
+            },
+            "weighted_score_percent": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Weighted gates: (sum of weights passed / sum of all weights) * 100. Target: 80%."
+            },
+            "gate1_ready": {
+              "type": "boolean",
+              "description": "Overall verdict: all hard gates pass AND weighted score >= 80%?"
+            },
+            "open_items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "code": { "type": "string" },
+                  "issue": { "type": "string" },
+                  "fix": { "type": "string", "description": "What needs to happen to pass?" },
+                  "estimated_effort": { "type": "string", "enum": ["trivial", "quick", "medium", "large"] }
+                }
+              },
+              "description": "Failed/pending criteria and their required fixes"
+            }
+          },
+          "required": ["hard_gates_passed", "hard_gates_total", "weighted_score_percent", "gate1_ready"]
+        }
+      },
+      "required": ["hard_gates", "weighted_gates", "composite_score"]
+    }
+  },
+  "required": ["meta", "product", "distributor", "end_user", "friction_point", "success_criteria", "promise_attributes", "commitment_surface", "gate_scores"],
+  "examples": [
+    {
+      "meta": {
+        "source": "gate-readiness/promise-attributes.json",
+        "last_updated": "2026-05-26",
+        "validated_by": "Dennis (manual)",
+        "gate_readiness_status": "candidate"
+      },
+      "product": {
+        "slug": "sayfix",
+        "name": "SayFix",
+        "one_line_pitch": "Record your speech, hear exactly what you sound like, get coached to fix it.",
+        "promise_statement": "SayFix captures how you speak, plays it back with real-time annotations (filler words, pace, clarity issues), and coaches you through specific improvements. For public speakers, interviewees, and professionals who need to sound confident in the moment."
+      },
+      "distributor": {
+        "archetype": "Public speaking coaches & corporate training firms",
+        "hypothesis": "These coaches can offer a higher-value service: feedback that's specific, consistent, and instant—without needing the coach to listen to every take. Their students get better faster, and the coach scales across more students.",
+        "pain_point_solved": "Coaches spend 30% of their time listening to recordings and giving generic feedback. Students record, email, wait, then get vague notes ('slower', 'clearer'). SayFix lets feedback be instant and specific, freeing the coach to coach, not listen.",
+        "go_to_market": "white-label"
+      },
+      "end_user": {
+        "persona": "Public speaking students & professionals (sales, interview prep, executives)",
+        "job_to_be_done": "I need to know what my voice actually sounds like when I practice, and I need specific things to fix before my big moment.",
+        "friction_before": "I can't hear myself clearly when I'm speaking. The playback is always shocking because I didn't know I said 'um' 20 times. My coach's notes come days later and say 'speak slower'—not specific enough to actually change.",
+        "success_moment": "I hit record, listen back, and immediately see '0:15 filler word cluster', '0:43 dropped ending', '1:22 rushed pacing'. I redo that 30 seconds, hear the difference, and think 'wow, I actually sound prepared.'"
+      },
+      "friction_point": {
+        "statement": "Speakers don't hear their own speech clearly until it's too late, and feedback is generic or slow.",
+        "today_workaround": "Record on phone, listen in your car, ask a friend, or pay a coach to listen to every take.",
+        "why_it_matters": "Poor delivery undermines good ideas. Speakers who sound confident get funded, hired, promoted. Practicing without real feedback wastes hours."
+      },
+      "success_criteria": [
+        {
+          "criterion": "Student completes 5 practice sessions in first week with SayFix (proof: session count + timestamp)",
+          "evidence": "Dashboard shows usage > 5 sessions in Week 1",
+          "phase": "gate1"
+        },
+        {
+          "criterion": "Student rates the feedback as 'specific and actionable' (not generic) in a post-session 1-5 scale (4+ = success)",
+          "evidence": "In-app survey: mean score >= 4.0 across 10 test users",
+          "phase": "gate1"
+        },
+        {
+          "criterion": "Coach sees measurable student improvement: recorded clarity score improves session 1 → session 5",
+          "evidence": "Coach dashboard shows clarity metric improvement >= 10% over 5 sessions",
+          "phase": "gate2"
+        },
+        {
+          "criterion": "Coach can deploy a white-label instance in <2 hours with their branding",
+          "evidence": "Deployment script documented + tested with a sample coach",
+          "phase": "gate1"
+        }
+      ],
+      "promise_attributes": [
+        {
+          "attribute": "Real-time analysis",
+          "quality_bar": "Recording plays back instantly with overlaid annotations (filler words, pace issues, clarity gaps) on the timeline. Not a post-session report. Annotations update in <2s of playback.",
+          "how_verified": "NAIVE",
+          "gate_readiness_relevance": "IN-core",
+          "essential": true
+        },
+        {
+          "attribute": "Specific coaching",
+          "quality_bar": "Coach sees per-session feedback (e.g., '0:43 you said um 3x in 10s' not 'work on filler words'). Feedback references exact timestamps and counts, not vibes.",
+          "how_verified": "NAIVE",
+          "gate_readiness_relevance": "IN",
+          "essential": true
+        },
+        {
+          "attribute": "Measurable improvement",
+          "quality_bar": "System shows clarity/pace/filler score trending upward across sessions for the same user. After 5 takes, a user should see a 10%+ improvement in at least one metric.",
+          "how_verified": "AUTO",
+          "gate_readiness_relevance": "IN",
+          "essential": true
+        },
+        {
+          "attribute": "White-label ready",
+          "quality_bar": "Coach's logo, domain, and colors visible throughout. No 'powered by SayFix'. Branding script takes <1h to configure.",
+          "how_verified": "JUDGE",
+          "gate_readiness_relevance": "IN",
+          "essential": true
+        },
+        {
+          "attribute": "Voice coach (optional expansion)",
+          "quality_bar": "Optional: voice agent prompts next coaching step proactively after a session (e.g., 'I heard 5 filler words—let's do a focused take on that section'). Not required for Gate-1, but present if voice is enabled.",
+          "how_verified": "VOICE",
+          "gate_readiness_relevance": "COND",
+          "essential": false
+        }
+      ],
+      "commitment_surface": {
+        "deployment_model": "white-label-SaaS",
+        "run_on_your_data": {
+          "supported": true,
+          "what_you_supply": "Your own Anthropic API key (for analysis) + ElevenLabs key (if voice coach enabled)",
+          "setup_time_minutes": 15,
+          "documentation": "docs/DEPLOY_WHITE_LABEL.md"
+        },
+        "output_format": {
+          "primary_output": "Annotated audio playback + scored feedback report",
+          "format_details": "MP3 + JSON feedback schema with timestamps and metric scores. <500ms latency from upload to first playback. Reproducible: same audio = same score each run.",
+          "integrations": [
+            "Zapier (trigger on session > 4.0 rating)",
+            "Slack (coach notification: student hit clarity target)",
+            "native API for custom integrations"
+          ]
+        },
+        "pilot_path": {
+          "minimum_viable_pilot": "Coach onboards 1 student, that student records 2 practice sessions, coach reviews feedback. Real usage, not a sandbox.",
+          "success_signal": "Student completes 2 sessions + rates feedback >=4/5. Coach confirms: 'I can see what to fix.'",
+          "time_to_value_days": 3
+        }
+      },
+      "gate_scores": {
+        "hard_gates": [
+          {
+            "code": "P1",
+            "check": "MVP link live (HTTP 200)",
+            "status": "pass",
+            "evidence": "https://sayfix-mvp.vercel.app → 200 OK"
+          },
+          {
+            "code": "P2",
+            "check": "Named distributor archetype on the card (not 'SMBs')",
+            "status": "pass",
+            "evidence": "Card states: 'Public speaking coaches & corporate training firms'"
+          },
+          {
+            "code": "P3",
+            "check": "Four gate questions answered non-hand-wavily",
+            "status": "pass",
+            "evidence": "BUSINESS_MODEL.md §3 questions answered with distributor/end-user/friction all named"
+          },
+          {
+            "code": "2",
+            "check": "Responsive 375 + 1440, no h-scroll, thumb",
+            "status": "pass",
+            "evidence": "Tested in /browse at 375px and 1440px; no horizontal scroll; playback controls thumb-reachable"
+          },
+          {
+            "code": "7",
+            "check": "Browser <title> = product name (not 'Create Next App')",
+            "status": "pass",
+            "evidence": "<title>SayFix | Real-time speech coaching</title>"
+          },
+          {
+            "code": "39",
+            "check": "No secrets in committed files / logs",
+            "status": "pass",
+            "evidence": "Ran cso daily scan; no secrets flagged"
+          }
+        ],
+        "weighted_gates": [
+          {
+            "code": "1",
+            "check": "Explanatory header (what/do/why) + empty states",
+            "weight": "Med",
+            "weight_numeric": 2,
+            "status": "pass",
+            "evidence": "Landing page header: 'Record your speech, get instant real-time feedback, improve your delivery.' Empty state: 'No sessions yet. Upload or record your first take.'"
+          },
+          {
+            "code": "5",
+            "check": "Landing page sells the concept",
+            "weight": "High",
+            "weight_numeric": 3,
+            "status": "pass",
+            "evidence": "Hero video shows user recording → playback with annotations → immediate 'wow' reaction. Call-to-action: 'Try your first take free.'"
+          },
+          {
+            "code": "6",
+            "check": "Emotional register matches product (not dull shell)",
+            "weight": "High",
+            "weight_numeric": 3,
+            "status": "pass",
+            "evidence": "Playback UI is bold, real-time waveform + confidence bars feel alive. Not clinical. Feedback tone: encouraging, specific, not harsh."
+          },
+          {
+            "code": "9",
+            "check": "PROMISE ATTRIBUTES present AND at quality bar",
+            "weight": "High",
+            "weight_numeric": 3,
+            "status": "pass",
+            "evidence": "All 5 promise attributes (real-time analysis, specific coaching, improvement tracking, white-label, optional voice coach) present and quality bars met per /naive-tester sweep"
+          },
+          {
+            "code": "31",
+            "check": "Consequence clarity on irreversible/cost/outreach + confirm",
+            "weight": "High",
+            "weight_numeric": 3,
+            "status": "pass",
+            "evidence": "Coach sharing a session explicitly says 'share with student' + confirm; no accidental sends. Student signup is optional (record as guest first)."
+          },
+          {
+            "code": "32",
+            "check": "Zero dead ends — every screen makes next action obvious",
+            "weight": "High",
+            "weight_numeric": 3,
+            "status": "pass",
+            "evidence": "/naive-tester walkthrough: every screen has a next action button. No 'view only' dead ends."
+          },
+          {
+            "code": "41",
+            "check": "Human walkthrough: friction/terminology/'I want that'",
+            "weight": "High",
+            "weight_numeric": 3,
+            "status": "pass",
+            "evidence": "/naive-tester report: 'I want that' moment fires at real-time playback annotation. 3/3 test users requested immediate follow-up."
+          }
+        ],
+        "conditional_gates": [
+          {
+            "code": "10",
+            "check": "Voice agent reachable from chrome <=3 clicks",
+            "applies_when": "voice",
+            "feature_present": false,
+            "status": "N/A",
+            "evidence": "Voice coach is planned post-Gate-2; not present in Gate-1 thin slice."
+          }
+        ],
+        "composite_score": {
+          "hard_gates_passed": 6,
+          "hard_gates_total": 6,
+          "weighted_score_percent": 87,
+          "gate1_ready": true,
+          "open_items": [
+            {
+              "code": "8",
+              "issue": "OG image + manifest favicon not customized",
+              "fix": "Generate OG image from audio waveform visual; use branded favicon in public/",
+              "estimated_effort": "quick"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

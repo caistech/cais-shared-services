@@ -1,0 +1,2 @@
+-- Stub migration to match remote history
+-- Applied before local migration tracking began

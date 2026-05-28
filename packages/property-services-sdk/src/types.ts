@@ -125,3 +125,52 @@ export interface AssessResponse {
   data?: SuitabilityAssessment
   error?: string
 }
+
+// ─── Price comparison (Domain-backed) ───────────────────────────
+
+export interface PriceEstimate {
+  lower: number | null
+  mid: number | null
+  upper: number | null
+  /**
+   * The source's confidence descriptor, carried raw. For Domain this is
+   * `priceConfidence` — a descriptive enum (e.g. 'confident', 'recentlySold',
+   * 'historic', 'notAvailable'), NOT a high/med/low scale. The UI maps it to a
+   * friendly label/colour.
+   */
+  confidence: string | null
+  estimateDate: string | null
+  propertyId: string | null
+  source: 'domain'
+}
+
+export interface ComparableSale {
+  address: string
+  suburb: string
+  salePrice: number
+  saleDate: string
+  landAreaSqm: number | null
+  floorAreaSqm: number | null
+  bedrooms: number | null
+  bathrooms: number | null
+  parking: number | null
+  distanceKm: number | null
+  pricePerSqm: number | null
+}
+
+export interface PriceComparison {
+  estimate: PriceEstimate | null
+  comparables: ComparableSale[]
+  stats: {
+    median: number | null
+    medianPricePerSqm: number | null
+    count: number
+  } | null
+  unavailableReason?: string
+}
+
+export interface ComparablesResponse {
+  success: boolean
+  data?: PriceComparison
+  error?: string
+}

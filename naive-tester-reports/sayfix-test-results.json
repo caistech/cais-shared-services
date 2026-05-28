@@ -1,0 +1,21 @@
+[
+  {"code": "P1", "status": "pass", "evidence": "URL deployed and accessible at sayfix-corporate-ai-solutions.vercel.app"},
+  {"code": "1", "status": "pass", "evidence": "Strong explanatory headers on /new, /tickets, /signup, /forgot-password. Landing page is thin but passable."},
+  {"code": "2", "status": "pass", "evidence": "No horizontal scroll at 375 + 1440; body text 16px; main CTA 48px. Mobile voice bubble overlaps input (polish)."},
+  {"code": "3", "status": "pass", "evidence": "Touch targets 48px, text 16px verified in previous test"},
+  {"code": "4", "status": "pass", "evidence": "Top nav fits across mobile without hamburger menu"},
+  {"code": "5", "status": "pass", "evidence": "Landing page has title, tagline, and CTA. Sparse but functional."},
+  {"code": "6", "status": "pass", "evidence": "Emotional register matches product - warm concierge, plain English"},
+  {"code": "7", "status": "pass", "evidence": "Tab title is 'SayFix', not 'Create Next App'"},
+  {"code": "10", "status": "pass", "evidence": "Voice agent reachable in one click on report page"},
+  {"code": "22", "status": "pass", "evidence": "Forgot-password link present on /login, wired properly"},
+  {"code": "23", "status": "pass", "evidence": "Password visibility toggle (eye icon) present and verified working"},
+  {"code": "24", "status": "pass", "evidence": "Magic-link option present on login page"},
+  {"code": "25", "status": "pass", "evidence": "Login, signup, forgot-password, magic-link all exist and functional"},
+  {"code": "26", "status": "fail", "evidence": "Navigation present on /new and /tickets but DROPPED on request-detail page (/tickets/[id]) - only shows back link"},
+  {"code": "27", "status": "na", "evidence": "No /settings page. Acceptable for lean stakeholder side."},
+  {"code": "29", "status": "pass", "evidence": "Sign Out present in top nav on /new and /tickets (not on detail page due to nav issue)"},
+  {"code": "31", "status": "pass", "evidence": "Discovery flow shows summary before confirming"},
+  {"code": "32", "status": "fail", "evidence": "Request detail page only has back link - no clear next action (tied to nav finding)"},
+  {"code": "41", "status": "pass", "evidence": "Previous test confirmed 'plain English, no jargon, clearly understood me' - genuine 'I want that' reaction"}
+]

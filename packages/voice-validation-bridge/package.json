@@ -1,0 +1,46 @@
+{
+  "name": "@caistech/voice-validation-bridge",
+  "version": "0.1.0",
+  "description": "Extracts validation schema field suggestions from voice conversation transcripts using LLM",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./extract": {
+      "import": "./dist/extract-suggestions.js",
+      "types": "./dist/extract-suggestions.d.ts"
+    },
+    "./transcript": {
+      "import": "./dist/transcript-storage.js",
+      "types": "./dist/transcript-storage.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.28.0",
+    "@caistech/ai-client": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  },
+  "keywords": [
+    "voice",
+    "validation",
+    "schema",
+    "llm",
+    "suggestions"
+  ]
+}
