@@ -1,0 +1,31 @@
+{
+  "name": "@caistech/sayfix-embed",
+  "version": "0.1.0",
+  "description": "SayFix embeddable widget for reporting issues - shared service layer",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/react": "^18",
+    "typescript": "^5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services"
+  },
+  "keywords": [
+    "sayfix",
+    "issue-tracking",
+    "feedback",
+    "bug-reporting"
+  ],
+  "author": "Corporate AI Solutions",
+  "license": "MIT"
+}

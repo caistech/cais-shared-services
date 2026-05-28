@@ -69,6 +69,8 @@ shared:
 projects:
 
   - name: mmcbuild
+    ownership: client_build
+    client_name: "MMC Build Pty Ltd"
     vercel_project_id: "prj_qKKLAkGGGVH5KocDfoGZQOqIZGvj"
     inherit_shared:
       - PLATFORM_TRUST_SUPABASE_URL
@@ -300,6 +302,8 @@ projects:
         from_supabase: service_role_key
 
   - name: f2k-projects
+    ownership: sister_company
+    built_for: "Factory2Key"
     vercel_project_id: "prj_4XqK9PjHvZ2YnLMtR6JwS8DmEfU5"
     supabase_project_ref: "tbd"
     inherit_shared:
