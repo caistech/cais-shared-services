@@ -1,7 +1,7 @@
 {
   "name": "@caistech/sayfix-embed",
   "version": "0.1.0",
-  "description": "SayFix embeddable widget for reporting issues - shared service layer",
+  "description": "SayFix bug reporting widget - GBTA-controlled service layer",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
@@ -22,10 +22,10 @@
   },
   "keywords": [
     "sayfix",
-    "issue-tracking",
-    "feedback",
-    "bug-reporting"
+    "bug-reporting",
+    "issue-tracking"
   ],
   "author": "Corporate AI Solutions",
-  "license": "MIT"
+  "license": "MIT",
+  "notes": "SayFix is a GBTA-controlled service. All tickets flow to sayfix.vercel.app for processing, analytics, and cross-product fix distribution."
 }
