@@ -18,7 +18,8 @@ import { Bug, ExternalLink, MessageSquare, Clock, Settings, Wrench } from 'lucid
 /* ========================= WIDGET ========================= */
 
 export interface SayFixWidgetProps {
-  product: string;
+  /** Repo name (e.g. f2k-projects, mmcbuild) - owner is inferred from the product's GitHub account in SayFix */
+  repo: string;
   label?: string;
   showIcon?: boolean;
   position?: 'bottom-right' | 'bottom-left';
@@ -27,14 +28,16 @@ export interface SayFixWidgetProps {
 /**
  * Floating "Report Issue" button widget
  * Opens SayFix in a new tab
+ * 
+ * Note: Just pass the repo name - SayFix knows which GitHub account it belongs to
  */
 export function SayFixWidget({ 
-  product, 
+  repo, 
   label = 'Report Issue', 
   showIcon = true,
   position = 'bottom-right'
 }: SayFixWidgetProps) {
-  const sayfixUrl = `https://sayfix.vercel.app/new?product=${encodeURIComponent(product)}`;
+  const sayfixUrl = `https://sayfix.vercel.app/new?product=${encodeURIComponent(repo)}`;
   
   const positionClasses = {
     'bottom-right': 'bottom-6 right-6',
