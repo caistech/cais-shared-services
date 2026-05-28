@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Centralized bug knowledge base - agents MUST check this before fixing any bug",
+  "entries": [
+    {
+      "id": "sf-supabase-magic-link-token-hash",
+      "product": "SayFix",
+      "error_pattern": "auth callback only handles code, magic link uses token_hash",
+      "error_symptoms": ["magic link takes user back to login", "no session created on callback"],
+      "attempts": [
+        {
+          "what": "Only handled ?code= parameter in auth callback",
+          "result": "failed",
+          "reason": "Supabase v2 magic links use ?token_hash= not ?code="
+        }
+      ],
+      "solution": {
+        "approach": "Handle both token_hash (magic link) and code (legacy) in callback",
+        "code_path": "src/app/auth/callback/route.ts",
+        "key_change": "Added verifyOtp for token_hash + exchangeCodeForSession fallback"
+      },
+      "fixed_at": "2026-05-29",
+      "fixed_by": "opencode"
+    },
+    {
+      "id": "f2k-edge-function-in-next-build",
+      "product": "F2K-Projects",
+      "error_pattern": "Supabase Edge Functions compiled as Next.js code",
+      "error_symptoms": ["Cannot find name 'Deno'", "edge function imports fail build"],
+      "attempts": [
+        {
+          "what": "Fix import from esm.sh URL to package import",
+          "result": "partial",
+          "reason": "Fixed import but Next.js still tried to compile Deno code"
+        }
+      ],
+      "solution": {
+        "approach": "Exclude supabase/functions from Next.js webpack build",
+        "code_path": "next.config.js",
+        "key_change": "Added webpack rule to exclude supabase/functions with empty-loader"
+      },
+      "fixed_at": "2026-05-29",
+      "fixed_by": "opencode"
+    },
+    {
+      "id": "f2k-supabase-version-mismatch",
+      "product": "F2K-Projects",
+      "error_pattern": "FunctionsClient export error from @supabase/supabase-js",
+      "error_symptoms": ["'FunctionsClient' is not exported", "FunctionsError not found"],
+      "attempts": [
+        {
+          "what": "Reinstall @supabase/supabase-js @latest",
+          "result": "failed",
+          "reason": "v2.106.x has breaking changes with @supabase/ssr"
+        }
+      ],
+      "solution": {
+        "approach": "Pin to compatible versions: @supabase/supabase-js@2.39.0 @supabase/ssr@0.5.2",
+        "code_path": "package.json",
+        "key_change": "Downgraded to version pair known to work together"
+      },
+      "fixed_at": "2026-05-29",
+      "fixed_by": "opencode"
+    },
+    {
+      "id": "sf-ai-client-missing",
+      "product": "SayFix",
+      "error_pattern": "Discovery endpoint degraded - no API key configured",
+      "error_symptoms": ["I'm having trouble right now message", "AI not responding"],
+      "attempts": [
+        {
+          "what": "Added ANTHROPIC_API_KEY to Vercel",
+          "result": "failed",
+          "reason": "Vercel needed 'Allow access to System Environment Variables' enabled"
+        },
+        {
+          "what": "Switch to @caistech/ai-client for model-agnostic access",
+          "result": "succeeded",
+          "reason": "Now supports both OpenRouter and Anthropic, consistent across portfolio"
+        }
+      ],
+      "solution": {
+        "approach": "Use @caistech/ai-client which reads OPENROUTER_API_KEY or ANTHROPIC_API_KEY",
+        "code_path": "src/app/api/discovery/route.ts",
+        "key_change": "Replaced direct Anthropic SDK with getClaudeClientConfig + resolveClaudeModel"
+      },
+      "fixed_at": "2026-05-29",
+      "fixed_by": "opencode"
+    },
+    {
+      "id": "f2k-agents-no-edit",
+      "product": "F2K-Projects",
+      "error_pattern": "Agents admin page missing Edit functionality",
+      "error_symptoms": ["Admin could only create/block/delete agents", "No way to fix typos in agent names"],
+      "attempts": [],
+      "solution": {
+        "approach": "Added Edit button with modal + PATCH API support for name/phone/agency",
+        "code_path": "src/app/admin/agents/page.tsx, src/app/api/admin/agents/[id]/route.ts",
+        "key_change": "New EditAgentModal component + expanded PATCH to accept name/phone/agency"
+      },
+      "fixed_at": "2026-05-29",
+      "fixed_by": "opencode"
+    },
+    {
+      "id": "f2k-agents-no-self-service",
+      "product": "F2K-Projects",
+      "error_pattern": "Agents cannot edit their own profile details",
+      "error_symptoms": ["Agents need admin to fix their name/phone/agency", "No self-service profile page"],
+      "attempts": [],
+      "solution": {
+        "approach": "Added /agent/profile page with self-service editing + password change",
+        "code_path": "src/app/agent/profile/page.tsx, src/app/api/agent/profile/route.ts, src/app/api/agent/password/route.ts",
+        "key_change": "New profile page + profile API + password change API"
+      },
+      "fixed_at": "2026-05-29",
+      "fixed_by": "opencode"
+    },
+    {
+      "id": "sf-chat-history-lost",
+      "product": "SayFix",
+      "error_pattern": "Chat history not visible after ticket creation",
+      "error_symptoms": ["Users see request in My Requests but can't see their conversation", "Status vague: 'Escalated — a person is reviewing this'"],
+      "attempts": [],
+      "solution": {
+        "approach": "Show chat history in ticket detail + improved status badges",
+        "code_path": "src/app/tickets/[id]/page.tsx, src/app/tickets/page.tsx",
+        "key_change": "ChatHistory component displays raw_input.messages + StatusBadge with icons"
+      },
+      "fixed_at": "2026-05-29",
+      "fixed_by": "opencode"
+    },
+    {
+      "id": "sf-no-new-request",
+      "product": "SayFix",
+      "error_pattern": "No way to start a new request without losing current conversation",
+      "error_symptoms": ["User chat gets lost when navigating away", "Need fresh conversation but no button"],
+      "attempts": [],
+      "solution": {
+        "approach": "Added 'New Request' button that appears when conversation exists",
+        "code_path": "src/components/intake/SayItIntake.tsx",
+        "key_change": "New Request button clears chat state to start fresh"
+      },
+      "fixed_at": "2026-05-29",
+      "fixed_by": "opencode"
+    }
+  ],
+  "usage": "Before fixing ANY bug, grep this file for matching error patterns. Also check SayFix DB for product-specific attempts."
+}
