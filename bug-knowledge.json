@@ -3,6 +3,20 @@
   "description": "Centralized bug knowledge base - agents MUST check this before fixing any bug",
   "entries": [
     {
+      "id": "f2k-registration-not-in-admin",
+      "product": "F2K-Projects",
+      "error_pattern": "registration emails arriving but not showing in admin",
+      "error_symptoms": ["registrations arrive via email but admin shows nothing", "Uwe can't see Josh Zeitzen registrations"],
+      "attempts": [],
+      "solution": {
+        "approach": "Tell user where to find registrations - they're in the estate-specific admin, not main admin",
+        "answer": "The registrations are in the ESTATE-SPECIFIC admin areas: Go to /admin/branscombe-registrations for Branscombe Estate (U26, U21, U31), or /admin/seafields-registrations for Seafields. They're NOT in the main /admin page - that's for agents only.",
+        "key_url": "/admin/branscombe-registrations"
+      },
+      "fixed_at": "2026-05-29",
+      "fixed_by": "knowledge-base"
+    },
+    {
       "id": "sf-supabase-magic-link-token-hash",
       "product": "SayFix",
       "error_pattern": "auth callback only handles code, magic link uses token_hash",
