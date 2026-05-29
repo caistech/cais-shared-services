@@ -150,3 +150,55 @@ export async function getSayFixTicket(id: string): Promise<TicketStatus | null> 
   if (!res.ok) return null;
   return res.json();
 }
+
+/* ========================= INVESTIGATION ========================= */
+
+export interface InvestigationResult {
+  issue: string;
+  repo: string;
+  codeResults: { file: string; snippet: string; type: string; score: number }[];
+  kbResults: { error_pattern: string; solution: string; product?: string }[];
+  analysis: {
+    summary: string;
+    shouldFix: boolean;
+    canAnswer: boolean;
+    answer?: string;
+    fixType?: string;
+  };
+  fixResult?: { status: string; message: string };
+}
+
+/**
+ * Trigger investigation on a ticket - searches codebase + bug KB
+ * 
+ * This connects to SayFix backend to:
+ * 1. Search the product's GitHub repo for relevant code
+ * 2. Search bug-knowledge.json for similar past issues
+ * 3. Either answer the question or trigger a fix
+ * 
+ * Requires GITHUB_TOKEN to be configured in SayFix Vercel
+ */
+export async function investigateTicket(ticketId: string): Promise<InvestigationResult | null> {
+  const res = await fetch(`https://sayfix.vercel.app/api/tickets/${ticketId}/investigate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'investigate' }),
+  });
+  
+  if (!res.ok) return null;
+  return res.json();
+}
+
+/**
+ * Trigger a fix for a ticket - initiates coding assistant
+ */
+export async function fixTicket(ticketId: string): Promise<InvestigationResult | null> {
+  const res = await fetch(`https://sayfix.vercel.app/api/tickets/${ticketId}/investigate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'fix' }),
+  });
+  
+  if (!res.ok) return null;
+  return res.json();
+}
