@@ -156,6 +156,71 @@
       },
       "fixed_at": "2026-05-29",
       "fixed_by": "opencode"
+    },
+    {
+      "id": "f2k-sutcliffe-pricing-double-count",
+      "product": "F2K-Projects",
+      "error_pattern": "public pricing shows higher than admin input - retail + house_cost stacking",
+      "error_symptoms": ["Uwe: pricing much higher in public display than input", "lots 236, 237, 238 showing incorrect totals"],
+      "attempts": [
+        {
+          "what": "Checked retail_price field only",
+          "result": "failed",
+          "reason": "retail_price is land component only, house_cost gets added on top"
+        }
+      ],
+      "solution": {
+        "approach": "Clear house_cost for affected lots + clarify admin labels",
+        "code_path": "supabase/migrations/0036_seafields_clear_house_cost_sutcliffe.sql, src/components/seafields/admin/AdminLotEditModal.tsx",
+        "key_change": "Updated label to 'Land & Build Retail (AUD) — land component only' and 'House cost (added to land for H&L total)'"
+      },
+      "fixed_at": "2026-05-29",
+      "fixed_by": "opencode"
+    },
+    {
+      "id": "f2k-agent-clients-not-showing",
+      "product": "F2K-Projects",
+      "error_pattern": "agent can't see registered buyers in My Clients",
+      "error_symptoms": ["Nicky: Henry's buyer not showing in his My Clients list", "Kriti Bhasin registered but not linked to agent"],
+      "attempts": [
+        {
+          "what": "Checked My Clients API",
+          "result": "failed",
+          "reason": "API works fine - registrations simply weren't assigned to agent_id"
+        },
+        {
+          "what": "Checked registration form referrer fields",
+          "result": "partial",
+          "reason": "Has referrer fields but free-text - doesn't auto-link to agent_id"
+        }
+      ],
+      "solution": {
+        "approach": "Add agent dropdown to registration form + auto-save agent_id",
+        "code_path": "src/app/api/public/agents/route.ts, src/components/seafields/RegistrationForm.tsx, src/app/api/seafields/register/route.ts",
+        "key_change": "New /api/public/agents endpoint. Form shows dropdown when 'Real Estate Agent' selected. Register API now accepts referrer_agent_id and saves to agent_id column."
+      },
+      "fixed_at": "2026-05-29",
+      "fixed_by": "opencode"
+    },
+    {
+      "id": "sayfix-supabase-cli-access",
+      "product": "SayFix",
+      "error_pattern": "SayFix can't run supabase db push or queries",
+      "error_symptoms": ["Can't push migrations", "Can't query database to verify fixes"],
+      "attempts": [
+        {
+          "what": "Direct supabase CLI commands",
+          "result": "failed",
+          "reason": "Requires project-ref and interactive confirmation"
+        }
+      ],
+      "solution": {
+        "approach": "Create PowerShell wrapper scripts with --yes flag and stored project ref",
+        "code_path": "F2K-Projects/scripts/supabase-push-migration.ps1, F2K-Projects/scripts/supabase-query.ps1",
+        "key_change": "Scripts use --db-url and --yes flags. Project ref 'earqebbwhklxadqawtex' hardcoded. Documented in CLAUDE.md."
+      },
+      "fixed_at": "2026-05-29",
+      "fixed_by": "opencode"
     }
   ],
   "usage": "Before fixing ANY bug, grep this file for matching error patterns. Also check SayFix DB for product-specific attempts."
