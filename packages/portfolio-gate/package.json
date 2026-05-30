@@ -1,7 +1,7 @@
 {
   "name": "@caistech/portfolio-gate",
-  "version": "0.3.3",
-  "description": "Portfolio Standard enforcement layer — errorResponse helper (R10), route smoke test (R13), auth smoke test (R1/R4), seven static audits (R3/R7/R8/R9/R11/R15 + responsive-design), and a `audit-all` master runner. Closes the gap between rules-in-text and pipeline gates that actually fail the deploy.",
+  "version": "0.3.4",
+  "description": "Portfolio Standard enforcement layer — errorResponse helper (R10), route smoke test (R13), auth smoke test (R1/R4), session smoke test (authenticated routes), seven static audits (R3/R7/R8/R9/R11/R15 + responsive-design), and a `audit-all` master runner.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -21,11 +21,16 @@
     "./smoke/auth": {
       "types": "./dist/smoke/auth.d.ts",
       "import": "./dist/smoke/auth.js"
+    },
+    "./smoke/session": {
+      "types": "./dist/smoke/session.d.ts",
+      "import": "./dist/smoke/session.js"
     }
   },
   "bin": {
     "portfolio-gate-smoke-routes": "dist/bin/smoke-routes.js",
     "portfolio-gate-smoke-auth": "dist/bin/smoke-auth.js",
+    "portfolio-gate-smoke-session": "dist/bin/smoke-session.js",
     "portfolio-gate-fix-auth": "dist/bin/fix-auth-compliance.js",
     "portfolio-gate-audit-rls": "dist/bin/audit-rls.js",
     "portfolio-gate-audit-vendor-leak": "dist/bin/audit-vendor-leak.js",
@@ -43,7 +48,10 @@
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "test": "npm run build && node --input-type=module -e \"import { runAuthSmoke, formatAuthResult } from './dist/smoke/auth.js'; const r = await runAuthSmoke({baseUrl: process.env.TEST_BASE_URL || 'https://example.vercel.app', loginPath: '/login', signupPath: '/signup', forgotPasswordPath: '/forgot-password', magicLinkPath: '/login', loginActionPath: '/api/auth/login', signupActionPath: '/api/auth/signup', forgotPasswordActionPath: '/api/auth/forgot', magicLinkActionPath: '/api/auth/magic-link'}); console.log(formatAuthResult(r)); process.exit(r.passed ? 0 : 1)\"",
+    "test:auth": "npm run test",
     "test:routes": "npm run build && node --input-type=module -e \"import { runRouteSmoke, formatRouteResult } from './dist/smoke/routes.js'; const r = await runRouteSmoke({baseUrl: process.env.TEST_BASE_URL || 'https://example.vercel.app', routes: [{path: '/'}]}); console.log(formatRouteResult(r)); process.exit(r.passed ? 0 : 1)\"",
+    "test:session": "npm run build && node --input-type=module -e \"import { runAuthSessionSmoke, formatSessionResult } from './dist/smoke/session.js'; const r = await runAuthSessionSmoke({baseUrl: process.env.TEST_BASE_URL || 'https://example.vercel.app', loginPath: '/login', loginActionPath: '/api/auth/login', protectedRoutes: ['/dashboard'], testEmail: process.env.TEST_EMAIL || '', testPassword: process.env.TEST_PASSWORD || ''}); console.log(formatSessionResult(r)); process.exit(r.passed ? 0 : 1)\"",
+    "test:all": "npm run test:auth && npm run test:routes && npm run test:session",
     "prepare": "npm run build",
     "prepublishOnly": "npm run build"
   },

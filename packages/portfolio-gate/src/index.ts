@@ -40,6 +40,17 @@ export type {
   AuthSmokeResult,
 } from './smoke/auth.js'
 
+export {
+  runAuthSessionSmoke,
+  loadSessionConfigJson,
+  formatSessionResult,
+} from './smoke/session.js'
+export type {
+  AuthSessionConfig,
+  AuthSessionResult,
+  SessionFailure,
+} from './smoke/session.js'
+
 // v0.2 + v0.3 static audits.
 export { runRlsAudit } from './audit/rls.js'
 export { runVendorLeakAudit } from './audit/vendor-leak.js'
