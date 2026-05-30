@@ -221,6 +221,40 @@
       },
       "fixed_at": "2026-05-29",
       "fixed_by": "opencode"
+    },
+    {
+      "id": "cas-pipeline-execute-dry-run-default",
+      "product": "Corporate-AI-Solutions",
+      "error_pattern": "execute returns DRY_RUN, webhook never fires",
+      "error_symptoms": ["webhook never received", "execute returns 200 but no outreach"],
+      "attempts": [
+        {
+          "what": "Checked Vercel env vars",
+          "result": "failed",
+          "reason": "Vars correct, code path not reached"
+        }
+      ],
+      "solution": {
+        "approach": "dry_run defaults to true, UI wasn't passing dry_run: false",
+        "code_path": "ProductDetailView.tsx line 97",
+        "key_change": "Added dry_run: false, credentials: include"
+      },
+      "fixed_at": "2026-05-30",
+      "fixed_by": "opencode"
+    },
+    {
+      "id": "cas-missing-credentials-fetch",
+      "product": "Corporate-AI-Solutions",
+      "error_pattern": "API returns 401 Must be logged in but user IS logged in",
+      "error_symptoms": ["auth errors despite user logged in", "session not sent"],
+      "attempts": [],
+      "solution": {
+        "approach": "Fetch missing credentials option",
+        "code_path": "ProductDetailView.tsx line 94",
+        "key_change": "Added credentials: include"
+      },
+      "fixed_at": "2026-05-30",
+      "fixed_by": "opencode"
     }
   ],
   "usage": "Before fixing ANY bug, grep this file for matching error patterns. Also check SayFix DB for product-specific attempts."
