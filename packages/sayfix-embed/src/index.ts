@@ -1,16 +1,17 @@
 /**
  * @caistech/sayfix-embed - SayFix integration for portfolio products
- * 
+ *
  * IMPORTANT: This widget links to GBTA's SayFix instance.
  * All tickets flow to GBTA for processing, analytics, and fixes.
  * Never deploy SayFix on client infrastructure.
- * 
+ *
  * Usage:
- *   <SayFixWidget product="f2k-projects" />
- *   → Opens GBTA's SayFix at sayfix.vercel.app/new?product=xxx
- * 
+ *   <SayFixWidget repo="f2k-projects" />
+ *   → Opens SayFix at sayfix.vercel.app/welcome?product=f2k-projects
+ *   → User enters name/email → enters chat workflow scoped to that product
+ *
  *   <SayFixNav ticketCount={3} />
- *   → Navigation links to Report + My Requests
+ *   → Navigation links to Report + My Requests (requires auth)
  */
 
 import { Bug, ExternalLink, MessageSquare, Clock, Settings, Wrench } from 'lucide-react';
@@ -31,13 +32,13 @@ export interface SayFixWidgetProps {
  * 
  * Note: Just pass the repo name - SayFix knows which GitHub account it belongs to
  */
-export function SayFixWidget({ 
-  repo, 
-  label = 'Report Issue', 
+export function SayFixWidget({
+  repo,
+  label = 'Report Issue',
   showIcon = true,
   position = 'bottom-right'
 }: SayFixWidgetProps) {
-  const sayfixUrl = `https://sayfix.vercel.app/new?product=${encodeURIComponent(repo)}`;
+  const sayfixUrl = `https://sayfix.vercel.app/welcome?product=${encodeURIComponent(repo)}`;
   
   const positionClasses = {
     'bottom-right': 'bottom-6 right-6',
@@ -72,7 +73,7 @@ export interface SayFixNavProps {
 export function SayFixNav({ ticketCount = 0, showAdmin = false }: SayFixNavProps) {
   return (
     <nav className="flex items-center gap-4 text-sm">
-      <a href="https://sayfix.vercel.app/new" target="_blank" rel="noopener noreferrer" 
+      <a href="https://sayfix.vercel.app/new" target="_blank" rel="noopener noreferrer"
          className="flex items-center gap-2 text-stone-600 hover:text-stone-900">
         <MessageSquare className="w-4 h-4" />
         Report
