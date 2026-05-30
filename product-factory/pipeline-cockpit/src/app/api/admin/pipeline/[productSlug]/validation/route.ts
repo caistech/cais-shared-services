@@ -6,6 +6,40 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+const SCORE_WEIGHTS = {
+  has_promise: 10,
+  has_distributor: 15,
+  has_end_user: 10,
+  has_friction: 10,
+  has_methodology_commitment: 15,
+}
+
+const PHASE_SCORE_MAX = 40
+
+async function calculateWeightedScore(client: typeof supabase, productSlug: string): Promise<number> {
+  const { data: prod } = await client
+    .from('product_validation_status')
+    .select('has_promise, has_distributor, has_end_user, has_friction, has_methodology_commitment, phase_results')
+    .eq('product_slug', productSlug)
+    .single() as { data: any }
+
+  if (!prod) return 0
+
+  let score = 0
+  score += prod.has_promise ? SCORE_WEIGHTS.has_promise : 0
+  score += prod.has_distributor ? SCORE_WEIGHTS.has_distributor : 0
+  score += prod.has_end_user ? SCORE_WEIGHTS.has_end_user : 0
+  score += prod.has_friction ? SCORE_WEIGHTS.has_friction : 0
+  score += prod.has_methodology_commitment ? SCORE_WEIGHTS.has_methodology_commitment : 0
+
+  const phaseResults = prod.phase_results || {}
+  const passedPhases = Object.values(phaseResults).filter((p: any) => p.status === 'passed').length
+  const phaseScore = (passedPhases / 7) * PHASE_SCORE_MAX
+  score += phaseScore
+
+  return Math.round(score)
+}
+
 const ALLOWED_FIELDS = [
   'has_promise',
   'has_distributor',
@@ -45,7 +79,15 @@ export async function PATCH(
 
     if (error) throw error
 
-    return NextResponse.json({ product })
+    const newScore = await calculateWeightedScore(supabase, productSlug)
+    const { data: updated } = await supabase
+      .from('product_validation_status')
+      .update({ weighted_score_percent: newScore, last_scoring_run: new Date().toISOString() })
+      .eq('product_slug', productSlug)
+      .select()
+      .single()
+
+    return NextResponse.json({ product: updated })
   } catch (err) {
     console.error('Error updating validation:', err)
     return NextResponse.json({ error: 'Failed to update validation' }, { status: 500 })

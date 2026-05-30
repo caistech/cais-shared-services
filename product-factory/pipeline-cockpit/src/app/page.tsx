@@ -365,6 +365,24 @@ function PipelinePhases({ product, onUpdate }: { product: ProductValidation; onU
   const [running, setRunning] = useState<string | null>(null)
   const [results, setResults] = useState<Record<string, { message: string; findings: string[] }>>({})
 
+  async function markPhasePassed(phaseId: string) {
+    setRunning(phaseId)
+    try {
+      const res = await fetch(`/api/admin/pipeline/${product.product_slug}/phase`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phaseId, status: 'passed' })
+      })
+      if (res.ok) {
+        onUpdate()
+      }
+    } catch (err) {
+      console.error('Failed to mark phase passed:', err)
+    } finally {
+      setRunning(null)
+    }
+  }
+
   async function runPhaseTest(phaseId: string) {
     if (!product.mvp_url && phaseId !== 'phase1') {
       alert('Please enter MVP URL first')
@@ -457,6 +475,15 @@ function PipelinePhases({ product, onUpdate }: { product: ProductValidation; onU
                   >
                     {running === phase.id ? 'Running...' : 'Run Test'}
                   </button>
+                  {status !== 'passed' && (
+                    <button
+                      onClick={() => markPhasePassed(phase.id)}
+                      disabled={running !== null}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
+                    >
+                      Mark Passed
+                    </button>
+                  )}
                   {status === 'failed' && (
                     <button
                       onClick={() => runPhaseTest(phase.id)}

@@ -15,7 +15,16 @@ Deferred work captured during reviews. Each item has enough context to be picked
 
 ---
 
-## 2. Per-session rate limiting on the anon voice webhook/connect path
+## 2. GitHub Actions CI for validation test runner
+
+- **What:** Set up GitHub Actions workflow to run gstack validation tests (naive-tester, voice-auditor, gtm-auditor, qa) on the deployed product from CI, triggered via webhook or scheduled run.
+- **Why:** Current local webhook approach requires laptop + local repos. When operator is away from laptop, need CI to execute tests on deployed URLs.
+- **Context:** The pipeline cockpit test runner UI currently shows which gstack skill to run + manual execution instructions. Next stage: automate triggering from CI. Workflow should accept MVP_URL as input, run appropriate gstack skill, post results back to the pipeline.
+- **Depends on / blocked by:** Test runner UI + webhook local setup complete.
+
+---
+
+## 3. Per-session rate limiting on the anon voice webhook/connect path
 
 - **What:** Add rate limiting (per-IP and/or per-session) to the anonymous voice connect + webhook routes, via `@caistech/platform-trust-middleware`.
 - **Why:** Anonymous voice (mmcbuild `/estimate`) is unauthenticated public input. The ElevenLabs allowlist stops *other domains* using the agent ID but does nothing about call volume from your own legitimate origin (including bots). Anon calls bill the product owner's BYOK ElevenLabs key, so uncapped anon traffic = uncapped spend.

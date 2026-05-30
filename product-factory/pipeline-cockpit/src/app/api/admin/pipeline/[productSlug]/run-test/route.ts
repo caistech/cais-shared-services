@@ -176,6 +176,32 @@ export async function POST(
       })
       .eq('product_slug', productSlug)
 
+    const { data: validationFields } = await supabase
+      .from('product_validation_status')
+      .select('has_promise, has_distributor, has_end_user, has_friction, has_methodology_commitment')
+      .eq('product_slug', productSlug)
+      .single() as { data: any }
+
+    const SCORE_WEIGHTS = { has_promise: 10, has_distributor: 15, has_end_user: 10, has_friction: 10, has_methodology_commitment: 15 }
+    const PHASE_SCORE_MAX = 40
+
+    let score = 0
+    if (validationFields) {
+      score += validationFields.has_promise ? SCORE_WEIGHTS.has_promise : 0
+      score += validationFields.has_distributor ? SCORE_WEIGHTS.has_distributor : 0
+      score += validationFields.has_end_user ? SCORE_WEIGHTS.has_end_user : 0
+      score += validationFields.has_friction ? SCORE_WEIGHTS.has_friction : 0
+      score += validationFields.has_methodology_commitment ? SCORE_WEIGHTS.has_methodology_commitment : 0
+
+      const passedPhases = Object.values(existingResults).filter((p: any) => p.status === 'passed').length
+      score += (passedPhases / 7) * PHASE_SCORE_MAX
+    }
+
+    await supabase
+      .from('product_validation_status')
+      .update({ weighted_score_percent: Math.round(score), last_scoring_run: new Date().toISOString() })
+      .eq('product_slug', productSlug)
+
     return NextResponse.json(result)
   } catch (err) {
     console.error('Error running test:', err)
