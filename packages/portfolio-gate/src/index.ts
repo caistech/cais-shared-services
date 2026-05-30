@@ -29,12 +29,15 @@ export {
   runAuthSmoke,
   loadAuthConfigJson,
   formatAuthResult,
+  formatComplianceIssuesMarkdown,
 } from './smoke/auth.js'
 export type {
   AuthLeg,
+  AuthCheckType,
+  AuthComplianceIssue,
+  AuthFunctionalFailure,
   AuthSmokeConfig,
   AuthSmokeResult,
-  AuthFailure,
 } from './smoke/auth.js'
 
 // v0.2 + v0.3 static audits.

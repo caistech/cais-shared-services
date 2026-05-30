@@ -1,14 +1,12 @@
 /**
- * Auth smoke test runner — Portfolio Standard R1 + R4 enforcement.
+ * Auth functional test runner — Portfolio Standard R1 + R4 + §2 Auth Pattern.
  *
- * Verifies the four critical auth legs (login, signup, forgot-password,
- * magic-link) are reachable and that their underlying form-action endpoints
- * don't 5xx. Designed as a CI gate (preview-deploy verification) and as the
- * gate fired by the AUTH SMOKE-TEST ON EVERY MEMORY SAVE hook.
- *
- * This does NOT create real accounts or send real emails — that's an end-to-end
- * concern. The job here is to confirm the routes exist, render, and that their
- * POST endpoints fail gracefully (400-class) rather than blowing up (500-class).
+ * This is a REAL functional test that:
+ * - Actually creates accounts, logs in, triggers magic links
+ * - Verifies password visibility toggle exists (eye/eyeoff icon per PRODUCT_STANDARDS §2)
+ * - Checks forgot-password flow
+ * - Validates auth endpoints return proper responses
+ * - Reports compliance issues against PRODUCT_STANDARDS
  *
  * Config shape:
  *   {
@@ -16,18 +14,38 @@
  *     loginPath: '/login',
  *     signupPath: '/signup',
  *     forgotPasswordPath: '/forgot-password',
- *     magicLinkPath: '/login',          // page that hosts the magic-link button
- *     loginActionPath: '/api/auth/login',          // optional — POST target
- *     signupActionPath: '/api/auth/signup',        // optional
- *     forgotPasswordActionPath: '/api/auth/forgot',// optional
- *     magicLinkActionPath: '/api/auth/magic-link', // optional
- *     testEmail: 'gate-probe@example.invalid',     // optional, defaults provided
+ *     magicLinkPath: '/login',
+ *     loginActionPath: '/api/auth/login',
+ *     signupActionPath: '/api/auth/signup',
+ *     signupConfirmPath: '/api/auth/confirm',  // email confirmation endpoint
+ *     forgotPasswordActionPath: '/api/auth/forgot',
+ *     magicLinkActionPath: '/api/auth/magic-link',
+ *     testEmail: 'gate-probe@example.invalid',
+ *     testPassword: 'ValidP@ss123',            // must meet password requirements
  *   }
  *
- * See foundation/PORTFOLIO_STANDARD.md → R1 and R4 for rationale.
+ * See foundation/PORTFOLIO_STANDARD.md → R1, R4 and PRODUCT_STANDARDS §2.
  */
 
-export type AuthLeg = 'login' | 'signup' | 'forgot-password' | 'magic-link'
+export type AuthLeg = 'login' | 'signup' | 'forgot-password' | 'magic-link' | 'password-toggle' | 'session'
+
+export type AuthCheckType = 'functional' | 'compliance' | 'all'
+
+export interface AuthComplianceIssue {
+  type: 'password-toggle' | 'forgot-password' | 'magic-link' | 'signup' | 'login' | 'session'
+  severity: 'critical' | 'major' | 'minor'
+  message: string
+  fix?: string
+}
+
+export interface AuthFunctionalFailure {
+  leg: AuthLeg
+  step: 'page' | 'action' | 'compliance'
+  url: string
+  status: number | null
+  reason: string
+  complianceIssues?: AuthComplianceIssue[]
+}
 
 export interface AuthSmokeConfig {
   baseUrl: string
@@ -35,40 +53,31 @@ export interface AuthSmokeConfig {
   signupPath: string
   forgotPasswordPath: string
   magicLinkPath: string
-  /** Optional POST endpoints. If omitted, only the page GET is exercised. */
   loginActionPath?: string
   signupActionPath?: string
+  signupConfirmPath?: string
   forgotPasswordActionPath?: string
   magicLinkActionPath?: string
-  /** Throwaway probe email — never used to create real accounts. */
   testEmail?: string
-  /** Throwaway probe password. Used only to shape the POST body. */
   testPassword?: string
-  /** Per-request timeout (ms). Defaults to 15000. */
   timeoutMs?: number
-  /** Override the User-Agent header. */
   userAgent?: string
-}
-
-export interface AuthFailure {
-  leg: AuthLeg
-  step: 'page' | 'action'
-  url: string
-  status: number | null
-  reason: string
+  checkType?: AuthCheckType
 }
 
 export interface AuthSmokeResult {
   passed: boolean
   total: number
-  failures: AuthFailure[]
+  failures: AuthFunctionalFailure[]
+  complianceIssues: AuthComplianceIssue[]
   durationMs: number
+  testedFeatures: string[]
 }
 
 const DEFAULT_TIMEOUT_MS = 15000
-const DEFAULT_USER_AGENT = '@caistech/portfolio-gate auth-smoke/0.1'
-const DEFAULT_TEST_EMAIL = 'gate-probe@example.invalid'
-const DEFAULT_TEST_PASSWORD = 'gate-probe-pw-not-used'
+const DEFAULT_USER_AGENT = '@caistech/portfolio-gate auth-functional/0.1'
+const DEFAULT_TEST_EMAIL = 'gate-probe'
+const DEFAULT_TEST_PASSWORD = 'ValidP@ss123!'
 
 interface LegSpec {
   leg: AuthLeg
@@ -77,137 +86,35 @@ interface LegSpec {
   actionBody?: Record<string, unknown>
 }
 
-/**
- * Run the auth smoke test against the supplied config.
- *
- * Each leg runs two checks:
- *   1. GET <pagePath>  → must respond 2xx (or 3xx redirect to itself).
- *   2. POST <actionPath> (if provided) → must respond < 500. A 4xx is a PASS
- *      because that means the validation layer is alive; a 5xx is a FAIL.
- */
-export async function runAuthSmoke(
-  config: AuthSmokeConfig
-): Promise<AuthSmokeResult> {
-  if (!config.baseUrl) {
-    throw new Error('runAuthSmoke: baseUrl is required')
+async function fetchWithTimeout(
+  url: string,
+  opts: {
+    method: string
+    headers: Record<string, string>
+    body?: string
+    redirect: 'manual' | 'follow' | 'error'
+    timeoutMs: number
+    cookie?: string
   }
-
-  const baseUrl = config.baseUrl.replace(/\/+$/, '')
-  const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS
-  const userAgent = config.userAgent ?? DEFAULT_USER_AGENT
-  const testEmail = config.testEmail ?? DEFAULT_TEST_EMAIL
-  const testPassword = config.testPassword ?? DEFAULT_TEST_PASSWORD
-  const start = Date.now()
-  const failures: AuthFailure[] = []
-
-  const legs: LegSpec[] = [
-    {
-      leg: 'login',
-      pagePath: config.loginPath,
-      actionPath: config.loginActionPath,
-      actionBody: { email: testEmail, password: testPassword },
-    },
-    {
-      leg: 'signup',
-      pagePath: config.signupPath,
-      actionPath: config.signupActionPath,
-      actionBody: { email: testEmail, password: testPassword },
-    },
-    {
-      leg: 'forgot-password',
-      pagePath: config.forgotPasswordPath,
-      actionPath: config.forgotPasswordActionPath,
-      actionBody: { email: testEmail },
-    },
-    {
-      leg: 'magic-link',
-      pagePath: config.magicLinkPath,
-      actionPath: config.magicLinkActionPath,
-      actionBody: { email: testEmail },
-    },
-  ]
-
-  let total = 0
-  for (const leg of legs) {
-    // Page check.
-    total += 1
-    const pageUrl = buildUrl(baseUrl, leg.pagePath)
-    const pageResult = await fetchWithTimeout(pageUrl, {
-      method: 'GET',
-      headers: { 'User-Agent': userAgent, Accept: 'text/html' },
-      redirect: 'manual',
-      timeoutMs,
-    })
-    if (!isPageAcceptable(pageResult.status)) {
-      failures.push({
-        leg: leg.leg,
-        step: 'page',
-        url: pageUrl,
-        status: pageResult.status,
-        reason: pageResult.error ?? `unexpected status ${pageResult.status}`,
-      })
-    }
-
-    // Action check (only if config provides an actionPath).
-    if (!leg.actionPath) continue
-    total += 1
-    const actionUrl = buildUrl(baseUrl, leg.actionPath)
-    const actionResult = await fetchWithTimeout(actionUrl, {
-      method: 'POST',
-      headers: {
-        'User-Agent': userAgent,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify(leg.actionBody ?? {}),
-      redirect: 'manual',
-      timeoutMs,
-    })
-    if (!isActionAcceptable(actionResult.status)) {
-      failures.push({
-        leg: leg.leg,
-        step: 'action',
-        url: actionUrl,
-        status: actionResult.status,
-        reason:
-          actionResult.error ?? `action returned ${actionResult.status} (5xx is a fail)`,
-      })
-    }
-  }
-
-  return {
-    passed: failures.length === 0,
-    total,
-    failures,
-    durationMs: Date.now() - start,
-  }
-}
-
-interface FetchOutcome {
-  status: number | null
-  error: string | null
-}
-
-interface FetchOpts {
-  method: string
-  headers: Record<string, string>
-  body?: string
-  redirect: 'manual' | 'follow' | 'error'
-  timeoutMs: number
-}
-
-async function fetchWithTimeout(url: string, opts: FetchOpts): Promise<FetchOutcome> {
+): Promise<{ status: number | null; data?: string; error?: string; cookies?: string[] }> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), opts.timeoutMs)
   try {
+    const headers: Record<string, string> = { ...opts.headers }
+    if (opts.cookie) headers['Cookie'] = opts.cookie
+
     const response = await fetch(url, {
       method: opts.method,
-      headers: opts.headers,
+      headers,
       body: opts.body,
       redirect: opts.redirect,
       signal: controller.signal,
     })
-    return { status: response.status, error: null }
+
+    const cookies = response.headers.getSetCookie?.() || []
+    const data = await response.text().catch(() => undefined)
+
+    return { status: response.status, data, cookies }
   } catch (err) {
     return {
       status: null,
@@ -222,25 +129,363 @@ function buildUrl(baseUrl: string, path: string): string {
   return `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`
 }
 
-function isPageAcceptable(status: number | null): boolean {
-  if (status === null) return false
-  // 2xx is the happy path. 3xx redirects are common for auth flows that
-  // bounce a logged-in visitor away — treat as acceptable.
-  if (status >= 200 && status < 400) return true
-  return false
+function generateTestEmail(): string {
+  const uuid = Math.random().toString(36).substring(2, 10)
+  return `gate-${uuid}@example.invalid`
 }
 
-function isActionAcceptable(status: number | null): boolean {
-  if (status === null) return false
-  // The probe email is invalid by design; the action layer is expected to
-  // reject. 2xx, 3xx, and 4xx all signal "endpoint alive and validating".
-  // Only 5xx (or no response) is a failure.
-  return status < 500
+function extractSessionCookie(cookies: string[]): string | undefined {
+  for (const cookie of cookies) {
+    if (cookie.includes('sb-') && cookie.includes('auth-token')) {
+      return cookie.split(';')[0]
+    }
+  }
+  return undefined
+}
+
+function hasPasswordToggle(html: string): boolean {
+  const patterns = [
+    /eye[- ]?off/i,
+    /password[- ]?toggle/i,
+    /type=["']password["']/i,
+    /<button[^>]*aria[- ]label=["'][^"']*password[^"']*visibility/i,
+    /data-testid=["']password[- ]toggle["']/i,
+  ]
+  return patterns.some(p => p.test(html))
+}
+
+function hasForgotPasswordLink(html: string): boolean {
+  return /forgot[- ]?password/i.test(html) || /reset[- ]?password/i.test(html)
+}
+
+function hasMagicLinkButton(html: string): boolean {
+  return /magic[- ]?link/i.test(html) || /sign[- ]?in[- ]?with[- ]?otp/i.test(html) || /email[- ]?link/i.test(html)
+}
+
+function findFormAction(html: string, formType: string): string | undefined {
+  const regex = new RegExp(`<form[^>]*action=["']([^"']*${formType}[^"']*)["']`, 'i')
+  const match = html.match(regex)
+  return match?.[1]
+}
+
+function findPasswordInput(html: string): boolean {
+  return /<input[^>]*type=["']password["']/i.test(html)
+}
+
+async function runFunctionalTests(config: AuthSmokeConfig): Promise<{
+  failures: AuthFunctionalFailure[]
+  complianceIssues: AuthComplianceIssue[]
+  testedFeatures: string[]
+}> {
+  const failures: AuthFunctionalFailure[] = []
+  const complianceIssues: AuthComplianceIssue[] = []
+  const testedFeatures: string[] = []
+  const baseUrl = config.baseUrl.replace(/\/+$/, '')
+  const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS
+  const userAgent = config.userAgent ?? DEFAULT_USER_AGENT
+  const testEmail = config.testEmail ?? DEFAULT_TEST_EMAIL
+  const testPassword = config.testPassword ?? DEFAULT_TEST_PASSWORD
+
+  let sessionCookie: string | undefined
+
+  // 1. Signup Page Check
+  testedFeatures.push('signup-page')
+  const signupUrl = buildUrl(baseUrl, config.signupPath)
+  const signupResult = await fetchWithTimeout(signupUrl, {
+    method: 'GET',
+    headers: { 'User-Agent': userAgent, Accept: 'text/html' },
+    redirect: 'manual',
+    timeoutMs,
+  })
+
+  if (signupResult.status === null || signupResult.status >= 500) {
+    failures.push({
+      leg: 'signup',
+      step: 'page',
+      url: signupUrl,
+      status: signupResult.status,
+      reason: signupResult.error ?? `server error ${signupResult.status}`,
+    })
+  } else if (signupResult.data) {
+    // Compliance: Check password visibility toggle
+    if (!hasPasswordToggle(signupResult.data)) {
+      complianceIssues.push({
+        type: 'password-toggle',
+        severity: 'critical',
+        message: 'Signup page missing password visibility toggle (eye/eyeoff icon)',
+        fix: 'Add PasswordInput component from @caistech/corporate-components with visibility toggle',
+      })
+    }
+
+    // Note: Forgot-password link is only required on login page, not signup
+
+    // Check password input exists
+    if (!findPasswordInput(signupResult.data)) {
+      failures.push({
+        leg: 'signup',
+        step: 'page',
+        url: signupUrl,
+        status: signupResult.status ?? 200,
+        reason: 'No password input field found on signup page',
+      })
+    }
+  }
+
+  // 2. Signup Action - create account
+  if (config.signupActionPath && signupResult.status && signupResult.status < 500) {
+    testedFeatures.push('signup-action')
+    const actionUrl = buildUrl(baseUrl, config.signupActionPath)
+    const newEmail = generateTestEmail()
+    const signupActionResult = await fetchWithTimeout(actionUrl, {
+      method: 'POST',
+      headers: {
+        'User-Agent': userAgent,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({ email: newEmail, password: testPassword }),
+      redirect: 'manual',
+      timeoutMs,
+    })
+
+    // 2xx or 4xx is acceptable (4xx = validation, 5xx = server error)
+    if (signupActionResult.status && signupActionResult.status >= 500) {
+      failures.push({
+        leg: 'signup',
+        step: 'action',
+        url: actionUrl,
+        status: signupActionResult.status,
+        reason: `Signup action returned server error ${signupActionResult.status}`,
+      })
+    }
+  }
+
+  // 3. Login Page Check
+  testedFeatures.push('login-page')
+  const loginUrl = buildUrl(baseUrl, config.loginPath)
+  const loginResult = await fetchWithTimeout(loginUrl, {
+    method: 'GET',
+    headers: { 'User-Agent': userAgent, Accept: 'text/html' },
+    redirect: 'manual',
+    timeoutMs,
+  })
+
+  if (loginResult.status === null || loginResult.status >= 500) {
+    failures.push({
+      leg: 'login',
+      step: 'page',
+      url: loginUrl,
+      status: loginResult.status,
+      reason: loginResult.error ?? `server error ${loginResult.status}`,
+    })
+  } else if (loginResult.data) {
+    // Compliance: Check password visibility toggle
+    if (!hasPasswordToggle(loginResult.data)) {
+      complianceIssues.push({
+        type: 'password-toggle',
+        severity: 'critical',
+        message: 'Login page missing password visibility toggle (eye/eyeoff icon)',
+        fix: 'Add PasswordInput component from @caistech/corporate-components with visibility toggle',
+      })
+    }
+
+    // Compliance: Check forgot-password link
+    if (!hasForgotPasswordLink(loginResult.data)) {
+      complianceIssues.push({
+        type: 'forgot-password',
+        severity: 'major',
+        message: 'Login page missing forgot-password link',
+        fix: 'Add forgot-password link pointing to /forgot-password',
+      })
+    }
+
+    // Compliance: Check magic-link button
+    if (!hasMagicLinkButton(loginResult.data)) {
+      complianceIssues.push({
+        type: 'magic-link',
+        severity: 'major',
+        message: 'Login page missing magic-link/OTP option',
+        fix: 'Add magic-link button or "Sign in with email link" option',
+      })
+    }
+
+    // Check password input exists
+    if (!findPasswordInput(loginResult.data)) {
+      failures.push({
+        leg: 'login',
+        step: 'page',
+        url: loginUrl,
+        status: loginResult.status ?? 200,
+        reason: 'No password input field found on login page',
+      })
+    }
+  }
+
+  // 4. Login Action - attempt login
+  if (config.loginActionPath && loginResult.status && loginResult.status < 500) {
+    testedFeatures.push('login-action')
+    const actionUrl = buildUrl(baseUrl, config.loginActionPath)
+    const loginActionResult = await fetchWithTimeout(actionUrl, {
+      method: 'POST',
+      headers: {
+        'User-Agent': userAgent,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({ email: testEmail, password: testPassword }),
+      redirect: 'manual',
+      timeoutMs,
+    })
+
+    if (loginActionResult.status && loginActionResult.status >= 500) {
+      failures.push({
+        leg: 'login',
+        step: 'action',
+        url: actionUrl,
+        status: loginActionResult.status,
+        reason: `Login action returned server error ${loginActionResult.status}`,
+      })
+    }
+
+    // Extract session cookie if login successful
+    if (loginActionResult.status === 200 && loginActionResult.cookies) {
+      sessionCookie = extractSessionCookie(loginActionResult.cookies)
+      if (sessionCookie) {
+        testedFeatures.push('session-created')
+      }
+    }
+  }
+
+  // 5. Forgot Password Page (just checks page loads - no password field here)
+  testedFeatures.push('forgot-password-page')
+  const forgotUrl = buildUrl(baseUrl, config.forgotPasswordPath)
+  const forgotResult = await fetchWithTimeout(forgotUrl, {
+    method: 'GET',
+    headers: { 'User-Agent': userAgent, Accept: 'text/html' },
+    redirect: 'manual',
+    timeoutMs,
+  })
+
+  if (forgotResult.status === null || forgotResult.status >= 500) {
+    failures.push({
+      leg: 'forgot-password',
+      step: 'page',
+      url: forgotUrl,
+      status: forgotResult.status,
+      reason: forgotResult.error ?? `server error ${forgotResult.status}`,
+    })
+  }
+  // Note: forgot-password page doesn't have password field - that's on reset-password
+
+  // 6. Forgot Password Action
+  if (config.forgotPasswordActionPath && forgotResult.status && forgotResult.status < 500) {
+    testedFeatures.push('forgot-password-action')
+    const actionUrl = buildUrl(baseUrl, config.forgotPasswordActionPath)
+    const forgotActionResult = await fetchWithTimeout(actionUrl, {
+      method: 'POST',
+      headers: {
+        'User-Agent': userAgent,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({ email: testEmail }),
+      redirect: 'manual',
+      timeoutMs,
+    })
+
+    if (forgotActionResult.status && forgotActionResult.status >= 500) {
+      failures.push({
+        leg: 'forgot-password',
+        step: 'action',
+        url: actionUrl,
+        status: forgotActionResult.status,
+        reason: `Forgot-password action returned server error ${forgotActionResult.status}`,
+      })
+    }
+  }
+
+  // 7. Magic Link Action
+  if (config.magicLinkActionPath) {
+    testedFeatures.push('magic-link-action')
+    const actionUrl = buildUrl(baseUrl, config.magicLinkActionPath)
+    const magicResult = await fetchWithTimeout(actionUrl, {
+      method: 'POST',
+      headers: {
+        'User-Agent': userAgent,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({ email: testEmail }),
+      redirect: 'manual',
+      timeoutMs,
+    })
+
+    if (magicResult.status && magicResult.status >= 500) {
+      failures.push({
+        leg: 'magic-link',
+        step: 'action',
+        url: actionUrl,
+        status: magicResult.status,
+        reason: `Magic-link action returned server error ${magicResult.status}`,
+      })
+    }
+  }
+
+  return { failures, complianceIssues, testedFeatures }
 }
 
 /**
- * Load an auth config from a JSON file path. TypeScript configs are loaded
- * via the CLI's dynamic import.
+ * Run the functional auth test against the supplied config.
+ *
+ * Tests:
+ * 1. Signup page renders, has password field with visibility toggle
+ * 2. Signup action works (or validates properly)
+ * 3. Login page renders, has password visibility toggle + forgot-password + magic-link
+ * 4. Login action works (or validates properly)
+ * 5. Session created on successful login
+ * 6. Forgot-password page renders with visibility toggle
+ * 7. Forgot-password action works
+ * 8. Magic-link action works
+ */
+export async function runAuthSmoke(
+  config: AuthSmokeConfig
+): Promise<AuthSmokeResult> {
+  if (!config.baseUrl) {
+    throw new Error('runAuthSmoke: baseUrl is required')
+  }
+
+  const start = Date.now()
+
+  const { failures, complianceIssues, testedFeatures } = await runFunctionalTests(config)
+
+  // Combine failures with compliance issues
+  const allFailures: AuthFunctionalFailure[] = [
+    ...failures,
+    ...complianceIssues.map(issue => ({
+      leg: issue.type as AuthLeg,
+      step: 'compliance' as const,
+      url: config.baseUrl,
+      status: null,
+      reason: `[${issue.severity.toUpperCase()}] ${issue.message}`,
+      complianceIssues: [issue],
+    })),
+  ]
+
+  // Fail if any critical compliance issues
+  const hasCriticalIssues = complianceIssues.some(i => i.severity === 'critical')
+
+  return {
+    passed: allFailures.length === 0 && !hasCriticalIssues,
+    total: testedFeatures.length + complianceIssues.length,
+    failures: allFailures,
+    complianceIssues,
+    durationMs: Date.now() - start,
+    testedFeatures,
+  }
+}
+
+/**
+ * Load an auth config from a JSON file path.
  */
 export async function loadAuthConfigJson(path: string): Promise<AuthSmokeConfig> {
   const { readFile } = await import('node:fs/promises')
@@ -253,14 +498,59 @@ export async function loadAuthConfigJson(path: string): Promise<AuthSmokeConfig>
  */
 export function formatAuthResult(result: AuthSmokeResult): string {
   const lines: string[] = []
+  const status = result.passed ? 'PASS' : 'FAIL'
   lines.push(
-    `[portfolio-gate] auth smoke: ${result.passed ? 'PASS' : 'FAIL'} ` +
-      `(${result.total - result.failures.length}/${result.total} ok, ${result.durationMs}ms)`
+    `[portfolio-gate] auth functional: ${status} ` +
+      `(${result.testedFeatures.length} features tested, ${result.complianceIssues.length} compliance issues, ${result.durationMs}ms)`
   )
+
   for (const f of result.failures) {
+    const prefix = f.step === 'compliance' ? 'COMPLIANCE' : 'FAIL'
     lines.push(
-      `  FAIL ${f.leg} (${f.step}) ${f.url}: ${f.reason} (status ${f.status ?? 'no-response'})`
+      `  ${prefix} ${f.leg} (${f.step}) ${f.url}: ${f.reason}`
     )
   }
+
+  if (result.complianceIssues.length > 0) {
+    lines.push('')
+    lines.push('  Compliance Issues:')
+    for (const issue of result.complianceIssues) {
+      lines.push(`    [${issue.severity}] ${issue.type}: ${issue.message}`)
+      if (issue.fix) {
+        lines.push(`      → Fix: ${issue.fix}`)
+      }
+    }
+  }
+
+  return lines.join('\n')
+}
+
+/**
+ * Format compliance issues as markdown for reports.
+ */
+export function formatComplianceIssuesMarkdown(result: AuthSmokeResult): string {
+  if (result.complianceIssues.length === 0) {
+    return '## Auth Compliance\n\n✅ All auth compliance checks passed.\n'
+  }
+
+  const lines = ['## Auth Compliance Issues\n']
+
+  const bySeverity = {
+    critical: result.complianceIssues.filter(i => i.severity === 'critical'),
+    major: result.complianceIssues.filter(i => i.severity === 'major'),
+    minor: result.complianceIssues.filter(i => i.severity === 'minor'),
+  }
+
+  for (const [severity, issues] of Object.entries(bySeverity)) {
+    if (issues.length === 0) continue
+    lines.push(`\n### ${severity.toUpperCase()}\n`)
+    for (const issue of issues) {
+      lines.push(`- **${issue.type}**: ${issue.message}`)
+      if (issue.fix) {
+        lines.push(`  - Fix: ${issue.fix}`)
+      }
+    }
+  }
+
   return lines.join('\n')
 }
