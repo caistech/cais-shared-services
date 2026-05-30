@@ -16,7 +16,92 @@ interface ProductValidation {
   has_methodology_commitment: boolean
   mvp_url: string | null
   validation_test_status: string | null
+  phase_results: Record<string, { status: string; tested_at: string; findings: string[] }> | null
 }
+
+interface TestPhase {
+  id: string
+  name: string
+  number: number
+  desc: string
+  testType: 'auto' | 'manual' | 'both'
+  tools: string[]
+  passCriteria: string
+  fixChannel: string
+}
+
+const PHASES: TestPhase[] = [
+  {
+    id: 'phase1',
+    number: 1,
+    name: 'Pre-Development',
+    desc: 'Idea documented with promise, distributor, end_user, friction',
+    testType: 'auto',
+    tools: ['validation_fields'],
+    passCriteria: 'All 5 validation fields checked (promise, distributor, end_user, friction, commitment)',
+    fixChannel: 'Direct edit in Validation Fields panel'
+  },
+  {
+    id: 'phase2',
+    number: 2,
+    name: 'Design Planning',
+    desc: 'Design meets portfolio standards (responsive, headers, branding)',
+    testType: 'both',
+    tools: ['portfolio-gate-audit-responsive', 'portfolio-gate-audit-explanatory-header', 'portfolio-gate-audit-sample-artefact', 'portfolio-gate-audit-commitment-panel'],
+    passCriteria: 'All portfolio-gate audits pass',
+    fixChannel: 'Run portfolio-gate-audit-* commands, fix issues, re-run'
+  },
+  {
+    id: 'phase3',
+    number: 3,
+    name: 'Compliance Standards',
+    desc: 'Security & compliance checks (RLS, vendor leak, auth, trust panel)',
+    testType: 'both',
+    tools: ['portfolio-gate-audit-rls', 'portfolio-gate-audit-vendor-leak', 'portfolio-gate-audit-unauth-endpoints', 'portfolio-gate-audit-trust-panel'],
+    passCriteria: 'All compliance audits pass',
+    fixChannel: 'Run portfolio-gate-audit-* commands, fix issues, re-run'
+  },
+  {
+    id: 'phase4',
+    number: 4,
+    name: 'Construction',
+    desc: 'Code builds successfully (lint, typecheck, build)',
+    testType: 'auto',
+    tools: ['npm run lint', 'npm run typecheck', 'npm run build'],
+    passCriteria: 'All npm scripts exit with code 0',
+    fixChannel: 'Fix lint/type errors, rebuild'
+  },
+  {
+    id: 'phase5',
+    number: 5,
+    name: 'Certification',
+    desc: 'User experience validated (naive-tester, voice-auditor, GTM, QA)',
+    testType: 'manual',
+    tools: ['/naive-tester', '/voice-auditor', '/gtm-auditor', '/qa'],
+    passCriteria: 'All gstack skills pass',
+    fixChannel: 'Run /naive-tester, /qa, etc on the URL, fix findings, re-run'
+  },
+  {
+    id: 'phase6',
+    number: 6,
+    name: 'Handover',
+    desc: 'Production smoke test (auth works, links work, pages render)',
+    testType: 'both',
+    tools: ['portfolio-gate-smoke-routes', 'portfolio-gate-smoke-auth', '/qa'],
+    passCriteria: 'All smoke tests pass',
+    fixChannel: 'Run smoke tests, fix production issues, redeploy'
+  },
+  {
+    id: 'phase7',
+    number: 7,
+    name: 'Operations',
+    desc: 'Ongoing monitoring (canary, benchmark, performance)',
+    testType: 'manual',
+    tools: ['/canary', '/benchmark'],
+    passCriteria: 'No alerts from canary/benchmark',
+    fixChannel: 'Monitor /canary results, fix regressions'
+  }
+]
 
 export default function PipelineCockpit() {
   const [products, setProducts] = useState<ProductValidation[]>([])
@@ -39,6 +124,16 @@ export default function PipelineCockpit() {
     }
   }
 
+  function getPhaseStatus(product: ProductValidation, phaseId: string): string {
+    if (!product.phase_results) return 'not_run'
+    return product.phase_results[phaseId]?.status || 'not_run'
+  }
+
+  function getCompletedPhases(product: ProductValidation): number {
+    if (!product.phase_results) return 0
+    return Object.values(product.phase_results).filter(p => p.status === 'passed').length
+  }
+
   if (loading) {
     return <div className="text-center py-12">Loading pipeline data...</div>
   }
@@ -49,37 +144,32 @@ export default function PipelineCockpit() {
         <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-lg font-semibold mb-4">Products</h2>
           <div className="space-y-2">
-            {products.map(product => (
-              <button
-                key={product.id}
-                onClick={() => setSelectedProduct(product.product_slug)}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                  selectedProduct === product.product_slug
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-50 hover:bg-gray-100'
-                }`}
-              >
-                <div className="font-medium">{product.display_name}</div>
-                <div className="text-sm opacity-80">{product.product_slug}</div>
-                <div className="mt-2 flex gap-2">
-                  {product.gate1_ready && (
-                    <span className="text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded">Gate 1</span>
-                  )}
-                  {product.can_run_outreach && (
-                    <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-800 rounded">Outreach</span>
-                  )}
-                  {product.validation_test_status && product.validation_test_status !== 'not_run' && (
-                    <span className={`text-xs px-2 py-0.5 rounded ${
-                      product.validation_test_status === 'passed' ? 'bg-green-100 text-green-800' :
-                      product.validation_test_status === 'warning' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      Test: {product.validation_test_status}
-                    </span>
-                  )}
-                </div>
-              </button>
-            ))}
+            {products.map(product => {
+              const completed = getCompletedPhases(product)
+              return (
+                <button
+                  key={product.id}
+                  onClick={() => setSelectedProduct(product.product_slug)}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                    selectedProduct === product.product_slug
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-50 hover:bg-gray-100'
+                  }`}
+                >
+                  <div className="font-medium">{product.display_name}</div>
+                  <div className="text-sm opacity-80">{product.product_slug}</div>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    <span className="text-xs px-2 py-0.5 bg-gray-200 rounded">{completed}/7 phases</span>
+                    {product.gate1_ready && (
+                      <span className="text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded">Gate 1</span>
+                    )}
+                    {product.can_run_outreach && (
+                      <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-800 rounded">Outreach</span>
+                    )}
+                  </div>
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -159,7 +249,7 @@ function ProductDetailView({ productSlug, onUpdate }: { productSlug: string; onU
 
       <ValidationFieldsEditor product={product} onUpdate={fetchProduct} />
 
-      <TestRunner product={product} onUpdate={fetchProduct} />
+      <PipelinePhases product={product} onUpdate={fetchProduct} />
     </div>
   )
 }
@@ -198,7 +288,7 @@ function ValidationFieldsEditor({ product, onUpdate }: { product: ProductValidat
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-lg font-semibold mb-4">Validation Fields</h3>
+      <h3 className="text-lg font-semibold mb-4">Phase 1: Pre-Development (Validation Fields)</h3>
       
       <div className="space-y-3 mb-6">
         {fields.map(field => (
@@ -219,7 +309,7 @@ function ValidationFieldsEditor({ product, onUpdate }: { product: ProductValidat
       </div>
 
       <div className="border-t pt-4">
-        <label className="block text-sm font-medium mb-2">MVP URL</label>
+        <label className="block text-sm font-medium mb-2">MVP URL (required for phases 2-7)</label>
         <div className="flex gap-2">
           <input
             type="url"
@@ -241,63 +331,116 @@ function ValidationFieldsEditor({ product, onUpdate }: { product: ProductValidat
   )
 }
 
-function TestRunner({ product, onUpdate }: { product: ProductValidation; onUpdate: () => void }) {
+function PipelinePhases({ product, onUpdate }: { product: ProductValidation; onUpdate: () => void }) {
   const [running, setRunning] = useState<string | null>(null)
+  const [results, setResults] = useState<Record<string, { message: string; findings: string[] }>>({})
 
-  const tests = [
-    { id: 'step8', name: 'Compliance Tests', desc: 'Auth, branding, metadata, security, privacy', skill: 'qa' },
-    { id: 'step9', name: 'Validation Tests', desc: 'Naive tester, voice auditor, GTM auditor', skill: 'naive-tester' },
-  ]
-
-  async function runTest(testId: string) {
-    if (!product.mvp_url) {
+  async function runPhaseTest(phaseId: string) {
+    if (!product.mvp_url && phaseId !== 'phase1') {
       alert('Please enter MVP URL first')
       return
     }
-    setRunning(testId)
+    setRunning(phaseId)
+    setResults(prev => ({ ...prev, [phaseId]: { message: '', findings: [] } }))
     try {
       const res = await fetch(`/api/admin/pipeline/${product.product_slug}/run-test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ testType: testId, mvpUrl: product.mvp_url })
+        body: JSON.stringify({ 
+          testType: phaseId, 
+          mvpUrl: product.mvp_url,
+          phaseNumber: PHASES.find(p => p.id === phaseId)?.number
+        })
       })
+      const data = await res.json()
+      setResults(prev => ({ ...prev, [phaseId]: { 
+        message: data.message || data.error || 'Test completed',
+        findings: data.findings || []
+      }}))
       if (res.ok) {
         onUpdate()
       }
     } catch (err) {
       console.error('Failed to run test:', err)
+      setResults(prev => ({ ...prev, [phaseId]: { message: 'Error running test', findings: [] } }))
     } finally {
       setRunning(null)
     }
   }
 
+  function getPhaseStatus(phaseId: string): string {
+    return product.phase_results?.[phaseId]?.status || 'not_run'
+  }
+
   return (
     <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-lg font-semibold mb-4">Test Runner</h3>
+      <h3 className="text-lg font-semibold mb-4">Pipeline Phases 2-7</h3>
       
       <div className="space-y-4">
-        {tests.map(test => (
-          <div key={test.id} className="border rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-medium">{test.name}</div>
-                <div className="text-sm text-gray-500">{test.desc}</div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => runTest(test.id)}
-                  disabled={running !== null}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-                >
-                  {running === test.id ? 'Running...' : 'Run Test'}
-                </button>
+        {PHASES.slice(1).map(phase => {
+          const status = getPhaseStatus(phase.id)
+          const result = results[phase.id]
+          
+          return (
+            <div key={phase.id} className="border rounded-lg p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs px-2 py-0.5 rounded ${
+                      status === 'passed' ? 'bg-green-100 text-green-800' :
+                      status === 'failed' ? 'bg-red-100 text-red-800' :
+                      status === 'warning' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      Phase {phase.number}
+                    </span>
+                    <div className="font-medium">{phase.name}</div>
+                  </div>
+                  <div className="text-sm text-gray-500 mt-1">{phase.desc}</div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    <span className="font-medium">Tools:</span> {phase.tools.join(', ')}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    <span className="font-medium">Pass:</span> {phase.passCriteria}
+                  </div>
+                  <div className="text-xs text-blue-600 mt-1">
+                    <span className="font-medium">Fix:</span> {phase.fixChannel}
+                  </div>
+                  
+                  {result && (
+                    <div className="mt-2 text-sm bg-gray-50 p-2 rounded">
+                      {result.message}
+                      {result.findings.length > 0 && (
+                        <div className="mt-1 text-red-600">
+                          Findings: {result.findings.join(', ')}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => runPhaseTest(phase.id)}
+                    disabled={running !== null}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm"
+                  >
+                    {running === phase.id ? 'Running...' : 'Run Test'}
+                  </button>
+                  {status === 'failed' && (
+                    <button
+                      onClick={() => runPhaseTest(phase.id)}
+                      disabled={running !== null}
+                      className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm"
+                    >
+                      Fix & Retry
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-            {!product.mvp_url && (
-              <div className="mt-2 text-sm text-yellow-600">Enter MVP URL above to run tests</div>
-            )}
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
