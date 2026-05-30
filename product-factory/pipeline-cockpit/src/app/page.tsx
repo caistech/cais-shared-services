@@ -77,9 +77,9 @@ const PHASES: TestPhase[] = [
     name: 'Certification',
     desc: 'User experience validated (naive-tester, voice-auditor, GTM, QA)',
     testType: 'manual',
-    tools: ['/naive-tester', '/voice-auditor', '/gtm-auditor', '/qa'],
-    passCriteria: 'All gstack skills pass',
-    fixChannel: 'Run /naive-tester, /qa, etc on the URL, fix findings, re-run'
+    tools: ['skills/naive-tester', 'skills/voice-auditor', 'skills/gtm-auditor', 'skills/qa'],
+    passCriteria: 'All pipeline skills pass',
+    fixChannel: 'Run naive-tester, qa, etc from skills/ folder, fix findings, re-run'
   },
   {
     id: 'phase6',
@@ -87,7 +87,7 @@ const PHASES: TestPhase[] = [
     name: 'Handover',
     desc: 'Production smoke test (auth works, links work, pages render)',
     testType: 'both',
-    tools: ['portfolio-gate-smoke-routes', 'portfolio-gate-smoke-auth', '/qa'],
+    tools: ['portfolio-gate-smoke-routes', 'portfolio-gate-smoke-auth'],
     passCriteria: 'All smoke tests pass',
     fixChannel: 'Run smoke tests, fix production issues, redeploy'
   },
@@ -99,9 +99,29 @@ const PHASES: TestPhase[] = [
     testType: 'manual',
     tools: ['/canary', '/benchmark'],
     passCriteria: 'No alerts from canary/benchmark',
-    fixChannel: 'Monitor /canary results, fix regressions'
+    fixChannel: 'Run /canary, /benchmark on production, fix regressions'
   }
 ]
+
+const PHASE_ICONS: Record<number, string> = {
+  1: '📋', // Pre-Development - planning/permits
+  2: '📐', // Design Planning - architectural plans
+  3: '✅', // Compliance Standards - building code
+  4: '🔨', // Construction - building
+  5: '🏆', // Certification - inspection/occupancy
+  6: '🚀', // Handover - final walkthrough
+  7: '⚙️'  // Operations - ongoing maintenance
+}
+
+const PHASE_HOUSE_BUILD = {
+  1: 'Planning/Permits',
+  2: 'Architectural Plans',
+  3: 'Building Code',
+  4: 'Construction',
+  5: 'Inspection',
+  6: 'Final Walkthrough',
+  7: 'Ongoing Maintenance'
+}
 
 export default function PipelineCockpit() {
   const [products, setProducts] = useState<ProductValidation[]>([])
@@ -134,6 +154,12 @@ export default function PipelineCockpit() {
     return Object.values(product.phase_results).filter(p => p.status === 'passed').length
   }
 
+  function getCurrentPhase(product: ProductValidation): number {
+    if (!product.phase_results) return 1
+    const passed = Object.entries(product.phase_results).filter(([_, v]) => v.status === 'passed').length
+    return Math.min(passed + 1, 7)
+  }
+
   if (loading) {
     return <div className="text-center py-12">Loading pipeline data...</div>
   }
@@ -146,6 +172,7 @@ export default function PipelineCockpit() {
           <div className="space-y-2">
             {products.map(product => {
               const completed = getCompletedPhases(product)
+              const currentPhase = getCurrentPhase(product)
               return (
                 <button
                   key={product.id}
@@ -158,14 +185,17 @@ export default function PipelineCockpit() {
                 >
                   <div className="font-medium">{product.display_name}</div>
                   <div className="text-sm opacity-80">{product.product_slug}</div>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    <span className="text-xs px-2 py-0.5 bg-gray-200 rounded">{completed}/7 phases</span>
-                    {product.gate1_ready && (
-                      <span className="text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded">Gate 1</span>
-                    )}
-                    {product.can_run_outreach && (
-                      <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-800 rounded">Outreach</span>
-                    )}
+                  <div className="mt-2 flex items-center gap-2">
+                    <div className="flex gap-0.5">
+                      {[1,2,3,4,5,6,7].map(n => (
+                        <span key={n} className={`w-2 h-2 rounded-full ${
+                          n <= completed ? 'bg-green-500' :
+                          n === currentPhase ? 'bg-yellow-500 animate-pulse' :
+                          'bg-gray-300'
+                        }`} title={`Phase ${n}: ${PHASE_HOUSE_BUILD[n as keyof typeof PHASE_HOUSE_BUILD]}`} />
+                      ))}
+                    </div>
+                    <span className="text-xs opacity-80">{PHASE_ICONS[currentPhase as keyof typeof PHASE_ICONS]} {PHASE_HOUSE_BUILD[currentPhase as keyof typeof PHASE_HOUSE_BUILD]}</span>
                   </div>
                 </button>
               )
