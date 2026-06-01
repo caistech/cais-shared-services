@@ -1,0 +1,229 @@
+name: Design & Build (architect → builder)
+
+# Stage 2 of the Product Factory, headless. Dispatched by the cockpit's /design-build/kickoff
+# route (or manually from the Actions tab). Two phases:
+#   1. DESIGN  — opencode reads the spec (14 validation fields) + portfolio standards +
+#                cais-build-template-v2, writes design-plan.md.
+#   2. BUILD   — opencode consumes design-plan.md + the template and rewrites the product on a
+#                NEW BRANCH, commits, pushes, opens a PR. It never pushes to main.
+# The agent runs FULL-AUTONOMOUS (no per-change prompts): where the standards answer a choice it
+# just proceeds; where it hits a genuine fork the standards don't resolve, it decides by the most
+# standards-aligned default AND logs that fork into the PR body (and decisions.json) for the human
+# to override at review. The PR is the only human checkpoint. Its url is POSTed back to the card.
+#
+# EXISTING-REPO PATH ONLY (TEARDOWN / RENOVATE): the product already has a repo, so we branch off
+# it. Net-new-repo (no repo yet) is a later increment.
+#
+# Lives in: caistech/cais-shared-services/.github/workflows/design-build.yml (must be on default branch).
+#
+# Required Actions secrets (same set as survey.yml):
+#   OPENCODE_AUTH_JSON, GH_PAT (needs contents:write + pull-requests:write on dennissolver/*),
+#   COCKPIT_BASE
+# Optional repo variable: OPENCODE_MODEL (falls back to opencode/minimax-m2.5)
+
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: 'Product slug (cockpit productId, e.g. deal-findrs)'
+        required: true
+        type: string
+      verdict:
+        description: 'Survey verdict that triggered this (TEARDOWN | RENOVATION)'
+        required: false
+        type: string
+      url:
+        description: 'Live product URL (context only)'
+        required: false
+        type: string
+      model:
+        description: 'OpenCode model id (blank = repo var OPENCODE_MODEL or minimax default)'
+        required: false
+        type: string
+
+concurrency:
+  group: design-build-${{ github.event.inputs.slug }}
+  cancel-in-progress: true
+
+jobs:
+  design-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      COCKPIT_BASE: ${{ secrets.COCKPIT_BASE }}
+      SLUG: ${{ github.event.inputs.slug }}
+      VERDICT_IN: ${{ github.event.inputs.verdict }}
+      OPENCODE_MODEL: ${{ github.event.inputs.model || vars.OPENCODE_MODEL || 'opencode/minimax-m2.5' }}
+      BRANCH: design-build/${{ github.event.inputs.slug }}-${{ github.run_id }}
+
+    steps:
+      - name: Checkout shared-services (standards + template)
+        uses: actions/checkout@v4
+
+      - name: Checkout target product repo
+        uses: actions/checkout@v4
+        with:
+          repository: dennissolver/${{ github.event.inputs.slug }}
+          token: ${{ secrets.GH_PAT }}
+          path: target
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install OpenCode
+        run: npm i -g opencode-ai@latest
+
+      - name: Restore OpenCode auth
+        env:
+          OPENCODE_AUTH_JSON: ${{ secrets.OPENCODE_AUTH_JSON }}
+        run: |
+          mkdir -p ~/.local/share/opencode
+          printf '%s' "$OPENCODE_AUTH_JSON" > ~/.local/share/opencode/auth.json
+          test -s ~/.local/share/opencode/auth.json && echo "auth.json written ($(wc -c < ~/.local/share/opencode/auth.json) bytes)"
+
+      - name: Stage standards + template into the working dir
+        run: |
+          # The agent runs in target/ and (headless) auto-rejects out-of-cwd reads, so copy the
+          # standards + the build template in. _standards/ = the rules; _template/ = the skeleton.
+          SS="$GITHUB_WORKSPACE"
+          mkdir -p "$GITHUB_WORKSPACE/target/_standards"
+          for f in PRODUCT_STANDARDS.md STYLING.md THIN_MVP_RUBRIC.md \
+                   foundation/PORTFOLIO_STANDARD.md foundation/_portfolio/creator-style.md \
+                   foundation/_portfolio/market-positioning.md \
+                   product-factory/2-design-planning/README.md; do
+            if [ -f "$SS/$f" ]; then cp "$SS/$f" "$GITHUB_WORKSPACE/target/_standards/$(basename "$f")"; fi
+          done
+          cp -r "$SS/templates/cais-build-template-v2" "$GITHUB_WORKSPACE/target/_template" || true
+          echo "--- standards staged ---"; ls -la "$GITHUB_WORKSPACE/target/_standards"
+          echo "--- template staged ---"; ls "$GITHUB_WORKSPACE/target/_template" || echo "(no template)"
+
+      - name: Fetch the product spec (14 validation fields)
+        run: |
+          # The card spec is the source of truth for who/what. Pull it from the cockpit so the
+          # design phase targets the real distributor/end-user, not whatever the old site said.
+          curl -sSL "$COCKPIT_BASE/api/admin/pipeline/$SLUG" -o "$GITHUB_WORKSPACE/target/_spec.json" || true
+          echo "--- spec fetched ---"; head -c 400 "$GITHUB_WORKSPACE/target/_spec.json" || true; echo
+
+      - name: Configure OpenCode permissions (full autonomy)
+        working-directory: target
+        run: |
+          # Full-allow: the agent must run design→build→commit without per-change prompts.
+          # Safety is the branch+PR boundary (it cannot push to main), not approval prompts.
+          cat > opencode.json <<'JSON'
+          {
+            "$schema": "https://opencode.ai/config.json",
+            "permission": {
+              "edit": "allow",
+              "bash": "allow",
+              "webfetch": "allow",
+              "external_directory": "allow"
+            }
+          }
+          JSON
+          echo "--- opencode.json ---"; cat opencode.json
+
+      - name: Build the design+build prompt
+        run: |
+          {
+            printf 'You are the Product Factory architect+builder for "%s". Verdict that triggered this: %s.\n\n' "$SLUG" "${VERDICT_IN:-TEARDOWN}"
+            printf 'You are running FULLY AUTONOMOUS. Do NOT stop to ask permission for ordinary work.\n'
+            printf 'Where the standards/guidelines answer a choice, just follow them. Only when you hit a\n'
+            printf 'genuine fork the standards do NOT resolve, pick the most standards-aligned option,\n'
+            printf 'PROCEED, and append that fork to ./decisions.json as {"question","chose","why"} so the\n'
+            printf 'human can override it at PR review. Never block; the PR is the only checkpoint.\n\n'
+            printf 'INPUTS in this directory:\n'
+            printf '  ./_spec.json      - the product card: the 14 validation fields (promise, friction,\n'
+            printf '                      core_mechanism, distributor, end_user, the ICP fields, etc).\n'
+            printf '                      This is the source of truth for WHO this is for.\n'
+            printf '  ./_standards/     - PRODUCT_STANDARDS, STYLING, PORTFOLIO_STANDARD, creator-style,\n'
+            printf '                      market-positioning, the THIN_MVP rubric, the Stage-2 README.\n'
+            printf '  ./_template/      - cais-build-template-v2: the Next.js skeleton + CLAUDE.md to build from.\n'
+            printf '  (the rest of this directory is the EXISTING %s repo - rebuild it in place.)\n\n' "$SLUG"
+            printf 'PHASE 1 - DESIGN: read _spec.json + _standards + _template/CLAUDE.md. Write ./design-plan.md:\n'
+            printf '  page structure; copy that names ONE coherent audience and the distributor (so it passes\n'
+            printf '  the survey PRE-HARD P2/P3); auth/surfaces/voice placement per the standards. Resolve the\n'
+            printf '  incoherence the survey flagged (no contradictory audiences).\n\n'
+            printf 'PHASE 2 - BUILD: implement design-plan.md against the existing repo, conforming to _template\n'
+            printf '  and _standards. Keep it compiling. Then STOP - do not git push, do not open a PR, do not\n'
+            printf '  run curl. The workflow handles git + PR. Remove ./_spec.json, ./_standards, ./_template,\n'
+            printf '  ./opencode.json from the working tree before finishing so they are not committed.\n'
+          } > "$GITHUB_WORKSPACE/prompt.txt"
+          echo "--- prompt ---"; cat "$GITHUB_WORKSPACE/prompt.txt"
+
+      - name: Run design+build (OpenCode, headless, autonomous)
+        working-directory: target
+        timeout-minutes: 20
+        run: |
+          MODEL_FLAG=""
+          if [ -n "$OPENCODE_MODEL" ]; then MODEL_FLAG="-m $OPENCODE_MODEL"; fi
+          echo "=== cwd: $(pwd) ==="
+          opencode run $MODEL_FLAG "$(cat "$GITHUB_WORKSPACE/prompt.txt")" 2>&1 | tee "$GITHUB_WORKSPACE/opencode-output.txt"
+          echo "=== files after run ==="; git status --porcelain | head -50
+
+      - name: Commit + push branch, open PR
+        id: pr
+        working-directory: target
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          set -e
+          # Scrub helper files in case the agent didn't.
+          rm -rf _standards _template _spec.json opencode.json decisions.json.bak 2>/dev/null || true
+
+          git config user.name  "cais-design-build[bot]"
+          git config user.email "design-build@corporateaisolutions.com"
+          git checkout -b "$BRANCH"
+
+          # Stash decisions.json contents for the PR body, then remove it from the commit.
+          DECISIONS_MD=""
+          if [ -f decisions.json ]; then
+            DECISIONS_MD=$(node -e "try{const d=JSON.parse(require('fs').readFileSync('decisions.json','utf8'));if(Array.isArray(d)&&d.length){console.log('\n## Decisions I made (override at will)\n');for(const x of d){console.log('- **'+(x.question||'?')+'** → chose _'+(x.chose||'?')+'_ — '+(x.why||''));}}}catch(e){}" )
+            rm -f decisions.json
+          fi
+
+          git add -A
+          if git diff --cached --quiet; then
+            echo "no_changes=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::agent produced no changes"
+            exit 0
+          fi
+          git commit -m "Design & Build: rebuild $SLUG to spec ($VERDICT_IN)"
+          git push -u origin "$BRANCH"
+
+          # Open the PR via the API. Build the JSON body entirely in node (reading via env) so
+          # no shell quoting touches the title/body text.
+          export PR_BODY="Automated Stage-2 Design & Build for ${SLUG} (verdict: ${VERDICT_IN}). Rebuilt to the card spec + portfolio standards + cais-build-template-v2. Review the diff, then merge to deploy.${DECISIONS_MD}"
+          node -e "const fs=require('fs');fs.writeFileSync('pr.json',JSON.stringify({title:'Design & Build: '+process.env.SLUG+' ('+(process.env.VERDICT_IN||'rebuild')+')',head:process.env.BRANCH,base:'main',body:process.env.PR_BODY}))"
+          PR_JSON=$(curl -sS -X POST \
+            -H "Authorization: Bearer $GH_PAT" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/dennissolver/$SLUG/pulls" \
+            --data-binary @pr.json)
+          rm -f pr.json
+          PR_URL=$(printf '%s' "$PR_JSON" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{process.stdout.write(JSON.parse(s).html_url||'')}catch{process.stdout.write('')}})")
+          echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
+          echo "PR: ${PR_URL:-<none — check response>}"
+          printf '%s' "$PR_JSON" | head -c 300
+
+      - name: POST result back to cockpit
+        if: always()
+        env:
+          PR_URL: ${{ steps.pr.outputs.pr_url }}
+          NO_CHANGES: ${{ steps.pr.outputs.no_changes }}
+        run: |
+          if [ "$NO_CHANGES" = "true" ]; then
+            export STATUS="fail"; export SUMMARY="agent produced no changes"
+          elif [ -n "$PR_URL" ]; then
+            export STATUS="pass"; export SUMMARY="PR opened"
+          else
+            export STATUS="fail"; export SUMMARY="build or PR step failed - see Actions log"
+          fi
+          PAYLOAD=$(node -e "process.stdout.write(JSON.stringify({status:process.env.STATUS,pr_url:process.env.PR_URL||null,branch:process.env.BRANCH,verdict_in:process.env.VERDICT_IN||null,summary:process.env.SUMMARY}))")
+          echo "Reporting: $PAYLOAD"
+          curl -sS -X POST "$COCKPIT_BASE/api/admin/pipeline/$SLUG/design-build/result" \
+            -H 'Content-Type: application/json' \
+            -d "$PAYLOAD"
