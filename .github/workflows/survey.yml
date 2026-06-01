@@ -71,8 +71,10 @@ jobs:
         run: |
           mkdir -p ~/.local/share/opencode
           printf '%s' "$OPENCODE_AUTH_JSON" > ~/.local/share/opencode/auth.json
-          # sanity: valid JSON
-          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME + '/.local/share/opencode/auth.json','utf8')); console.log('auth.json ok')"
+          # Don't strict-JSON-validate here: OpenCode's auth.json can contain Windows paths
+          # with single backslashes that its own (forgiving) reader accepts but JSON.parse rejects.
+          # Just confirm the file was written and is non-empty.
+          test -s ~/.local/share/opencode/auth.json && echo "auth.json written ($(wc -c < ~/.local/share/opencode/auth.json) bytes)"
 
       - name: Resolve live URL
         id: vars
