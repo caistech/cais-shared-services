@@ -87,18 +87,39 @@ jobs:
         env:
           URL: ${{ steps.vars.outputs.url }}
         run: |
-          SKILL="$GITHUB_WORKSPACE/product-factory/pipeline-cockpit/skills/naive-tester/SURVEY_MODE.md"
+          # Copy the skill into the target working dir so OpenCode never needs to read an
+          # "external directory" (headless OpenCode auto-rejects out-of-cwd access).
+          cp "$GITHUB_WORKSPACE/product-factory/pipeline-cockpit/skills/naive-tester/SURVEY_MODE.md" \
+             "$GITHUB_WORKSPACE/target/SURVEY_MODE.md"
           {
-            printf 'Run naive-tester survey mode against %s, following the skill at %s.\n' "$SLUG" "$SKILL"
+            printf 'Run naive-tester survey mode against %s, following the skill in ./SURVEY_MODE.md (this directory).\n' "$SLUG"
             printf 'Live URL: %s\n' "$URL"
-            printf 'Repo: the %s repo is checked out in the current working directory.\n' "$SLUG"
+            printf 'Repo: the %s repo is checked out in this current working directory.\n' "$SLUG"
             printf 'For each of the 14 spec fields, record evidenced:true/false with an exact citation\n'
             printf '(a quoted DOM string fetched from the live URL, or a repo path:line) - never guess, never omit.\n'
             printf 'Fetch the live URL for DOM evidence. Run PRE-HARD checks P1-P4.\n'
-            printf 'Write the result to survey.json in this directory, in the exact shape SURVEY_MODE.md specifies.\n'
+            printf 'Write the result to ./survey.json in this directory, in the exact shape SURVEY_MODE.md specifies.\n'
             printf 'Do NOT POST it and do NOT run curl - only write survey.json, then stop.\n'
           } > "$GITHUB_WORKSPACE/prompt.txt"
           echo "--- prompt ---"; cat "$GITHUB_WORKSPACE/prompt.txt"
+
+      - name: Configure OpenCode permissions (auto-allow, headless)
+        working-directory: target
+        run: |
+          # Headless OpenCode auto-rejects permission prompts and stalls/fails. This config
+          # grants the tools it needs non-interactively for this run.
+          cat > opencode.json <<'JSON'
+          {
+            "$schema": "https://opencode.ai/config.json",
+            "permission": {
+              "edit": "allow",
+              "bash": "allow",
+              "webfetch": "allow",
+              "external_directory": "allow"
+            }
+          }
+          JSON
+          echo "--- opencode.json ---"; cat opencode.json
 
       - name: Run survey (OpenCode, headless)
         working-directory: target
@@ -106,7 +127,23 @@ jobs:
         run: |
           MODEL_FLAG=""
           if [ -n "$OPENCODE_MODEL" ]; then MODEL_FLAG="-m $OPENCODE_MODEL"; fi
-          opencode run $MODEL_FLAG "$(cat "$GITHUB_WORKSPACE/prompt.txt")"
+          echo "=== cwd: $(pwd) ==="
+          opencode run $MODEL_FLAG "$(cat "$GITHUB_WORKSPACE/prompt.txt")" 2>&1 | tee opencode-output.txt
+          echo "=== exit: ${PIPESTATUS[0]} ==="
+          echo "=== files in cwd after run ==="; ls -la
+          echo "=== any survey.json anywhere in workspace ==="; find "$GITHUB_WORKSPACE" -name 'survey.json' 2>/dev/null || true
+
+      - name: Locate survey.json
+        working-directory: target
+        run: |
+          # OpenCode may write to a different dir than expected; find it and move it into place.
+          if [ ! -f survey.json ]; then
+            FOUND=$(find "$GITHUB_WORKSPACE" -name 'survey.json' -not -path '*/node_modules/*' 2>/dev/null | head -1)
+            if [ -n "$FOUND" ]; then
+              echo "Found survey.json at $FOUND — copying into target/"
+              cp "$FOUND" survey.json
+            fi
+          fi
 
       - name: Verify survey.json
         working-directory: target
