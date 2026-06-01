@@ -6,7 +6,10 @@
       "id": "f2k-registration-not-in-admin",
       "product": "F2K-Projects",
       "error_pattern": "registration emails arriving but not showing in admin",
-      "error_symptoms": ["registrations arrive via email but admin shows nothing", "Uwe can't see Josh Zeitzen registrations"],
+      "error_symptoms": [
+        "registrations arrive via email but admin shows nothing",
+        "Uwe can't see Josh Zeitzen registrations"
+      ],
       "attempts": [],
       "solution": {
         "approach": "Tell user where to find registrations - they're in the estate-specific admin, not main admin",
@@ -20,7 +23,10 @@
       "id": "sf-supabase-magic-link-token-hash",
       "product": "SayFix",
       "error_pattern": "auth callback only handles code, magic link uses token_hash",
-      "error_symptoms": ["magic link takes user back to login", "no session created on callback"],
+      "error_symptoms": [
+        "magic link takes user back to login",
+        "no session created on callback"
+      ],
       "attempts": [
         {
           "what": "Only handled ?code= parameter in auth callback",
@@ -40,7 +46,10 @@
       "id": "f2k-edge-function-in-next-build",
       "product": "F2K-Projects",
       "error_pattern": "Supabase Edge Functions compiled as Next.js code",
-      "error_symptoms": ["Cannot find name 'Deno'", "edge function imports fail build"],
+      "error_symptoms": [
+        "Cannot find name 'Deno'",
+        "edge function imports fail build"
+      ],
       "attempts": [
         {
           "what": "Fix import from esm.sh URL to package import",
@@ -60,7 +69,10 @@
       "id": "f2k-supabase-version-mismatch",
       "product": "F2K-Projects",
       "error_pattern": "FunctionsClient export error from @supabase/supabase-js",
-      "error_symptoms": ["'FunctionsClient' is not exported", "FunctionsError not found"],
+      "error_symptoms": [
+        "'FunctionsClient' is not exported",
+        "FunctionsError not found"
+      ],
       "attempts": [
         {
           "what": "Reinstall @supabase/supabase-js @latest",
@@ -80,7 +92,10 @@
       "id": "sf-ai-client-missing",
       "product": "SayFix",
       "error_pattern": "Discovery endpoint degraded - no API key configured",
-      "error_symptoms": ["I'm having trouble right now message", "AI not responding"],
+      "error_symptoms": [
+        "I'm having trouble right now message",
+        "AI not responding"
+      ],
       "attempts": [
         {
           "what": "Added ANTHROPIC_API_KEY to Vercel",
@@ -105,7 +120,10 @@
       "id": "f2k-agents-no-edit",
       "product": "F2K-Projects",
       "error_pattern": "Agents admin page missing Edit functionality",
-      "error_symptoms": ["Admin could only create/block/delete agents", "No way to fix typos in agent names"],
+      "error_symptoms": [
+        "Admin could only create/block/delete agents",
+        "No way to fix typos in agent names"
+      ],
       "attempts": [],
       "solution": {
         "approach": "Added Edit button with modal + PATCH API support for name/phone/agency",
@@ -119,7 +137,10 @@
       "id": "f2k-agents-no-self-service",
       "product": "F2K-Projects",
       "error_pattern": "Agents cannot edit their own profile details",
-      "error_symptoms": ["Agents need admin to fix their name/phone/agency", "No self-service profile page"],
+      "error_symptoms": [
+        "Agents need admin to fix their name/phone/agency",
+        "No self-service profile page"
+      ],
       "attempts": [],
       "solution": {
         "approach": "Added /agent/profile page with self-service editing + password change",
@@ -133,7 +154,10 @@
       "id": "sf-chat-history-lost",
       "product": "SayFix",
       "error_pattern": "Chat history not visible after ticket creation",
-      "error_symptoms": ["Users see request in My Requests but can't see their conversation", "Status vague: 'Escalated — a person is reviewing this'"],
+      "error_symptoms": [
+        "Users see request in My Requests but can't see their conversation",
+        "Status vague: 'Escalated — a person is reviewing this'"
+      ],
       "attempts": [],
       "solution": {
         "approach": "Show chat history in ticket detail + improved status badges",
@@ -147,7 +171,10 @@
       "id": "sf-no-new-request",
       "product": "SayFix",
       "error_pattern": "No way to start a new request without losing current conversation",
-      "error_symptoms": ["User chat gets lost when navigating away", "Need fresh conversation but no button"],
+      "error_symptoms": [
+        "User chat gets lost when navigating away",
+        "Need fresh conversation but no button"
+      ],
       "attempts": [],
       "solution": {
         "approach": "Added 'New Request' button that appears when conversation exists",
@@ -161,7 +188,10 @@
       "id": "f2k-sutcliffe-pricing-double-count",
       "product": "F2K-Projects",
       "error_pattern": "public pricing shows higher than admin input - retail + house_cost stacking",
-      "error_symptoms": ["Uwe: pricing much higher in public display than input", "lots 236, 237, 238 showing incorrect totals"],
+      "error_symptoms": [
+        "Uwe: pricing much higher in public display than input",
+        "lots 236, 237, 238 showing incorrect totals"
+      ],
       "attempts": [
         {
           "what": "Checked retail_price field only",
@@ -181,7 +211,10 @@
       "id": "f2k-agent-clients-not-showing",
       "product": "F2K-Projects",
       "error_pattern": "agent can't see registered buyers in My Clients",
-      "error_symptoms": ["Nicky: Henry's buyer not showing in his My Clients list", "Kriti Bhasin registered but not linked to agent"],
+      "error_symptoms": [
+        "Nicky: Henry's buyer not showing in his My Clients list",
+        "Kriti Bhasin registered but not linked to agent"
+      ],
       "attempts": [
         {
           "what": "Checked My Clients API",
@@ -206,7 +239,10 @@
       "id": "sayfix-supabase-cli-access",
       "product": "SayFix",
       "error_pattern": "SayFix can't run supabase db push or queries",
-      "error_symptoms": ["Can't push migrations", "Can't query database to verify fixes"],
+      "error_symptoms": [
+        "Can't push migrations",
+        "Can't query database to verify fixes"
+      ],
       "attempts": [
         {
           "what": "Direct supabase CLI commands",
@@ -226,7 +262,10 @@
       "id": "cas-pipeline-execute-dry-run-default",
       "product": "Corporate-AI-Solutions",
       "error_pattern": "execute returns DRY_RUN, webhook never fires",
-      "error_symptoms": ["webhook never received", "execute returns 200 but no outreach"],
+      "error_symptoms": [
+        "webhook never received",
+        "execute returns 200 but no outreach"
+      ],
       "attempts": [
         {
           "what": "Checked Vercel env vars",
@@ -246,7 +285,10 @@
       "id": "cas-missing-credentials-fetch",
       "product": "Corporate-AI-Solutions",
       "error_pattern": "API returns 401 Must be logged in but user IS logged in",
-      "error_symptoms": ["auth errors despite user logged in", "session not sent"],
+      "error_symptoms": [
+        "auth errors despite user logged in",
+        "session not sent"
+      ],
       "attempts": [],
       "solution": {
         "approach": "Fetch missing credentials option",
@@ -255,7 +297,226 @@
       },
       "fixed_at": "2026-05-30",
       "fixed_by": "opencode"
+    },
+    {
+      "id": "cas-validation-generate-debug-return-dead-code",
+      "product": "Corporate-AI-Solutions",
+      "error_pattern": "Generate buttons do nothing; route returns 200 with a debug blob",
+      "error_symptoms": [
+        "fields stay (not set) after clicking Generate",
+        "POST /validation/generate returns 200 but no field data",
+        "response shaped { debug: {...} } instead of { promise: ... }"
+      ],
+      "attempts": [
+        {
+          "what": "Added MINIMAX_API_KEY to Vercel to clear the 500",
+          "result": "failed",
+          "reason": "got past the key gate but the route still returned a debug blob — the real parse/return below it was unreachable"
+        }
+      ],
+      "solution": {
+        "approach": "A leftover `return NextResponse.json({debug:{data,content}})` short-circuited the function; the JSON extraction + filtered return beneath it were dead code. Removed the debug return so the route emits a flat {field:value} object the client reads via data[field].",
+        "code_path": "src/app/api/admin/pipeline/[productId]/validation/generate/route.ts",
+        "key_change": "Deleted debug early-return; return filtered flat object; cover all 8 generatable fields not 4"
+      },
+      "fixed_at": "2026-06-01",
+      "fixed_by": "claude"
+    },
+    {
+      "id": "cas-validation-generate-wrong-provider-and-not-deployed",
+      "product": "Corporate-AI-Solutions",
+      "error_pattern": "AI route wired to the wrong provider/env; rewritten route never actually deployed",
+      "error_symptoms": [
+        "POST /validation/generate 500 'MINIMAX_API_KEY is not set'",
+        "env var added but behaviour unchanged",
+        "git main still at old commit after a supposed deploy"
+      ],
+      "attempts": [
+        {
+          "what": "Added MINIMAX_API_KEY env var and redeployed",
+          "result": "failed",
+          "reason": "route called native MiniMax but the account was MiniMax-via-OpenRouter BYOK; and the new route file was never committed, so main stayed on the old route"
+        }
+      ],
+      "solution": {
+        "approach": "Rewired to OpenRouter (OPENROUTER_API_KEY, OpenAI-compatible) which routes to the MiniMax BYOK key; model env-configurable via OPENROUTER_MODEL. The env var and the route must match — adding a key for a provider the code does not call is a no-op. Verify the deploy hash actually moved and the key is scoped Production/Preview (not Development-only).",
+        "code_path": "src/app/api/admin/pipeline/[productId]/validation/generate/route.ts",
+        "key_change": "OPENROUTER_API_KEY + minimax/* model slug; confirm commit hash + env scope after deploy"
+      },
+      "fixed_at": "2026-06-01",
+      "fixed_by": "claude"
+    },
+    {
+      "id": "cas-openrouter-minimax-json-502",
+      "product": "Corporate-AI-Solutions",
+      "error_pattern": "MiniMax via OpenRouter returns JSON missing the leading brace -> 502",
+      "error_symptoms": [
+        "502 'No JSON object in model output'",
+        "model output begins mid-object e.g. promise\":\"...\"}",
+        "intermittent: some Generate runs succeed, others 502"
+      ],
+      "attempts": [
+        {
+          "what": "Hardened parsing with a balanced-brace regex only",
+          "result": "failed",
+          "reason": "some MiniMax outputs dropped the opening brace entirely, so /\\{[\\s\\S]*\\}/ matched nothing"
+        }
+      ],
+      "solution": {
+        "approach": "Three-part hardening: request response_format {type:json_object}, raise max_tokens 1500->2500 (8 verbose fields were truncating), and a tolerant parser (direct JSON.parse -> strip code fences -> repair a missing leading brace).",
+        "code_path": "src/app/api/admin/pipeline/[productId]/validation/generate/route.ts",
+        "key_change": "json_object mode + max_tokens 2500 + extractJsonObject() repair path"
+      },
+      "fixed_at": "2026-06-01",
+      "fixed_by": "claude"
+    },
+    {
+      "id": "cas-validation-persist-vs-display-empty-patch",
+      "product": "Corporate-AI-Solutions",
+      "error_pattern": "Generated fields save (PATCH 200) but the card shows (not set) until reload",
+      "error_symptoms": [
+        "eight PATCH 200 then card still (not set)",
+        "stray PATCH 400 with body {}",
+        "saving one field manually makes the rest appear"
+      ],
+      "attempts": [
+        {
+          "what": "Assumed the values were not persisting to the DB",
+          "result": "failed",
+          "reason": "PATCH 200 returned the fresh row and GET reads the same product_validation_status columns — data WAS persisting; the card simply never re-read it"
+        }
+      ],
+      "solution": {
+        "approach": "handleGenerateAll's only refresh was a final empty-body PATCH {} used as a refetch hack, which the validation route rejects 400 (No valid fields), so onUpdate never fired and product.validation (what renderValue reads) stayed stale. Capture the last per-field PATCH's returned fresh row and pass it to onUpdate; delete the empty-body PATCH.",
+        "code_path": "src/components/admin/ValidationFieldsEditor.tsx (handleGenerateAll)",
+        "key_change": "onUpdate(lastFresh) from last PATCH data; removed empty-body PATCH"
+      },
+      "fixed_at": "2026-06-01",
+      "fixed_by": "claude"
+    },
+    {
+      "id": "cas-survey-gate-check-constraint-missing",
+      "product": "Corporate-AI-Solutions",
+      "error_pattern": "Survey gate could never be recorded — 'survey' was in no migration, so the pipeline_gates.gate CHECK constraint rejected it; the survey result was also discarded and never rendered",
+      "error_symptoms": [
+        "recordGate({gate:'survey'}) violates pipeline_gates_gate_check and throws",
+        "CHECK constraint only allowed the 8 build-stage gates (office-hours, ceo-review, eng-review, design-review, gate-1, gate-2, naive-tester, provisioned)",
+        "survey verdict shows in the panel but the per-field evidence / PRE-HARD / what-to-fix breakdown is nowhere"
+      ],
+      "attempts": [
+        {
+          "what": "Assumed the survey gate just needed wiring in the UI",
+          "result": "failed",
+          "reason": "the gate was structurally unrecordable — the DB CHECK constraint had no 'survey' value, and product_validation_status/pipeline_gates had no column to hold the structured result, so even a correct UI would 500 on insert"
+        }
+      ],
+      "solution": {
+        "approach": "New idempotent migration drops and re-adds pipeline_gates_gate_check WITH 'survey' and ADDs a result JSONB column. recordGate accepts result?: unknown and inserts it; the survey route passes the full SurveyResult; the GET route selects result; ProductDetailView Step 3 renders per-field evidence (check/x + citation), PRE-HARD checks, and the toReach fix list when surveyGate.result exists.",
+        "code_path": "supabase/migrations/20260601120000_survey_gate.sql; src/lib/methodology/pipeline-gates.ts; src/app/api/admin/pipeline/[productId]/survey/route.ts; src/components/admin/ProductDetailView.tsx",
+        "key_change": "CHECK constraint now includes 'survey'; result JSONB added and threaded route->DB->card (closes pipeline seams S2 + S3)"
+      },
+      "fixed_at": "2026-06-01",
+      "fixed_by": "claude"
+    },
+    {
+      "id": "cas-validation-tests-ephemeral-and-hard-gates-unwritten",
+      "product": "Corporate-AI-Solutions",
+      "error_pattern": "Card's nine validation/compliance checks lived in React state only (lost on reload) and the readiness score's compliance slice read hard_gates_passed/total columns that no migration ever created (always 0)",
+      "error_symptoms": [
+        "run a test, reload, every check is back to pending",
+        "compliance portion of the readiness score is always 0",
+        "two parallel test systems: the card (ephemeral) and persisted product_validation_status columns the card never read or wrote"
+      ],
+      "attempts": [
+        {
+          "what": "Considered repointing the card to System A (Parts A-D) persistence",
+          "result": "partial",
+          "reason": "Parts A-D taxonomy did not match the card's 9 checks, and /validation-workflow already reads validation_test_results.qa/.naive/.gtm — i.e. it expected the breakdown keyed by the card's check ids, not Parts A-D"
+        }
+      ],
+      "solution": {
+        "approach": "Hybrid (card checks are canonical). Migration adds hard_gates_passed/total. /validation-test rewritten to accept the nine-check payload, store the full breakdown in validation_test_results (keyed by check id), roll the 5 compliance checks into hard_gates_passed/total, and compute the composite validation_test_status (the outreach gate + the score's validation slice). The card hydrates the checks from validation_test_results on load and persists them on change via an effect, mirroring the rollup back onto product.validation so the score/gaps recompute without a refetch. Legacy Parts A-D POST path kept for safety.",
+        "code_path": "supabase/migrations/20260601130000_validation_test_hard_gates.sql; src/app/api/admin/pipeline/[productId]/validation-test/route.ts; src/components/admin/ProductDetailView.tsx",
+        "key_change": "nine checks persist + hydrate; one rollup writer feeds score (hard_gates) + outreach gate (validation_test_status) (closes pipeline seams S6 + S7)"
+      },
+      "fixed_at": "2026-06-01",
+      "fixed_by": "claude"
+    },
+    {
+      "id": "cas-run-test-divergent-score-writer-collision",
+      "product": "Corporate-AI-Solutions",
+      "error_pattern": "run-test recomputed and wrote its OWN weighted_score_percent (passed=25/warning=20) and hard_gates_passed/total (total=9) on every test run — diverging from score.ts and colliding with the hybrid's /validation-test writer (both writing hard_gates, last-writer-wins race)",
+      "error_symptoms": [
+        "weighted_score_percent disagrees with score.ts / the recalculate-score result",
+        "hard_gates_passed flips between two values depending on whether run-test or validation-test wrote last",
+        "two writers of the same columns firing within one test-run flow"
+      ],
+      "attempts": [
+        {
+          "what": "Assumed Seam 8 was 'Step 7 calls the retired recalculate-score route'",
+          "result": "failed",
+          "reason": "recalculate-score had already been refactored into a thin score.ts adapter (loadCardScore via readiness), so Step 7 was fine; the real divergence was run-test writing its own numbers, which also collided with the freshly-added hybrid hard_gates writer"
+        }
+      ],
+      "solution": {
+        "approach": "Deleted run-test’s entire \"Recalculate weighted score after test update\" block (the self-computed newScore + hardGatesPassed update). run-test now only runs a check and returns its result. Single writer each: weighted_score_percent <- score.ts via /recalculate-score (Step 7 button); hard_gates_passed/total + validation_test_status <- /validation-test (the card persist effect).",
+        "code_path": "src/app/api/admin/pipeline/[productId]/run-test/route.ts",
+        "key_change": "removed run-test self-scoring block; score and hard_gates each have exactly one writer (closes pipeline seam S8; resolved a collision created by the S6/S7 hybrid)"
+      },
+      "fixed_at": "2026-06-01",
+      "fixed_by": "claude"
+    },
+    {
+      "id": "cas-parseverdict-duplicated",
+      "product": "Corporate-AI-Solutions",
+      "error_pattern": "parseVerdict + the Verdict type duplicated byte-for-byte in ProductDetailView and SurveyGatePanel, with a comment requiring the two copies be kept manually identical (drift waiting to happen)",
+      "error_symptoms": [
+        "\"MUST stay byte-identical to SurveyGatePanel.parseVerdict\" comment in the source",
+        "same function maintained in two files"
+      ],
+      "attempts": [],
+      "solution": {
+        "approach": "Extracted Verdict + parseVerdict to one module. parseVerdict takes a minimal structural shape ({reason, status}) so the lib has no dependency on the client components that consume it. Both files import it; the genuinely-different light VERDICT_BANNER and dark VERDICT_STYLE maps stay local.",
+        "code_path": "src/lib/methodology/survey-verdict.ts (new); src/components/admin/ProductDetailView.tsx; src/components/methodology/SurveyGatePanel.tsx",
+        "key_change": "single shared parseVerdict; local byte-identical copies removed (closes pipeline seam S4)"
+      },
+      "fixed_at": "2026-06-01",
+      "fixed_by": "claude"
     }
   ],
-  "usage": "Before fixing ANY bug, grep this file for matching error patterns. Also check SayFix DB for product-specific attempts."
+  "usage": "Before fixing ANY bug, grep this file for matching error patterns. Also check SayFix DB for product-specific attempts.",
+  "open_seams": [
+    {
+      "id": "cas-seam-survey-no-in-app-trigger",
+      "stage": "3 · Survey gate",
+      "seam": "URL -> survey run",
+      "status": "open",
+      "fix": "No in-app way to start survey mode (it is an agent skill in cais-shared-services; the cockpit panel only displays). Add a Run-survey affordance that POSTs a survey.json / kicks the agent, or at least surface the run command in the panel.",
+      "code_path": "cais-shared-services product-factory/pipeline-cockpit/skills/naive-tester/SURVEY_MODE.md + scripts/gate-check.mjs"
+    },
+    {
+      "id": "cas-seam-founder-commitment-not-a-gate",
+      "stage": "4 · Founder commitment",
+      "seam": "commitment -> ledger",
+      "status": "open",
+      "fix": "Persists to validation.has_methodology_commitment but is not a pipeline_gates gate (GateName has survey but no founder/compliance/validation/score). Optional: record it as a gate for the audit trail.",
+      "code_path": "src/lib/methodology/pipeline-gates.ts (GateName)"
+    },
+    {
+      "id": "cas-seam-outreach-webhook-env-gated",
+      "stage": "8 · Outreach",
+      "seam": "submit -> InvestorPilot webhook",
+      "status": "open",
+      "fix": "execute sends an HMAC webhook to INVESTORPILOT_WEBHOOK_URL with PIPELINE_INTAKE_WEBHOOK_SECRET; if either env is missing it logs \"No webhook URL - skipping\" and returns a dry-run would_execute (silent no-op). Set both in Vercel (Production/Preview) AND ensure a live receiver verifies the same secret. Related: cas-pipeline-execute-dry-run-default.",
+      "code_path": "src/app/api/admin/pipeline/[productId]/execute/route.ts"
+    },
+    {
+      "id": "cas-seam-magic-link-cross-product-env",
+      "stage": "8 · Outreach",
+      "seam": "IP login -> InvestorPilot Supabase",
+      "status": "open",
+      "fix": "magic-link signs into a separate Supabase project via INVESTORPILOT_SUPABASE_URL/KEY + NEXT_PUBLIC_INVESTORPILOT_URL (the last is build-time/NEXT_PUBLIC -> needs a rebuild, not just redeploy). Set them and confirm the IP project accepts OTP with the redirect configured.",
+      "code_path": "src/app/api/auth/investorpilot-magic-link/route.ts"
+    }
+  ]
 }

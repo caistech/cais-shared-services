@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.28.0",
-    "@caistech/ai-client": "workspace:*"
+    "@caistech/ai-client": "*"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

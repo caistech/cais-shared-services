@@ -1,0 +1,132 @@
+name: Product Survey (naive-tester)
+
+# Headless survey runner. Dispatched by the cockpit's /survey/kickoff route (or manually from
+# the Actions tab). Browses the live site + the product repo, writes survey.json via OpenCode,
+# then POSTs it to the cockpit survey route. The agent does NOT post (it flubs shell quoting) —
+# the workflow does the POST deterministically as the final step.
+#
+# Lives in: caistech/cais-shared-services/.github/workflows/survey.yml  (must be on the default
+# branch before workflow_dispatch will accept it).
+#
+# Required Actions secrets:
+#   OPENCODE_AUTH_JSON  contents of your local ~/.local/share/opencode/auth.json (Anthropic + Zen keys)
+#   GH_PAT              PAT with contents:read on dennissolver/* (to check out the target product repo)
+#   VERCEL_TOKEN        Vercel API token (gate-check.mjs prod-deployment uses it)
+#   COCKPIT_BASE        https://corporate-ai-solutions.vercel.app
+# Optional repo variable:
+#   OPENCODE_MODEL      e.g. the Zen MiniMax model id; falls back to your opencode default if unset
+
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: 'Product slug (cockpit productId, e.g. deal-findrs)'
+        required: true
+        type: string
+      url:
+        description: 'Live product URL (blank = https://<slug>.vercel.app/)'
+        required: false
+        type: string
+      model:
+        description: 'OpenCode model id (blank = repo var OPENCODE_MODEL or your default)'
+        required: false
+        type: string
+
+concurrency:
+  group: survey-${{ github.event.inputs.slug }}
+  cancel-in-progress: true
+
+jobs:
+  survey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      COCKPIT_BASE: ${{ secrets.COCKPIT_BASE }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      SLUG: ${{ github.event.inputs.slug }}
+      OPENCODE_MODEL: ${{ github.event.inputs.model || vars.OPENCODE_MODEL }}
+
+    steps:
+      - name: Checkout shared-services (skill + gate-check)
+        uses: actions/checkout@v4
+
+      - name: Checkout target product repo
+        uses: actions/checkout@v4
+        with:
+          repository: dennissolver/${{ github.event.inputs.slug }}
+          token: ${{ secrets.GH_PAT }}
+          path: target
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install OpenCode
+        run: npm i -g opencode-ai@latest
+
+      - name: Restore OpenCode auth
+        env:
+          OPENCODE_AUTH_JSON: ${{ secrets.OPENCODE_AUTH_JSON }}
+        run: |
+          mkdir -p ~/.local/share/opencode
+          printf '%s' "$OPENCODE_AUTH_JSON" > ~/.local/share/opencode/auth.json
+          # sanity: valid JSON
+          node -e "JSON.parse(require('fs').readFileSync(process.env.HOME + '/.local/share/opencode/auth.json','utf8')); console.log('auth.json ok')"
+
+      - name: Resolve live URL
+        id: vars
+        run: |
+          URL="${{ github.event.inputs.url }}"
+          if [ -z "$URL" ]; then URL="https://${SLUG}.vercel.app/"; fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Build survey prompt
+        env:
+          URL: ${{ steps.vars.outputs.url }}
+        run: |
+          SKILL="$GITHUB_WORKSPACE/product-factory/pipeline-cockpit/skills/naive-tester/SURVEY_MODE.md"
+          {
+            printf 'Run naive-tester survey mode against %s, following the skill at %s.\n' "$SLUG" "$SKILL"
+            printf 'Live URL: %s\n' "$URL"
+            printf 'Repo: the %s repo is checked out in the current working directory.\n' "$SLUG"
+            printf 'For each of the 14 spec fields, record evidenced:true/false with an exact citation\n'
+            printf '(a quoted DOM string fetched from the live URL, or a repo path:line) - never guess, never omit.\n'
+            printf 'Fetch the live URL for DOM evidence. Run PRE-HARD checks P1-P4.\n'
+            printf 'Write the result to survey.json in this directory, in the exact shape SURVEY_MODE.md specifies.\n'
+            printf 'Do NOT POST it and do NOT run curl - only write survey.json, then stop.\n'
+          } > "$GITHUB_WORKSPACE/prompt.txt"
+          echo "--- prompt ---"; cat "$GITHUB_WORKSPACE/prompt.txt"
+
+      - name: Run survey (OpenCode, headless)
+        working-directory: target
+        timeout-minutes: 8
+        run: |
+          MODEL_FLAG=""
+          if [ -n "$OPENCODE_MODEL" ]; then MODEL_FLAG="-m $OPENCODE_MODEL"; fi
+          opencode run $MODEL_FLAG "$(cat "$GITHUB_WORKSPACE/prompt.txt")"
+
+      - name: Verify survey.json
+        working-directory: target
+        run: |
+          test -f survey.json || { echo "::error::OpenCode did not produce survey.json"; exit 1; }
+          node -e "JSON.parse(require('fs').readFileSync('survey.json','utf8')); console.log('survey.json is valid JSON')"
+
+      - name: Resolve prod deployment id
+        id: dep
+        run: |
+          OUT=$(node scripts/gate-check.mjs prod-deployment "$SLUG")
+          echo "$OUT"
+          DEP=$(printf '%s' "$OUT" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{process.stdout.write(JSON.parse(s).deploymentId||'')}catch{process.stdout.write('')}})")
+          echo "deployment_id=$DEP" >> "$GITHUB_OUTPUT"
+
+      - name: POST survey to cockpit
+        working-directory: target
+        env:
+          DEP: ${{ steps.dep.outputs.deployment_id }}
+        run: |
+          PAYLOAD=$(node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('survey.json','utf8'));if(process.env.DEP)j.deployment_id=process.env.DEP;process.stdout.write(JSON.stringify(j))")
+          echo "Posting verdict for $SLUG (deployment ${DEP:-none})…"
+          curl -sS -X POST "$COCKPIT_BASE/api/admin/pipeline/$SLUG/survey" \
+            -H 'Content-Type: application/json' \
+            -d "$PAYLOAD"
