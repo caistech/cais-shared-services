@@ -44,7 +44,7 @@ jobs:
       COCKPIT_BASE: ${{ secrets.COCKPIT_BASE }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       SLUG: ${{ github.event.inputs.slug }}
-      OPENCODE_MODEL: ${{ github.event.inputs.model || vars.OPENCODE_MODEL }}
+      OPENCODE_MODEL: ${{ github.event.inputs.model || vars.OPENCODE_MODEL || 'opencode/minimax-m2.5' }}
 
     steps:
       - name: Checkout shared-services (skill + gate-check)
