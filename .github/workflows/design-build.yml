@@ -19,7 +19,7 @@ name: Design & Build (architect → builder)
 # Required Actions secrets (same set as survey.yml):
 #   OPENCODE_AUTH_JSON, GH_PAT (needs contents:write + pull-requests:write on dennissolver/*),
 #   COCKPIT_BASE
-# Optional repo variable: OPENCODE_MODEL (falls back to opencode/minimax-m2.5)
+# Optional repo variable: DESIGN_BUILD_MODEL (this job's model; falls back to shared OPENCODE_MODEL, then Sonnet)
 
 on:
   workflow_dispatch:
@@ -37,7 +37,7 @@ on:
         required: false
         type: string
       model:
-        description: 'OpenCode model id (blank = repo var OPENCODE_MODEL or minimax default)'
+        description: 'OpenCode model id (blank = DESIGN_BUILD_MODEL var, else shared OPENCODE_MODEL, else Sonnet)'
         required: false
         type: string
 
@@ -53,7 +53,10 @@ jobs:
       COCKPIT_BASE: ${{ secrets.COCKPIT_BASE }}
       SLUG: ${{ github.event.inputs.slug }}
       VERDICT_IN: ${{ github.event.inputs.verdict }}
-      OPENCODE_MODEL: ${{ github.event.inputs.model || vars.OPENCODE_MODEL || 'opencode/minimax-m2.5' }}
+      # Design-build gets its OWN model var (it's the generative job that needs a stronger model).
+      # Survey/other jobs keep the cheap shared OPENCODE_MODEL — cost-per-task per §6 of the pattern doc.
+      # Precedence: manual dispatch input > DESIGN_BUILD_MODEL var > shared OPENCODE_MODEL var > Sonnet default.
+      OPENCODE_MODEL: ${{ github.event.inputs.model || vars.DESIGN_BUILD_MODEL || vars.OPENCODE_MODEL || 'opencode/claude-sonnet-4-6' }}
       BRANCH: design-build/${{ github.event.inputs.slug }}-${{ github.run_id }}
 
     steps:
