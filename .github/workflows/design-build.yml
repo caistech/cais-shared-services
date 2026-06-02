@@ -142,14 +142,32 @@ jobs:
             printf '                      market-positioning, the THIN_MVP rubric, the Stage-2 README.\n'
             printf '  ./_template/      - cais-build-template-v2: the Next.js skeleton + CLAUDE.md to build from.\n'
             printf '  (the rest of this directory is the EXISTING %s repo - rebuild it in place.)\n\n' "$SLUG"
-            printf 'PHASE 1 - DESIGN: read _spec.json + _standards + _template/CLAUDE.md. Write ./design-plan.md:\n'
-            printf '  page structure; copy that names ONE coherent audience and the distributor (so it passes\n'
-            printf '  the survey PRE-HARD P2/P3); auth/surfaces/voice placement per the standards. Resolve the\n'
+            printf 'PHASE 1 - DESIGN: FIRST read every file in ./_standards in full (PRODUCT_STANDARDS.md,\n'
+            printf '  STYLING.md, PORTFOLIO_STANDARD.md, THIN_MVP_RUBRIC.md, the Stage-2 README) and the\n'
+            printf '  _template/CLAUDE.md. Then read _spec.json. In ./design-plan.md, before the page plan,\n'
+            printf '  write a short "Standards I must satisfy" section that lists each hard rule you found in\n'
+            printf '  those files (by id where they have one, e.g. R3/R9/R11) and how the build will meet it.\n'
+            printf '  Do NOT invent or restate a rule with a wider scope than the file gives it (e.g. if the\n'
+            printf '  standard says explanatory headers on AUTHENTICATED pages, do not write "every page").\n'
+            printf '  Then plan: page structure; copy that names ONE coherent audience and the distributor\n'
+            printf '  (so it passes survey PRE-HARD P2/P3); auth/surfaces/voice per the standards. Resolve the\n'
             printf '  incoherence the survey flagged (no contradictory audiences).\n\n'
+            printf 'HARD RULES (non-negotiable - a PR violating these will be rejected):\n'
+            printf '  * NO FAKE / STUB SUBMISSIONS. Any form (contact, signup, demo, waitlist) MUST POST to a\n'
+            printf '    real server endpoint/route. NEVER fake success with a setTimeout then a "received"\n'
+            printf '    message - that silently drops user data. If no backend exists for it, either wire a\n'
+            printf '    real route handler or do not show a success state that claims the data was received.\n'
+            printf '  * VENDOR IDENTITY VIA ENV, NEVER HARDCODED. Do not bake email, phone, company name, HQ,\n'
+            printf '    or any vendor/contact identity into source/JSX. Read them from the existing\n'
+            printf '    config/env path (per the PORTFOLIO_STANDARD vendor-identity rule, R11).\n'
+            printf '  * RESPECT EXACT RULE SCOPE. Apply each standard exactly as scoped in _standards - do not\n'
+            printf '    broaden it.\n\n'
             printf 'PHASE 2 - BUILD: implement design-plan.md against the existing repo, conforming to _template\n'
-            printf '  and _standards. Keep it compiling. Then STOP - do not git push, do not open a PR, do not\n'
-            printf '  run curl. The workflow handles git + PR. Remove ./_spec.json, ./_standards, ./_template,\n'
-            printf '  ./opencode.json from the working tree before finishing so they are not committed.\n'
+            printf '  and _standards and the HARD RULES above. Keep it compiling (the PR runs lint + a\n'
+            printf '  portfolio-gate audit + an AI review; aim to pass them). Then STOP - do not git push, do\n'
+            printf '  not open a PR, do not run curl. The workflow handles git + PR. Remove ./_spec.json,\n'
+            printf '  ./_standards, ./_template, ./opencode.json from the working tree before finishing so they\n'
+            printf '  are not committed (keep ./design-plan.json/.md and ./decisions.json if present).\n'
           } > "$GITHUB_WORKSPACE/prompt.txt"
           echo "--- prompt ---"; cat "$GITHUB_WORKSPACE/prompt.txt"
 
@@ -175,6 +193,10 @@ jobs:
 
           git config user.name  "cais-design-build[bot]"
           git config user.email "design-build@corporateaisolutions.com"
+          # Branch from FRESH remote main so the agent's base is never stale (avoids the
+          # rejected-push drift that bites local clones). The work is already in the working tree;
+          # create the branch at current HEAD but ensure origin/main is fetched for an up-to-date base.
+          git fetch origin main --quiet || true
           git checkout -b "$BRANCH"
 
           # Stash decisions.json contents for the PR body, then remove it from the commit.
@@ -191,7 +213,12 @@ jobs:
             exit 0
           fi
           git commit -m "Design & Build: rebuild $SLUG to spec ($VERDICT_IN)"
-          git push -u origin "$BRANCH"
+          # Push is the load-bearing step: a rejected push must NOT pass as a silent no-PR run.
+          if ! git push -u origin "$BRANCH" 2>&1 | tee /tmp/push.log; then
+            echo "push_failed=true" >> "$GITHUB_OUTPUT"
+            echo "::error::branch push failed — see log above"
+            exit 1
+          fi
 
           # Open the PR via the API. Build the JSON body entirely in node (reading via env) so
           # no shell quoting touches the title/body text.
