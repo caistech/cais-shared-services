@@ -100,12 +100,45 @@ jobs:
           echo "--- standards staged ---"; ls -la "$GITHUB_WORKSPACE/target/_standards"
           echo "--- template staged ---"; ls "$GITHUB_WORKSPACE/target/_template" || echo "(no template)"
 
-      - name: Fetch the product spec (14 validation fields)
+      - name: Fetch the product spec (14 validation fields) + survey findings
         run: |
           # The card spec is the source of truth for who/what. Pull it from the cockpit so the
           # design phase targets the real distributor/end-user, not whatever the old site said.
           curl -sSL "$COCKPIT_BASE/api/admin/pipeline/$SLUG" -o "$GITHUB_WORKSPACE/target/_spec.json" || true
           echo "--- spec fetched ---"; head -c 400 "$GITHUB_WORKSPACE/target/_spec.json" || true; echo
+
+          # Extract the survey's RECORDED FINDINGS into a binding teardown brief. The agent's job is
+          # to make THESE specific failures pass — not to re-judge whether they're valid. (Run #2
+          # rationalized the audience incoherence away as "no incoherence detected" and barely built,
+          # because it only had the verdict, not the evidence. This file is the evidence.)
+          node -e '
+            const fs=require("fs");
+            let p={}; try{p=JSON.parse(fs.readFileSync(process.env.GITHUB_WORKSPACE+"/target/_spec.json","utf8"));}catch(e){}
+            const g=p.survey_gate||{}; const r=g.result||{};
+            let out="# TEARDOWN BRIEF — the survey failures you MUST fix\n\n";
+            out+="Verdict: "+(g.status||"?")+" — "+(g.reason||"")+"\n\n";
+            out+="These are the survey'\''s RECORDED findings against the live build. They are GROUND TRUTH.\n";
+            out+="Your job is to make every failing item below pass. Do NOT conclude the problem does not\n";
+            out+="exist. Do NOT re-judge the verdict. If a field is not evidenced, the site must be changed\n";
+            out+="so it IS evidenced (real copy/pages/repo content a survey can cite).\n\n";
+            if(Array.isArray(r.fields)){
+              out+="## Field evidence (target: >=12/14 evidenced)\n";
+              for(const f of r.fields){ out+="- ["+(f.evidenced?"x":" ")+"] "+(f.label||f.field)+": "+(f.evidence||"NOT EVIDENCED — must add")+"\n"; }
+              out+="\n";
+            }
+            if(r.preHard&&Array.isArray(r.preHard.results)){
+              out+="## PRE-HARD checks (ALL must pass)\n";
+              for(const c of r.preHard.results){ out+="- "+c.code+": "+c.status+(c.evidence?(" — "+c.evidence):"")+"\n"; }
+              out+="\n";
+            }
+            if(Array.isArray(r.toReach)&&r.toReach.length){
+              out+="## What the survey says must happen to reach RENOVATION\n";
+              for(const t of r.toReach){ out+="- "+(t.label||t.code)+": "+(t.need||"")+"\n"; }
+              out+="\n";
+            }
+            fs.writeFileSync(process.env.GITHUB_WORKSPACE+"/target/_teardown_brief.md",out);
+          ' || echo "(could not build teardown brief — spec may lack survey_gate.result)"
+          echo "--- teardown brief ---"; cat "$GITHUB_WORKSPACE/target/_teardown_brief.md" 2>/dev/null || echo "(none)"
 
       - name: Configure OpenCode permissions (full autonomy)
         working-directory: target
@@ -135,6 +168,10 @@ jobs:
             printf 'PROCEED, and append that fork to ./decisions.json as {"question","chose","why"} so the\n'
             printf 'human can override it at PR review. Never block; the PR is the only checkpoint.\n\n'
             printf 'INPUTS in this directory:\n'
+            printf '  ./_teardown_brief.md - THE BINDING WORK ORDER. The survey'\''s recorded failures against\n'
+            printf '                      the live build. This is GROUND TRUTH. Every unevidenced field and\n'
+            printf '                      failed PRE-HARD check listed here MUST be made to pass. You MAY NOT\n'
+            printf '                      decide a listed problem does not exist or re-judge the verdict.\n'
             printf '  ./_spec.json      - the product card: the 14 validation fields (promise, friction,\n'
             printf '                      core_mechanism, distributor, end_user, the ICP fields, etc).\n'
             printf '                      This is the source of truth for WHO this is for.\n'
@@ -142,17 +179,22 @@ jobs:
             printf '                      market-positioning, the THIN_MVP rubric, the Stage-2 README.\n'
             printf '  ./_template/      - cais-build-template-v2: the Next.js skeleton + CLAUDE.md to build from.\n'
             printf '  (the rest of this directory is the EXISTING %s repo - rebuild it in place.)\n\n' "$SLUG"
-            printf 'PHASE 1 - DESIGN: FIRST read every file in ./_standards in full (PRODUCT_STANDARDS.md,\n'
-            printf '  STYLING.md, PORTFOLIO_STANDARD.md, THIN_MVP_RUBRIC.md, the Stage-2 README) and the\n'
-            printf '  _template/CLAUDE.md. Then read _spec.json. In ./design-plan.md, before the page plan,\n'
-            printf '  write a short "Standards I must satisfy" section that lists each hard rule you found in\n'
-            printf '  those files (by id where they have one, e.g. R3/R9/R11) and how the build will meet it.\n'
-            printf '  Do NOT invent or restate a rule with a wider scope than the file gives it (e.g. if the\n'
-            printf '  standard says explanatory headers on AUTHENTICATED pages, do not write "every page").\n'
-            printf '  Then plan: page structure; copy that names ONE coherent audience and the distributor\n'
-            printf '  (so it passes survey PRE-HARD P2/P3); auth/surfaces/voice per the standards. Resolve the\n'
-            printf '  incoherence the survey flagged (no contradictory audiences).\n\n'
+            printf 'PHASE 1 - DESIGN: FIRST read ./_teardown_brief.md, then read every file in ./_standards in\n'
+            printf '  full (PRODUCT_STANDARDS.md, STYLING.md, PORTFOLIO_STANDARD.md, THIN_MVP_RUBRIC.md, the\n'
+            printf '  Stage-2 README) and _template/CLAUDE.md, then _spec.json. In ./design-plan.md write:\n'
+            printf '  (a) a "Survey failures I am fixing" section that copies each failing item from the\n'
+            printf '      teardown brief and states the CONCRETE change (which file, what copy/page/route)\n'
+            printf '      that will make it evidenced. Every failing item must have a fix. You may NOT write\n'
+            printf '      "no incoherence detected" or otherwise dismiss a listed failure — if the brief says\n'
+            printf '      the audience is contradictory, you MUST pick ONE audience and rewrite the conflicting\n'
+            printf '      copy so a survey can cite a single coherent archetype + a named distributor.\n'
+            printf '  (b) a "Standards I must satisfy" section listing each hard rule (by id, e.g. R3/R9/R11)\n'
+            printf '      and how the build meets it. Do NOT broaden a rule beyond its stated scope.\n\n'
             printf 'HARD RULES (non-negotiable - a PR violating these will be rejected):\n'
+            printf '  * FIX THE SURVEY FAILURES. The deliverable is CODE that makes the teardown-brief items\n'
+            printf '    pass, not a plan. A run that only writes design-plan.md and adds a page or two has\n'
+            printf '    FAILED. Expect to edit the landing/marketing copy, page content, and repo so the\n'
+            printf '    unevidenced fields become evidenced. Most of your effort goes into BUILDING.\n'
             printf '  * NO FAKE / STUB SUBMISSIONS. Any form (contact, signup, demo, waitlist) MUST POST to a\n'
             printf '    real server endpoint/route. NEVER fake success with a setTimeout then a "received"\n'
             printf '    message - that silently drops user data. If no backend exists for it, either wire a\n'
@@ -166,8 +208,8 @@ jobs:
             printf '  and _standards and the HARD RULES above. Keep it compiling (the PR runs lint + a\n'
             printf '  portfolio-gate audit + an AI review; aim to pass them). Then STOP - do not git push, do\n'
             printf '  not open a PR, do not run curl. The workflow handles git + PR. Remove ./_spec.json,\n'
-            printf '  ./_standards, ./_template, ./opencode.json from the working tree before finishing so they\n'
-            printf '  are not committed (keep ./design-plan.json/.md and ./decisions.json if present).\n'
+            printf '  ./_teardown_brief.md, ./_standards, ./_template, ./opencode.json from the working tree\n'
+            printf '  before finishing so they are not committed (keep ./design-plan.md and ./decisions.json).\n'
           } > "$GITHUB_WORKSPACE/prompt.txt"
           echo "--- prompt ---"; cat "$GITHUB_WORKSPACE/prompt.txt"
 
@@ -189,7 +231,7 @@ jobs:
         run: |
           set -e
           # Scrub helper files in case the agent didn't.
-          rm -rf _standards _template _spec.json opencode.json decisions.json.bak 2>/dev/null || true
+          rm -rf _standards _template _spec.json _teardown_brief.md opencode.json decisions.json.bak 2>/dev/null || true
 
           git config user.name  "cais-design-build[bot]"
           git config user.email "design-build@corporateaisolutions.com"
