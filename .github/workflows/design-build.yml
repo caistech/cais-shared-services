@@ -100,6 +100,8 @@ jobs:
             if [ -f "$SS/$f" ]; then cp "$SS/$f" "$GITHUB_WORKSPACE/target/_standards/$(basename "$f")"; fi
           done
           cp -r "$SS/templates/cais-build-template-v2" "$GITHUB_WORKSPACE/target/_template" || true
+          # Inject the canonical bug-knowledge so the CHECK BUG-KNOWLEDGE rule resolves
+          cp "$SS/bug-knowledge.json" "$GITHUB_WORKSPACE/target/bug-knowledge.json" || true
           echo "--- standards staged ---"; ls -la "$GITHUB_WORKSPACE/target/_standards"
           echo "--- template staged ---"; ls "$GITHUB_WORKSPACE/target/_template" || echo "(no template)"
 
@@ -303,7 +305,7 @@ jobs:
         run: |
           set -e
           # Scrub helper files in case the agent didn't.
-          rm -rf _standards _template _spec.json _teardown_brief.md opencode.json decisions.json.bak 2>/dev/null || true
+          rm -rf _standards _template _spec.json _teardown_brief.md opencode.json decisions.json.bak bug-knowledge.json 2>/dev/null || true
 
           git config user.name  "cais-design-build[bot]"
           git config user.email "design-build@corporateaisolutions.com"
