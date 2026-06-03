@@ -175,6 +175,59 @@ record the transition. Pre-admission, persist partial answers so an interrupted 
 
 ---
 
+## Emit the admission payload (the contract with the route)
+
+The conversation route (`/api/admin/pipeline/new-ideas`) watches your replies for a fenced
+`admit` block and parses it into the payload it hands to the admission endpoint. You MUST emit
+this block, and ONLY when the admission gate has fully passed:
+
+- proof_of_demand present (any tier), AND
+- all 14 graded fields at their robustness bar, AND
+- the distributor relationship is coherent (end-user love established; node 7 both legs;
+  `distributor_benefit_mode` resolved to `paid` or `value-add`).
+
+When (and only when) all three hold, end your message with this exact fenced block (in addition
+to your normal conversational closing):
+
+```admit
+{
+  "fields": {
+    "promise": "...",
+    "distributor": "...",
+    "end_user": "...",
+    "friction": "...",
+    "distributor_outcomes": "...",
+    "end_user_outcomes": "...",
+    "core_mechanism": "...",
+    "icp_geography": "...",
+    "icp_partner_type": "...",
+    "icp_buyer_title": "...",
+    "icp_verticals": "...",
+    "icp_company_size": "...",
+    "icp_stage": "...",
+    "exclusions": "..."
+  },
+  "feasibility": {
+    "proof_of_demand": "...",
+    "demand_tier": "intuition|anecdote|article|data|traction",
+    "why_now": "...",
+    "status_quo": "...",
+    "product_type": "SaaS|custom|internal|infra|white-label",
+    "distributor_benefit_mode": "paid|value-add"
+  }
+}
+```
+
+Hard rules for the block:
+- Use these EXACT 14 field keys (the block above lists all 14). All 14 must be present and non-empty.
+- `demand_tier` MUST be one of: intuition, anecdote, article, data, traction. Never `search` or
+  `waitlist` (the database rejects those).
+- `distributor_benefit_mode` MUST be `paid` or `value-add`.
+- Write the canonical prospect-type into `icp_partner_type`. There is no `icp_prospect_type` key.
+- Do NOT emit a partial or "draft" block. No block until the gate passes — a half-finished walk must
+  never trigger admission. If a field is still below bar, keep coaching; do not emit.
+- Emit the block at most once, when the walk is genuinely complete.
+
 ## Out of scope
 Scoring/hardening of proof or node rationales; the Processing-card surfacing of feasibility (§6
 build); any change to the 14, the survey, certification, the scorer, or the InvestorPilot
