@@ -156,7 +156,7 @@
       "error_pattern": "Chat history not visible after ticket creation",
       "error_symptoms": [
         "Users see request in My Requests but can't see their conversation",
-        "Status vague: 'Escalated — a person is reviewing this'"
+        "Status vague: 'Escalated \u2014 a person is reviewing this'"
       ],
       "attempts": [],
       "solution": {
@@ -202,7 +202,7 @@
       "solution": {
         "approach": "Clear house_cost for affected lots + clarify admin labels",
         "code_path": "supabase/migrations/0036_seafields_clear_house_cost_sutcliffe.sql, src/components/seafields/admin/AdminLotEditModal.tsx",
-        "key_change": "Updated label to 'Land & Build Retail (AUD) — land component only' and 'House cost (added to land for H&L total)'"
+        "key_change": "Updated label to 'Land & Build Retail (AUD) \u2014 land component only' and 'House cost (added to land for H&L total)'"
       },
       "fixed_at": "2026-05-29",
       "fixed_by": "opencode"
@@ -311,7 +311,7 @@
         {
           "what": "Added MINIMAX_API_KEY to Vercel to clear the 500",
           "result": "failed",
-          "reason": "got past the key gate but the route still returned a debug blob — the real parse/return below it was unreachable"
+          "reason": "got past the key gate but the route still returned a debug blob \u2014 the real parse/return below it was unreachable"
         }
       ],
       "solution": {
@@ -339,7 +339,7 @@
         }
       ],
       "solution": {
-        "approach": "Rewired to OpenRouter (OPENROUTER_API_KEY, OpenAI-compatible) which routes to the MiniMax BYOK key; model env-configurable via OPENROUTER_MODEL. The env var and the route must match — adding a key for a provider the code does not call is a no-op. Verify the deploy hash actually moved and the key is scoped Production/Preview (not Development-only).",
+        "approach": "Rewired to OpenRouter (OPENROUTER_API_KEY, OpenAI-compatible) which routes to the MiniMax BYOK key; model env-configurable via OPENROUTER_MODEL. The env var and the route must match \u2014 adding a key for a provider the code does not call is a no-op. Verify the deploy hash actually moved and the key is scoped Production/Preview (not Development-only).",
         "code_path": "src/app/api/admin/pipeline/[productId]/validation/generate/route.ts",
         "key_change": "OPENROUTER_API_KEY + minimax/* model slug; confirm commit hash + env scope after deploy"
       },
@@ -383,7 +383,7 @@
         {
           "what": "Assumed the values were not persisting to the DB",
           "result": "failed",
-          "reason": "PATCH 200 returned the fresh row and GET reads the same product_validation_status columns — data WAS persisting; the card simply never re-read it"
+          "reason": "PATCH 200 returned the fresh row and GET reads the same product_validation_status columns \u2014 data WAS persisting; the card simply never re-read it"
         }
       ],
       "solution": {
@@ -397,7 +397,7 @@
     {
       "id": "cas-survey-gate-check-constraint-missing",
       "product": "Corporate-AI-Solutions",
-      "error_pattern": "Survey gate could never be recorded — 'survey' was in no migration, so the pipeline_gates.gate CHECK constraint rejected it; the survey result was also discarded and never rendered",
+      "error_pattern": "Survey gate could never be recorded \u2014 'survey' was in no migration, so the pipeline_gates.gate CHECK constraint rejected it; the survey result was also discarded and never rendered",
       "error_symptoms": [
         "recordGate({gate:'survey'}) violates pipeline_gates_gate_check and throws",
         "CHECK constraint only allowed the 8 build-stage gates (office-hours, ceo-review, eng-review, design-review, gate-1, gate-2, naive-tester, provisioned)",
@@ -407,7 +407,7 @@
         {
           "what": "Assumed the survey gate just needed wiring in the UI",
           "result": "failed",
-          "reason": "the gate was structurally unrecordable — the DB CHECK constraint had no 'survey' value, and product_validation_status/pipeline_gates had no column to hold the structured result, so even a correct UI would 500 on insert"
+          "reason": "the gate was structurally unrecordable \u2014 the DB CHECK constraint had no 'survey' value, and product_validation_status/pipeline_gates had no column to hold the structured result, so even a correct UI would 500 on insert"
         }
       ],
       "solution": {
@@ -431,7 +431,7 @@
         {
           "what": "Considered repointing the card to System A (Parts A-D) persistence",
           "result": "partial",
-          "reason": "Parts A-D taxonomy did not match the card's 9 checks, and /validation-workflow already reads validation_test_results.qa/.naive/.gtm — i.e. it expected the breakdown keyed by the card's check ids, not Parts A-D"
+          "reason": "Parts A-D taxonomy did not match the card's 9 checks, and /validation-workflow already reads validation_test_results.qa/.naive/.gtm \u2014 i.e. it expected the breakdown keyed by the card's check ids, not Parts A-D"
         }
       ],
       "solution": {
@@ -445,7 +445,7 @@
     {
       "id": "cas-run-test-divergent-score-writer-collision",
       "product": "Corporate-AI-Solutions",
-      "error_pattern": "run-test recomputed and wrote its OWN weighted_score_percent (passed=25/warning=20) and hard_gates_passed/total (total=9) on every test run — diverging from score.ts and colliding with the hybrid's /validation-test writer (both writing hard_gates, last-writer-wins race)",
+      "error_pattern": "run-test recomputed and wrote its OWN weighted_score_percent (passed=25/warning=20) and hard_gates_passed/total (total=9) on every test run \u2014 diverging from score.ts and colliding with the hybrid's /validation-test writer (both writing hard_gates, last-writer-wins race)",
       "error_symptoms": [
         "weighted_score_percent disagrees with score.ts / the recalculate-score result",
         "hard_gates_passed flips between two values depending on whether run-test or validation-test wrote last",
@@ -620,13 +620,40 @@
       },
       "fixed_at": "2026-06-03",
       "fixed_by": "claude"
+    },
+    {
+      "id": "cais-survey-verdict-nondeterministic-variance",
+      "product": "cais-build-template-v2 / pipeline-cockpit (naive-tester survey)",
+      "error_pattern": "The naive-tester survey returns a DIFFERENT verdict on the SAME product across runs (score and PRE-HARD judgments vary run-to-run)",
+      "error_symptoms": [
+        "deal-findrs run A: 13/14, P3 FAIL (two-audience landing judged incoherent)",
+        "deal-findrs run B (same site, same commit): 12/14, P3 PASS (same two-audience landing judged a coherent distributor model)",
+        "the set of 'unevidenced' fields also shifts between runs (run B flagged both Prospect type AND ICP buyer title; run A flagged Prospect type only)",
+        "verdict can flip RENOVATION/TEARDOWN-adjacent on borderline products purely from run variance",
+        "CONFIRMED LIVE 2026-06-03: same deal-findrs site/commit scored 13/14, then 12/14 RENOVATION, then 10/14 TEARDOWN across three consecutive runs (#?, #14, #16) \u2014 verdict flipped RENOVATION->TEARDOWN, locking downstream. ICP stage + exclusions were cited+evidenced in the 12/14 run and read as not-evidenced in the 10/14 run though the site was unchanged.",
+        "DECISIVE 2026-06-03: THREE runs on essentially-equivalent deal-findrs content scored 12/14 RENOVATION, 10/14 TEARDOWN, then 9/14 TEARDOWN (P2+P3 FAIL) \u2014 verdict moved the WRONG way as the site improved. The 9/14 run is SELF-CONTRADICTORY: it evidenced icp_buyer_title as \"Agency Owner / Principal\" (page.tsx:190) yet failed PRE-HARD P2 claiming \"no named distributor archetype\" \u2014 the same run both found and denied the archetype. It also marked distributor / distributor_outcomes / end_user / end_user_outcomes as not-evidenced though the rebuilt site has an explicit /partners page + distributor framing + share loop. Conclusion: the gate is too non-deterministic to FUNCTION as a gate. No amount of rebuilding reliably clears a gate whose per-field and PRE-HARD judgments vary (and self-contradict) run-to-run. Variance reduction is therefore GATE-BREAKING priority, not cosmetic calibration."
+      ],
+      "attempts": [
+        {
+          "what": "treated the earlier P3 fail as a fixed mis-rule ('P3 miscalibrated for distributor model')",
+          "result": "partial",
+          "reason": "it is not a deterministic wrong rule \u2014 a later run passed P3 on the identical product. The real issue is VARIANCE: the survey is an LLM judgment (Q1-Q4 coherence, field-evidence calls) that lands differently across runs, not a rule that is consistently wrong."
+        }
+      ],
+      "solution": {
+        "approach": "Reframe the SURVEY_MODE calibration task as VARIANCE REDUCTION, not just rule-fixing. The survey verdict is non-deterministic because the model makes judgment calls (is the two-audience distributor landing coherent? is the buyer title evidenced?) that vary run-to-run. Mitigations to design into SURVEY_MODE.md / the survey harness: (1) make the PRE-HARD and field-evidence criteria explicit and checklist-like enough that the judgment lands the same way every run (e.g. P3 PASS when a named distributor archetype + a distinct end-user + a stated relationship are all present \u2014 pass on presence, not on a subjective 'coherence' call); (2) consider lowering temperature / pinning the survey model; (3) consider running the survey N times and taking a consensus/worst-case rather than a single roll; (4) treat borderline (12-13/14) verdicts as provisional and require a stable re-run before gating. Do NOT 'fix' variance by overriding every run \u2014 the override is for genuine judgment forks, not for masking a flaky scorer.",
+        "code_path": "product-factory/pipeline-cockpit/skills/naive-tester/SURVEY_MODE.md (criteria); survey.yml + OPENCODE_MODEL var (model/temperature pinning)",
+        "key_change": "PRIORITY #1 next session. The survey must become DETERMINISTIC: (1) presence-based field checks \u2014 a field is evidenced iff a required token/marker is present in DOM or repo (the rebuild already adds data-icp-partner-type, data-exclusions etc. \u2014 score on those, not on model re-interpretation); (2) PRE-HARD P2/P3 rewritten as explicit presence rules (named-archetype = any of a defined set of strings present; do NOT let the model adjudicate category-vs-archetype); (3) pin model temperature to 0 and/or consensus-over-N with worst-case; (4) the scorer should be a deterministic checker the LLM FEEDS, not the LLM itself returning a verdict. Evidence: 12/10/9-14 across three runs on improving content, with an intra-run self-contradiction (evidenced buyer title, failed P2 for no archetype)."
+      },
+      "fixed_at": "2026-06-03",
+      "fixed_by": "claude"
     }
   ],
   "usage": "Before fixing ANY bug, grep this file for matching error patterns. Also check SayFix DB for product-specific attempts.",
   "open_seams": [
     {
       "id": "cas-seam-survey-no-in-app-trigger",
-      "stage": "3 · Survey gate",
+      "stage": "3 \u00b7 Survey gate",
       "seam": "URL -> survey run",
       "status": "open",
       "fix": "No in-app way to start survey mode (it is an agent skill in cais-shared-services; the cockpit panel only displays). Add a Run-survey affordance that POSTs a survey.json / kicks the agent, or at least surface the run command in the panel.",
@@ -634,7 +661,7 @@
     },
     {
       "id": "cas-seam-founder-commitment-not-a-gate",
-      "stage": "4 · Founder commitment",
+      "stage": "4 \u00b7 Founder commitment",
       "seam": "commitment -> ledger",
       "status": "open",
       "fix": "Persists to validation.has_methodology_commitment but is not a pipeline_gates gate (GateName has survey but no founder/compliance/validation/score). Optional: record it as a gate for the audit trail.",
@@ -642,7 +669,7 @@
     },
     {
       "id": "cas-seam-outreach-webhook-env-gated",
-      "stage": "8 · Outreach",
+      "stage": "8 \u00b7 Outreach",
       "seam": "submit -> InvestorPilot webhook",
       "status": "open",
       "fix": "execute sends an HMAC webhook to INVESTORPILOT_WEBHOOK_URL with PIPELINE_INTAKE_WEBHOOK_SECRET; if either env is missing it logs \"No webhook URL - skipping\" and returns a dry-run would_execute (silent no-op). Set both in Vercel (Production/Preview) AND ensure a live receiver verifies the same secret. Related: cas-pipeline-execute-dry-run-default.",
@@ -650,7 +677,7 @@
     },
     {
       "id": "cas-seam-magic-link-cross-product-env",
-      "stage": "8 · Outreach",
+      "stage": "8 \u00b7 Outreach",
       "seam": "IP login -> InvestorPilot Supabase",
       "status": "open",
       "fix": "magic-link signs into a separate Supabase project via INVESTORPILOT_SUPABASE_URL/KEY + NEXT_PUBLIC_INVESTORPILOT_URL (the last is build-time/NEXT_PUBLIC -> needs a rebuild, not just redeploy). Set them and confirm the IP project accepts OTP with the redirect configured.",
