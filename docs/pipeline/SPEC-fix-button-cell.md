@@ -1,5 +1,23 @@
 # Spec — the Fix-button cell (the real self-correcting validation cell)
 
+> **Status:** CANONICAL spec for the Processing-card cell. Refreshed 2026-06-04 to current reality.
+> Supersedes the survey/P3 assumptions in the Track-B brief addenda.
+>
+> **Current reality (what changed since this was first drafted):**
+> - **The survey is now deterministic** — a mechanical marker grep (`survey.ts` +
+>   `survey-markers.ts` against `SURVEY_MARKER_CONTRACT.md`), synchronous, no LLM, no CI wait. The
+>   old async/headless-CI survey path and `SURVEY_MODE.md` LLM path are **dead**. The survey cell
+>   below reflects this (see §0a).
+> - **P3 prospect-type calibration is RETIRED** — there is no LLM judgment in the survey to
+>   calibrate. Prospect-type is now just a NAMED marker the survey greps for (present or not). The
+>   Class-C example that used P3 has been replaced (see §4).
+> - **GTM distribution-loop check verifies the REAL surface** (`/api/share|/api/referral|/api/invite`
+>   non-404, or homepage surfacing) — it is no longer a dead-end/false-negative. It is a normal
+>   Class-B finding when genuinely absent.
+> - **Scope:** this cell is built in the **live cockpit** (`Corporate-AI-Solutions`). The
+>   repo-split / Pipeline productisation is a PARKED future milestone and is intentionally out of
+>   this spec.
+
 Replaces today's fake "Fix Now" (which greened a check without touching the product). Every
 validation/compliance check becomes a cell that can EXPLAIN its failure in plain language, OFFER a
 real fix routed by class, EXECUTE it against the live product, and only go green by a REAL re-check.
@@ -8,6 +26,25 @@ Grounded in the plumbing that already exists (design-build kickoff/result + pipe
 This is the `{ runner → verdict → fixer → advance }` cell from the Track B brief, made concrete.
 
 ---
+
+## 0a. Where the survey cell sits (deterministic — read this first)
+
+The survey is the **first gate**, and it is NOT a Class-A/B/C fixer cell. It is a deterministic
+verdict cell:
+
+- **Runner:** the synchronous marker grep scores the live DOM against the 14-field marker contract
+  and returns RENOVATION / TEARDOWN / INCOMPLETE-SPEC immediately (HTTP 201, gate recorded).
+- **Verdict:** rendered inline, zero-leave (the synchronous-survey contract — the card reads
+  `res.ok && data.success`, not the old `data.started`).
+- **"Fixer":** a failing survey does NOT get a per-check codemod/human-ack. A TEARDOWN/INCOMPLETE
+  routes to **design-build to replant the missing markers** (the markers are two renderings of one
+  source — fix the build, re-survey). So the survey cell's only fix route is Class-B
+  (design-build), and its re-check is a **re-survey**, not a per-check re-test.
+- **Loop:** Survey → (design-build replant) → Re-survey, until RENOVATION. This is the
+  Survey↔Re-survey recertify loop from the canon.
+
+The Class-A/B/C fixer machinery below applies to the **certification/validation checks** (metadata,
+security headers, GTM loop, etc.) that run AFTER the survey passes — not to the survey itself.
 
 ## 0. What already exists (reuse, don't rebuild)
 - **Class-B fixer path is built**: `design-build/kickoff` (dispatches design-build.yml with
@@ -140,10 +177,14 @@ The clicked `FixOption.route` decides what happens — the card never sends the 
      auto-merge-on-green + re-check trigger.
 
 **`route: 'human-ack'` (Class C — judgment / can't auto-fix):**
-- Renders the fork as a decision (e.g. the P3 calibration, or "skip for now"). On choose, records the
-  human's decision to the ledger (like the gate-override): `pipeline_gates` row with the reason. No
-  code change to the product. This is the ONLY route that can mark a check resolved without a product
-  change — and it's explicitly a logged human judgment, not a fake green.
+- Renders the fork as a decision — a genuine judgment call the system can't auto-resolve (e.g.
+  "skip for now / revisit later", or a spec ambiguity the founder must rule on). On choose, records
+  the human's decision to the ledger (like the gate-override): `pipeline_gates` row with the reason.
+  No code change to the product. This is the ONLY route that can mark a check resolved without a
+  product change — and it's explicitly a logged human judgment, not a fake green.
+  - *(Note: the old P3 prospect-type calibration is no longer a Class-C case — the survey is
+    deterministic, so prospect-type is a mechanical marker check, not a judgment. The remaining
+    Class-C cases are true skip/defer decisions and spec ambiguities.)*
 
 ---
 
