@@ -459,7 +459,7 @@
         }
       ],
       "solution": {
-        "approach": "Deleted run-test’s entire \"Recalculate weighted score after test update\" block (the self-computed newScore + hardGatesPassed update). run-test now only runs a check and returns its result. Single writer each: weighted_score_percent <- score.ts via /recalculate-score (Step 7 button); hard_gates_passed/total + validation_test_status <- /validation-test (the card persist effect).",
+        "approach": "Deleted run-test's entire \"Recalculate weighted score after test update\" block (the self-computed newScore + hardGatesPassed update). run-test now only runs a check and returns its result. Single writer each: weighted_score_percent <- score.ts via /recalculate-score (Step 7 button); hard_gates_passed/total + validation_test_status <- /validation-test (the card persist effect).",
         "code_path": "src/app/api/admin/pipeline/[productId]/run-test/route.ts",
         "key_change": "removed run-test self-scoring block; score and hard_gates each have exactly one writer (closes pipeline seam S8; resolved a collision created by the S6/S7 hybrid)"
       },
@@ -483,123 +483,145 @@
       "fixed_at": "2026-06-01",
       "fixed_by": "claude"
     },
-
-
-  {
-    "id": "cais-cockpit-route-fetch-cache-stale",
-    "product": "Corporate-AI-Solutions",
-    "error_pattern": "Pipeline card never reflects new survey verdicts; GET route returns a stale pipeline_gates row despite newer rows being newest in the DB",
-    "error_symptoms": [
-      "card keeps showing an OLD survey verdict after running a survey or writing an override row",
-      "hard browser refresh does not fix it",
-      "cache-busting ?t= query string on the API does not fix it",
-      "runtime log shows the route's OWN query returned the stale row ('[GET] survey_gate: fail TEARDOWN 11/14') while the SAME query in the SQL editor returns the correct newest row",
-      "product_validation_status reads fresh while pipeline_gates reads stale in the same request"
-    ],
-    "attempts": [
-      {
-        "what": "hard browser refresh (Ctrl+Shift+R)",
-        "result": "failed",
-        "reason": "client-side; the stale data comes from the server route"
+    {
+      "id": "cais-cockpit-route-fetch-cache-stale",
+      "product": "Corporate-AI-Solutions",
+      "error_pattern": "Pipeline card never reflects new survey verdicts; GET route returns a stale pipeline_gates row despite newer rows being newest in the DB",
+      "error_symptoms": [
+        "card keeps showing an OLD survey verdict after running a survey or writing an override row",
+        "hard browser refresh does not fix it",
+        "cache-busting ?t= query string on the API does not fix it",
+        "runtime log shows the route's OWN query returned the stale row ('[GET] survey_gate: fail TEARDOWN 11/14') while the SAME query in the SQL editor returns the correct newest row",
+        "product_validation_status reads fresh while pipeline_gates reads stale in the same request"
+      ],
+      "attempts": [
+        {
+          "what": "hard browser refresh (Ctrl+Shift+R)",
+          "result": "failed",
+          "reason": "client-side; the stale data comes from the server route"
+        },
+        {
+          "what": "cache-busting ?t= query string on the API URL",
+          "result": "failed",
+          "reason": "Next data cache for the server-side fetch is not keyed on the request query string"
+        },
+        {
+          "what": "Cache-Control: no-store response header (already present)",
+          "result": "failed",
+          "reason": "governs the outgoing response only, not Next's internal server-side fetch cache"
+        },
+        {
+          "what": "checked two-Supabase-project mismatch (URL + service-role key)",
+          "result": "ruled out",
+          "reason": "both confirmed tfgtfhwvrswjvkyeyvsp; same DB"
+        },
+        {
+          "what": "checked deployed commit is current",
+          "result": "ruled out",
+          "reason": "production was 574b8fd, current"
+        },
+        {
+          "what": "added export dynamic='force-dynamic' + revalidate=0 + fetchCache='force-no-store'",
+          "result": "success",
+          "reason": "forces every fetch in the route (incl. Supabase) to skip the data cache"
+        }
+      ],
+      "solution": {
+        "approach": "Next.js App Router caches server-side fetches (Supabase uses fetch) by default, so the 'newest pipeline_gates row' query was served from the frozen data cache. Cache-Control:no-store on the response does NOT opt internal fetch reads out of the data cache. Force the route dynamic and disable fetch caching.",
+        "code_path": "src/app/api/admin/pipeline/[productId]/route.ts",
+        "key_change": "Add at top, after imports: export const dynamic = 'force-dynamic'; export const revalidate = 0; export const fetchCache = 'force-no-store';  RULE: every cockpit route reading live ledger/DB state that must reflect changes immediately needs these three exports. fetchCache='force-no-store' is the decisive one. This was the root cause of the recurring 'card never updates after a survey' symptom."
       },
-      {
-        "what": "cache-busting ?t= query string on the API URL",
-        "result": "failed",
-        "reason": "Next data cache for the server-side fetch is not keyed on the request query string"
-      },
-      {
-        "what": "Cache-Control: no-store response header (already present)",
-        "result": "failed",
-        "reason": "governs the outgoing response only, not Next's internal server-side fetch cache"
-      },
-      {
-        "what": "checked two-Supabase-project mismatch (URL + service-role key)",
-        "result": "ruled out",
-        "reason": "both confirmed tfgtfhwvrswjvkyeyvsp; same DB"
-      },
-      {
-        "what": "checked deployed commit is current",
-        "result": "ruled out",
-        "reason": "production was 574b8fd, current"
-      },
-      {
-        "what": "added export dynamic='force-dynamic' + revalidate=0 + fetchCache='force-no-store'",
-        "result": "success",
-        "reason": "forces every fetch in the route (incl. Supabase) to skip the data cache"
-      }
-    ],
-    "solution": {
-      "approach": "Next.js App Router caches server-side fetches (Supabase uses fetch) by default, so the 'newest pipeline_gates row' query was served from the frozen data cache. Cache-Control:no-store on the response does NOT opt internal fetch reads out of the data cache. Force the route dynamic and disable fetch caching.",
-      "code_path": "src/app/api/admin/pipeline/[productId]/route.ts",
-      "key_change": "Add at top, after imports: export const dynamic = 'force-dynamic'; export const revalidate = 0; export const fetchCache = 'force-no-store';  RULE: every cockpit route reading live ledger/DB state that must reflect changes immediately needs these three exports. fetchCache='force-no-store' is the decisive one. This was the root cause of the recurring 'card never updates after a survey' symptom."
+      "fixed_at": "2026-06-03",
+      "fixed_by": "claude"
     },
-    "fixed_at": "2026-06-03",
-    "fixed_by": "claude"
-  },
-  {
-    "id": "cais-lucide-icon-not-in-installed-version",
-    "product": "deal-findrs",
-    "error_pattern": "Vercel build fails: Module 'lucide-react' has no exported member '<Icon>' (design-build used an icon absent in the installed lucide version)",
-    "error_symptoms": [
-      "Type error: Module 'lucide-react' has no exported member 'Handshake'",
-      "build green locally on a newer lucide but fails on the repo's pinned 0.383.0",
-      "after removing the import but leaving a usage: 'Handshake is not defined'"
-    ],
-    "attempts": [
-      {
-        "what": "prompt rule alone telling the agent to use stable icons",
-        "result": "partial",
-        "reason": "reduces but does not eliminate; agent can still pick a non-existent icon"
+    {
+      "id": "cais-lucide-icon-not-in-installed-version",
+      "product": "deal-findrs",
+      "error_pattern": "Vercel build fails: Module 'lucide-react' has no exported member '<Icon>' (design-build used an icon absent in the installed lucide version)",
+      "error_symptoms": [
+        "Type error: Module 'lucide-react' has no exported member 'Handshake'",
+        "build green locally on a newer lucide but fails on the repo's pinned 0.383.0",
+        "after removing the import but leaving a usage: 'Handshake is not defined'"
+      ],
+      "attempts": [
+        {
+          "what": "prompt rule alone telling the agent to use stable icons",
+          "result": "partial",
+          "reason": "reduces but does not eliminate; agent can still pick a non-existent icon"
+        },
+        {
+          "what": "hand-swap Handshake -> Users (import + every JSX and value usage) in both files",
+          "result": "success",
+          "reason": "Users exists in 0.383.0; build went green"
+        },
+        {
+          "what": "bump lucide-react to a recent 0.x in the template (structural)",
+          "result": "recommended",
+          "reason": "makes the agent's instinct to use modern icons correct; NOT 1.x which removed brand icons + UMD"
+        }
+      ],
+      "solution": {
+        "approach": "Swap every usage of the missing icon (import AND each <Icon> / icon: Icon reference) to a long-stable icon present in the installed version. Structurally, add a design-build hard rule to only use icons that exist in the installed lucide version, and bump lucide-react in cais-build-template-v2 to a recent 0.x (e.g. ~0.460), never 1.x.",
+        "code_path": "deal-findrs src/app/page.tsx + src/app/partners/page.tsx; design-build.yml (hard rule); templates/cais-build-template-v2/package.json (version bump)",
+        "key_change": "Handshake->Users everywhere; design-build.yml 'LUCIDE ICONS MUST EXIST IN THE INSTALLED VERSION' rule; template lucide bump pending"
       },
-      {
-        "what": "hand-swap Handshake -> Users (import + every JSX and value usage) in both files",
-        "result": "success",
-        "reason": "Users exists in 0.383.0; build went green"
-      },
-      {
-        "what": "bump lucide-react to a recent 0.x in the template (structural)",
-        "result": "recommended",
-        "reason": "makes the agent's instinct to use modern icons correct; NOT 1.x which removed brand icons + UMD"
-      }
-    ],
-    "solution": {
-      "approach": "Swap every usage of the missing icon (import AND each <Icon> / icon: Icon reference) to a long-stable icon present in the installed version. Structurally, add a design-build hard rule to only use icons that exist in the installed lucide version, and bump lucide-react in cais-build-template-v2 to a recent 0.x (e.g. ~0.460), never 1.x.",
-      "code_path": "deal-findrs src/app/page.tsx + src/app/partners/page.tsx; design-build.yml (hard rule); templates/cais-build-template-v2/package.json (version bump)",
-      "key_change": "Handshake->Users everywhere; design-build.yml 'LUCIDE ICONS MUST EXIST IN THE INSTALLED VERSION' rule; template lucide bump pending"
+      "fixed_at": "2026-06-03",
+      "fixed_by": "claude"
     },
-    "fixed_at": "2026-06-03",
-    "fixed_by": "claude"
-  },
-  {
-    "id": "cais-hand-merge-squash-wrong-base-drift",
-    "product": "deal-findrs",
-    "error_pattern": "Hand-merging a design-build PR via terminal hits non-fast-forward then rebase conflicts because local main drifted from remote",
-    "error_symptoms": [
-      "git push rejected (non-fast-forward) after a local squash-merge",
-      "git pull --rebase conflicts on page.tsx and design-plan.md",
-      "local squash was built on an older base than current remote main"
-    ],
-    "attempts": [
-      {
-        "what": "git merge --squash on a stale local base, then push",
-        "result": "failed",
-        "reason": "non-fast-forward; local squash and remote main were two rebuilds from the same old base, colliding"
+    {
+      "id": "cais-hand-merge-squash-wrong-base-drift",
+      "product": "deal-findrs",
+      "error_pattern": "Hand-merging a design-build PR via terminal hits non-fast-forward then rebase conflicts because local main drifted from remote",
+      "error_symptoms": [
+        "git push rejected (non-fast-forward) after a local squash-merge",
+        "git pull --rebase conflicts on page.tsx and design-plan.md",
+        "local squash was built on an older base than current remote main"
+      ],
+      "attempts": [
+        {
+          "what": "git merge --squash on a stale local base, then push",
+          "result": "failed",
+          "reason": "non-fast-forward; local squash and remote main were two rebuilds from the same old base, colliding"
+        },
+        {
+          "what": "git reset --hard origin/main, then git merge --squash origin/<pr-branch>",
+          "result": "success",
+          "reason": "PR branch was built on top of current main, so it fast-forwarded with no conflicts"
+        }
+      ],
+      "solution": {
+        "approach": "Do not hand-resolve two near-identical rebuilds. Reset local to the true remote tip, then squash-merge the PR branch on top; commit + push (admin-bypass). The whole episode is the operator-friction anti-pattern the productised orchestrator must eliminate (merge via GitHub API on a clean base, never hand-driven).",
+        "code_path": "operator workflow (deal-findrs)",
+        "key_change": "git reset --hard origin/main; git merge --squash origin/<branch>; commit; push"
       },
-      {
-        "what": "git reset --hard origin/main, then git merge --squash origin/<pr-branch>",
-        "result": "success",
-        "reason": "PR branch was built on top of current main, so it fast-forwarded with no conflicts"
-      }
-    ],
-    "solution": {
-      "approach": "Do not hand-resolve two near-identical rebuilds. Reset local to the true remote tip, then squash-merge the PR branch on top; commit + push (admin-bypass). The whole episode is the operator-friction anti-pattern the productised orchestrator must eliminate (merge via GitHub API on a clean base, never hand-driven).",
-      "code_path": "operator workflow (deal-findrs)",
-      "key_change": "git reset --hard origin/main; git merge --squash origin/<branch>; commit; push"
+      "fixed_at": "2026-06-03",
+      "fixed_by": "claude"
     },
-    "fixed_at": "2026-06-03",
-    "fixed_by": "claude"
-  }
-],
+    {
+      "id": "cais-csp-blocks-vercel-live-expected",
+      "product": "cais-build-template-v2",
+      "error_pattern": "Browser console shows a CSP violation blocking https://vercel.live/_next-live/feedback/feedback.js",
+      "error_symptoms": [
+        "console: Loading the script 'https://vercel.live/_next-live/feedback/feedback.js' violates the following Content Security Policy directive: \"script-src 'self' ...\". The action has been blocked.",
+        "appears on every product built from cais-build-template-v2 and deployed to Vercel",
+        "looks like a CSP misconfiguration / defect but the app works fine"
+      ],
+      "attempts": [
+        {
+          "what": "investigate whether the template CSP is broken / too strict",
+          "result": "ruled out",
+          "reason": "the app (pages, images, fonts, Supabase) renders and works fine under the policy; only vercel.live is blocked"
+        }
+      ],
+      "solution": {
+        "approach": "EXPECTED AND HARMLESS - not a defect. vercel.live is Vercel's own preview/feedback widget, injected by the platform, not the app. The template CSP intentionally allows script-src 'self' only, so it correctly blocks this third-party script. Only shows on Vercel deployments; real users on a custom domain never see it. Do NOT loosen the CSP to silence it. If the widget is specifically wanted on previews, add 'https://vercel.live' to script-src in that product's next.config.js - but leaving it blocked is the recommended default.",
+        "code_path": "templates/cais-build-template-v2/next.config.js (headers() CSP block); templates/cais-build-template-v2/README.md (documented)",
+        "key_change": "No change needed. Documented as expected behaviour. CSP verified safe on deal-findrs 2026-06-03 (only vercel.live blocked; app clean)."
+      },
+      "fixed_at": "2026-06-03",
+      "fixed_by": "claude"
+    }
+  ],
   "usage": "Before fixing ANY bug, grep this file for matching error patterns. Also check SayFix DB for product-specific attempts.",
   "open_seams": [
     {
@@ -635,5 +657,4 @@
       "code_path": "src/app/api/auth/investorpilot-magic-link/route.ts"
     }
   ]
-
 }

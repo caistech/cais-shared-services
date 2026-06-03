@@ -8,6 +8,12 @@
 // Place at: product-factory/pipeline-cockpit/src/lib/checks/security-headers.ts
 // Wire into the existing runner: in run-test/validation route, replace the old prose finding for
 // checkId 'security-headers' with `return await checkSecurityHeaders(liveUrl, recurrence)`.
+//
+// NOTE — this check inspects RESPONSE HEADERS, not browser-console output, so it is unaffected by
+// the expected `vercel.live` CSP console warning. That warning (Vercel's feedback widget being
+// blocked by a strict script-src) is EXPECTED and HARMLESS on Vercel deployments — do NOT add any
+// check that flags it as a finding, and do NOT loosen the template CSP to silence it. See the
+// template README and bug-knowledge id `cais-csp-blocks-vercel-live-expected`.
 
 import type { CheckResult, FixOption } from './check-result';
 
