@@ -43,7 +43,7 @@ const ATTR: Record<SurveyMarkerField, string> = {
 }
 
 // NAMED fields must carry a named archetype, never a generic category (the P2 standard).
-const NAMED: ReadonlySet<SurveyMarkerField> = new Set([
+const NAMED: ReadonlySet<SurveyMarkerField> = new Set<SurveyMarkerField>([
   'icp_partner_type', 'icp_buyer_title', 'icp_verticals', 'distributor', 'end_user',
 ])
 
