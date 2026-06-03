@@ -630,20 +630,121 @@
         "deal-findrs run B (same site, same commit): 12/14, P3 PASS (same two-audience landing judged a coherent distributor model)",
         "the set of 'unevidenced' fields also shifts between runs (run B flagged both Prospect type AND ICP buyer title; run A flagged Prospect type only)",
         "verdict can flip RENOVATION/TEARDOWN-adjacent on borderline products purely from run variance",
-        "CONFIRMED LIVE 2026-06-03: same deal-findrs site/commit scored 13/14, then 12/14 RENOVATION, then 10/14 TEARDOWN across three consecutive runs (#?, #14, #16) \u2014 verdict flipped RENOVATION->TEARDOWN, locking downstream. ICP stage + exclusions were cited+evidenced in the 12/14 run and read as not-evidenced in the 10/14 run though the site was unchanged.",
-        "DECISIVE 2026-06-03: THREE runs on essentially-equivalent deal-findrs content scored 12/14 RENOVATION, 10/14 TEARDOWN, then 9/14 TEARDOWN (P2+P3 FAIL) \u2014 verdict moved the WRONG way as the site improved. The 9/14 run is SELF-CONTRADICTORY: it evidenced icp_buyer_title as \"Agency Owner / Principal\" (page.tsx:190) yet failed PRE-HARD P2 claiming \"no named distributor archetype\" \u2014 the same run both found and denied the archetype. It also marked distributor / distributor_outcomes / end_user / end_user_outcomes as not-evidenced though the rebuilt site has an explicit /partners page + distributor framing + share loop. Conclusion: the gate is too non-deterministic to FUNCTION as a gate. No amount of rebuilding reliably clears a gate whose per-field and PRE-HARD judgments vary (and self-contradict) run-to-run. Variance reduction is therefore GATE-BREAKING priority, not cosmetic calibration."
+        "CONFIRMED LIVE 2026-06-03: same deal-findrs site/commit scored 13/14, then 12/14 RENOVATION, then 10/14 TEARDOWN across three consecutive runs \u2014 verdict flipped RENOVATION->TEARDOWN, locking downstream.",
+        "DECISIVE 2026-06-03: THREE runs on essentially-equivalent content scored 12/14 RENOVATION, 10/14 TEARDOWN, then 9/14 TEARDOWN (P2+P3 FAIL) \u2014 verdict moved the WRONG way as the site improved. The 9/14 run is SELF-CONTRADICTORY: it evidenced icp_buyer_title as 'Agency Owner / Principal' yet failed PRE-HARD P2 claiming 'no named distributor archetype' \u2014 the same run both found and denied the archetype. Conclusion: the gate is too non-deterministic to FUNCTION as a gate. Variance reduction is GATE-BREAKING priority."
       ],
       "attempts": [
         {
           "what": "treated the earlier P3 fail as a fixed mis-rule ('P3 miscalibrated for distributor model')",
           "result": "partial",
-          "reason": "it is not a deterministic wrong rule \u2014 a later run passed P3 on the identical product. The real issue is VARIANCE: the survey is an LLM judgment (Q1-Q4 coherence, field-evidence calls) that lands differently across runs, not a rule that is consistently wrong."
+          "reason": "it is not a deterministic wrong rule \u2014 a later run passed P3 on the identical product. The real issue is VARIANCE: the survey was an LLM judgment that landed differently across runs."
+        },
+        {
+          "what": "REMOVED the model from the survey entirely (2026-06-03)",
+          "result": "success",
+          "reason": "Reframed per 'generator owns invariants': the build PLANTS machine-checkable data-* markers from the card (markerProps, throws on generic/off-enum at build time); the survey GREPS them and DERIVES the verdict (P2/P3 derived from the field results, never re-judged). No model in the path. PROVEN: 3 identical runs -> TEARDOWN/TEARDOWN/TEARDOWN."
         }
       ],
       "solution": {
-        "approach": "Reframe the SURVEY_MODE calibration task as VARIANCE REDUCTION, not just rule-fixing. The survey verdict is non-deterministic because the model makes judgment calls (is the two-audience distributor landing coherent? is the buyer title evidenced?) that vary run-to-run. Mitigations to design into SURVEY_MODE.md / the survey harness: (1) make the PRE-HARD and field-evidence criteria explicit and checklist-like enough that the judgment lands the same way every run (e.g. P3 PASS when a named distributor archetype + a distinct end-user + a stated relationship are all present \u2014 pass on presence, not on a subjective 'coherence' call); (2) consider lowering temperature / pinning the survey model; (3) consider running the survey N times and taking a consensus/worst-case rather than a single roll; (4) treat borderline (12-13/14) verdicts as provisional and require a stable re-run before gating. Do NOT 'fix' variance by overriding every run \u2014 the override is for genuine judgment forks, not for masking a flaky scorer.",
-        "code_path": "product-factory/pipeline-cockpit/skills/naive-tester/SURVEY_MODE.md (criteria); survey.yml + OPENCODE_MODEL var (model/temperature pinning)",
-        "key_change": "PRIORITY #1 next session. The survey must become DETERMINISTIC: (1) presence-based field checks \u2014 a field is evidenced iff a required token/marker is present in DOM or repo (the rebuild already adds data-icp-partner-type, data-exclusions etc. \u2014 score on those, not on model re-interpretation); (2) PRE-HARD P2/P3 rewritten as explicit presence rules (named-archetype = any of a defined set of strings present; do NOT let the model adjudicate category-vs-archetype); (3) pin model temperature to 0 and/or consensus-over-N with worst-case; (4) the scorer should be a deterministic checker the LLM FEEDS, not the LLM itself returning a verdict. Evidence: 12/10/9-14 across three runs on improving content, with an intra-run self-contradiction (evidenced buyer title, failed P2 for no archetype)."
+        "approach": "The survey is now a deterministic DOM-marker grep with no LLM. Build plants markers via markerProps (cais-build-template-v2/lib/surveyMarkers.ts) from the card; survey route fetches survey-manifest.json -> fetches each route's DOM -> deriveSurveyFromDom (survey-markers.ts) -> loadCardSurvey -> survey.ts. P2/P3 derived from field results (P2 IS the distributor field check) so they cannot self-contradict. Coherence enforced upstream by the build throw, not by a survey judgment. The OpenCode survey workflow (survey.yml) + SURVEY_MODE.md retired; the cockpit kickoff proxies to the deterministic route.",
+        "code_path": "SURVEY_MARKER_CONTRACT.md; templates/cais-build-template-v2/lib/surveyMarkers.ts; .github/workflows/design-build.yml (marker HARD RULES); cockpit src/lib/methodology/survey-markers.ts + src/app/api/admin/pipeline/[productId]/survey/route.ts + .../survey/kickoff/route.ts",
+        "key_change": "RESOLVED 2026-06-03. Deterministic marker grep replaces LLM survey. Same input -> same verdict (proven 3x TEARDOWN). RENOVATION-determinism pending one design-build run that replants markers with named values."
+      },
+      "fixed_at": "2026-06-03",
+      "fixed_by": "claude"
+    },
+    {
+      "id": "cais-card-named-field-holds-generic-not-archetype",
+      "product": "Corporate-AI-Solutions / deal-findrs",
+      "error_pattern": "Deterministic survey scores TEARDOWN on a NAMED field whose page copy clearly states a named archetype; the planted data-* marker carries a generic category word and is banlisted",
+      "error_symptoms": [
+        "survey TEARDOWN with icp_partner_type (or distributor) un-evidenced though the copy says 'buyers agent firm'",
+        "data-icp-partner-type=\"reseller\" gets banlisted (reseller is a generic category, not an archetype)",
+        "the OLD LLM survey passed the same product; the deterministic marker grep fails it",
+        "card field value and page copy disagree (card='reseller', copy='buyers agent firm')"
+      ],
+      "attempts": [
+        {
+          "what": "assumed it was a build/page bug and looked at page.tsx",
+          "result": "failed",
+          "reason": "the build plants the marker from the CARD FIELD (_spec.json), not from the page copy. The card's icp_partner_type literally held 'reseller'. The deterministic survey correctly surfaces the card-copy drift the old LLM survey masked by reading the nicer copy."
+        }
+      ],
+      "solution": {
+        "approach": "Fix the CARD field, not the page. NAMED fields (icp_partner_type, icp_buyer_title, icp_verticals, distributor, end_user) must hold the named archetype, never the category word. Treat a banlist TEARDOWN as a card-data bug first, not a build bug. PATCH the validation route to set the archetype.",
+        "code_path": "PATCH /api/admin/pipeline/<slug>/validation (icp_partner_type 'reseller' -> 'buyers agent firm'); banlist in src/lib/methodology/survey-markers.ts + templates/cais-build-template-v2/lib/surveyMarkers.ts",
+        "key_change": "card NAMED fields carry the archetype; before dispatching design-build, check card NAMED values against the banlist (smbs, reseller, businesses, users, ...) since markerProps THROWS at build on a banlisted value"
+      },
+      "fixed_at": "2026-06-03",
+      "fixed_by": "claude"
+    },
+    {
+      "id": "cais-marker-value-off-enum-or-banlisted-throws-next-build",
+      "product": "cais-build-template-v2 / deal-findrs",
+      "error_pattern": "design-build dies at the next build step: markerProps throws on an off-enum or banlisted card value before a PR can open",
+      "error_symptoms": [
+        "next build fails with a thrown Error from markerProps naming the field + allowed set",
+        "icp_stage card value 'Operating businesses' (plural) slugifies to 'operating-businesses' which is off-enum",
+        "build would be green otherwise; the throw is intentional"
+      ],
+      "attempts": [
+        {
+          "what": "treated the build failure as a code/template bug",
+          "result": "failed",
+          "reason": "markerProps validates ENUM fields (icp_stage in seed|growth|scale|operating-business|enterprise) and NAMED fields (banlist) and THROWS by design, so an incoherent build cannot ship. The fault was the card value, not the code."
+        }
+      ],
+      "solution": {
+        "approach": "Set the card value so it slugifies on-set / un-banlisted. icp_stage: 'operating business' (singular) -> 'operating-business'. The throw is correct behaviour (coherence enforced at build time), not a defect.",
+        "code_path": "PATCH /api/admin/pipeline/<slug>/validation; enum sets + banlist in templates/cais-build-template-v2/lib/surveyMarkers.ts",
+        "key_change": "validate card ENUM/NAMED values against surveyMarkers.ts before dispatch; the build error message names the offending field + the allowed set"
+      },
+      "fixed_at": "2026-06-03",
+      "fixed_by": "claude"
+    },
+    {
+      "id": "cais-validation-patch-on-base-productId-route-405",
+      "product": "Corporate-AI-Solutions",
+      "error_pattern": "PATCH to /api/admin/pipeline/<slug> returns 405 Method Not Allowed",
+      "error_symptoms": [
+        "405 when trying to update a validation field via the base productId route",
+        "the base route only answers GET (the aggregated card view)"
+      ],
+      "attempts": [
+        {
+          "what": "PATCH the base /api/admin/pipeline/<slug> route",
+          "result": "failed",
+          "reason": "base [productId]/route.ts is GET-only; the 14 validation fields are written by a separate route"
+        }
+      ],
+      "solution": {
+        "approach": "Write card fields via the dedicated validation route. It is `export async function PATCH`, a partial update, safe to send individual fields without blanking the other 12.",
+        "code_path": "PATCH /api/admin/pipeline/<slug>/validation (src/app/api/admin/pipeline/[productId]/validation/route.ts)",
+        "key_change": "card-field writes go to .../validation (PATCH), not the base productId route (GET-only)"
+      },
+      "fixed_at": "2026-06-03",
+      "fixed_by": "claude"
+    },
+    {
+      "id": "cais-survey-falls-back-to-root-only-without-manifest",
+      "product": "Corporate-AI-Solutions / cais-build-template-v2",
+      "error_pattern": "Deterministic survey misses markers on non-home routes (e.g. /partners) because no survey-manifest.json exists, so it fetches '/' only",
+      "error_symptoms": [
+        "distributor / end_user fields un-evidenced though their markers are planted on /partners",
+        "survey only ever grepped the homepage DOM",
+        "(historical) the old harness hardcoded ['', '/reports', '/pricing'] \u2014 missed /partners, fetched a dead /pricing anchor"
+      ],
+      "attempts": [
+        {
+          "what": "expected the survey to discover all marker-bearing routes itself",
+          "result": "failed",
+          "reason": "the survey route fetches public/survey-manifest.json first to learn the routes; with no manifest it falls back to ['/'] only, so markers on other routes are never seen"
+        }
+      ],
+      "solution": {
+        "approach": "The build MUST emit public/survey-manifest.json via surveyManifest([...]) listing every marker-bearing route. The survey fetches the manifest, then greps the union of those routes' DOM.",
+        "code_path": "templates/cais-build-template-v2/lib/surveyMarkers.ts (surveyManifest); public/survey-manifest.json (emitted per product); survey route src/app/api/admin/pipeline/[productId]/survey/route.ts",
+        "key_change": "design-build HARD RULE requires emitting the manifest listing '/','/partners','/reports'; verify public/survey-manifest.json exists in the PR diff before merge"
       },
       "fixed_at": "2026-06-03",
       "fixed_by": "claude"
@@ -655,9 +756,9 @@
       "id": "cas-seam-survey-no-in-app-trigger",
       "stage": "3 \u00b7 Survey gate",
       "seam": "URL -> survey run",
-      "status": "open",
-      "fix": "No in-app way to start survey mode (it is an agent skill in cais-shared-services; the cockpit panel only displays). Add a Run-survey affordance that POSTs a survey.json / kicks the agent, or at least surface the run command in the panel.",
-      "code_path": "cais-shared-services product-factory/pipeline-cockpit/skills/naive-tester/SURVEY_MODE.md + scripts/gate-check.mjs"
+      "status": "RESOLVED 2026-06-03",
+      "fix": "Survey now runs in-app: the cockpit kickoff route proxies same-origin to the deterministic /survey route (no GitHub dispatch, no OpenCode). Button -> kickoff -> grep DOM markers -> verdict in ~2s.",
+      "code_path": "src/app/api/admin/pipeline/[productId]/survey/kickoff/route.ts + .../survey/route.ts"
     },
     {
       "id": "cas-seam-founder-commitment-not-a-gate",
