@@ -1,0 +1,11 @@
+{
+  "_comment": "Per-product QA identities, read by provision-qa-accounts.mjs AND the portfolio-gate test-accounts audit/fixer. Generated per product by new-product.mjs (which substitutes the QA test domain). A third-party deployment sets the QA_TEST_DOMAIN env var to its own domain so it provisions its own QA accounts Ã¢â‚¬â€ nothing here references the operator's personal email. qaDomain MUST be a real, mail-capable domain if the QA agents need to pass email-delivery checks (VT_C1/C3/C4); otherwise those run na.",
+  "qaDomain": "${QA_TEST_DOMAIN}",
+  "adminEmails": [
+    "dennis@corporateaisolutions.com",
+    "mcmdennis@gmail.com"
+  ],
+  "adminAgentEmail": "qa-admin@${QA_TEST_DOMAIN}",
+  "userAgentEmail": "qa-user@${QA_TEST_DOMAIN}",
+  "testUserEmail": "qa-user@${QA_TEST_DOMAIN}"
+}

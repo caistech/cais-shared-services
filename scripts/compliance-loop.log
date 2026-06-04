@@ -170,3 +170,31 @@
 [2026-05-28T09:53:09.701Z] [INFO] TEST_ACCOUNTS: Auto-fixed: Added ADMIN_EMAILS to .env.local, Added TEST_USER_EMAIL to .env.local
 [2026-05-28T09:53:09.702Z] [INFO] Step 3: Re-running audit...
 [2026-05-28T09:53:10.087Z] [INFO] Final audit: FAIL (1 remaining)
+[2026-06-04T08:43:30.279Z] [SYSTEM] Compliance loop started
+[2026-06-04T08:43:30.287Z] [INFO] === Starting compliance loop for: deal-findrs ===
+[2026-06-04T08:43:30.288Z] [ERROR] Product not found: deal-findrs
+[2026-06-04T08:44:57.132Z] [SYSTEM] Compliance loop started
+[2026-06-04T08:44:57.136Z] [INFO] === Starting compliance loop for: C:\Users\denni\PycharmProjects\DealFindrs ===
+[2026-06-04T08:44:57.136Z] [INFO] Step 1: Running initial audit...
+[2026-06-04T08:44:57.358Z] [INFO] Initial audit: FAIL (18 failures)
+[2026-06-04T08:44:57.359Z] [INFO] Step 2: Applying 18 fixes...
+[2026-06-04T08:44:57.359Z] [WARN] Auto-fix not implemented for R3 - manual setup required
+[2026-06-04T08:44:57.359Z] [WARN] Auto-fix not implemented for R3 - manual setup required
+[2026-06-04T08:44:57.360Z] [WARN] Auto-fix not implemented for R3 - manual setup required
+[2026-06-04T08:44:57.360Z] [WARN] Auto-fix not implemented for R3 - manual setup required
+[2026-06-04T08:44:57.360Z] [WARN] Auto-fix not implemented for R3 - manual setup required
+[2026-06-04T08:44:57.361Z] [WARN] Auto-fix not implemented for R3 - manual setup required
+[2026-06-04T08:44:57.361Z] [WARN] Auto-fix not implemented for R3 - manual setup required
+[2026-06-04T08:44:57.361Z] [WARN] Auto-fix not implemented for R3 - manual setup required
+[2026-06-04T08:44:57.361Z] [WARN] Auto-fix not implemented for R3 - manual setup required
+[2026-06-04T08:44:57.362Z] [WARN] Auto-fix not implemented for R3 - manual setup required
+[2026-06-04T08:44:57.362Z] [WARN] Auto-fix not implemented for R3 - manual setup required
+[2026-06-04T08:44:57.362Z] [WARN] Auto-fix not implemented for R3 - manual setup required
+[2026-06-04T08:44:57.362Z] [WARN] Auto-fix not implemented for R3 - manual setup required
+[2026-06-04T08:44:57.363Z] [WARN] Auto-fix not implemented for R3 - manual setup required
+[2026-06-04T08:44:57.363Z] [WARN] Auto-fix not implemented for R3 - manual setup required
+[2026-06-04T08:44:57.363Z] [WARN] Auto-fix not implemented for R3 - manual setup required
+[2026-06-04T08:44:57.363Z] [WARN] Auto-fix not implemented for R3 - manual setup required
+[2026-06-04T08:44:57.363Z] [WARN] Auto-fix not implemented for R19 - manual setup required
+[2026-06-04T08:44:57.364Z] [INFO] Step 3: Re-running audit...
+[2026-06-04T08:44:57.477Z] [INFO] Final audit: FAIL (18 remaining)

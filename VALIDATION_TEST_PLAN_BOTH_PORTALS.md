@@ -16,10 +16,17 @@
 
 ---
 
-## Part A: Standard Admin User Tests (same for all 5 products)
+## Part A: Standard Admin Tests (same for all 5 products)
 
-**Login as:** `dennis@corporateaisolutions.com` (admin email)  
-**Access:** `/admin/*` routes (should not be blocked by auth gate)
+**Login as:** the dedicated **admin-AGENT** (`dennis+qaadmin@factory2key.com.au` or as provisioned)
+— NOT a human-operator admin. Password supplied via `QA_OWNER_PASSWORD`. This account is in
+`ADMIN_EMAILS` so `/admin/*` loads.
+**Access:** `/admin/*` routes (should not be blocked by the auth gate)
+
+> **Agent scope: A1–A2 only (VT_A1–VT_A4).** A3 (Sign Out Everywhere → VT_A5) and A4 (Delete
+> Account → VT_A6) are **OPERATOR-VERIFIED, NOT agent-run** — the destructive-action denylist in
+> the product's docs/TESTING.md forbids the agent from clicking them. The operator walks A3/A4 by
+> hand and records VT_A5/VT_A6 (source `operator`). NEVER run A4 against a human-operator admin.
 
 ### A1. Admin Portal Access (Auth Gate Verification)
 - [ ] Navigate to `https://<product-url>/admin/` or `/admin/pipeline` (or equivalent admin surface)

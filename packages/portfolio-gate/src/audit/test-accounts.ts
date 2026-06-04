@@ -5,6 +5,8 @@ import { access } from 'fs/promises'
 export interface TestAccountsConfig {
   adminEmails?: string[]
   testUserEmail?: string
+  adminAgentEmail?: string
+  userAgentEmail?: string
 }
 
 export interface TestAccountsOptions {
@@ -126,37 +128,50 @@ export async function applyTestAccountsFix(
   const fixed: string[] = []
   const warnings: string[] = []
 
-  const adminEmails = DEFAULT_TEST_ACCOUNTS.adminEmails
-  const testUserEmail = DEFAULT_TEST_ACCOUNTS.testUserEmail
+  // Config-driven (mirrors runTestAccountsAudit) — a third-party deployment's
+  // config governs what gets written, NOT the operator's personal constants.
+  const config =
+    (await loadConfigOptional<TestAccountsConfig>(
+      options.configPath ?? resolve(rootDir, 'test-accounts.config.json')
+    )) ?? {}
+  const adminEmails = config.adminEmails ?? DEFAULT_TEST_ACCOUNTS.adminEmails
+  const testUserEmail = config.testUserEmail ?? DEFAULT_TEST_ACCOUNTS.testUserEmail
+  const adminAgentEmail = config.adminAgentEmail ?? null
+
+  // Required allowlist = operator admins + the admin-agent (so the agent reaches /admin).
+  const requiredAdmins = adminAgentEmail ? [...adminEmails, adminAgentEmail] : adminEmails
 
   const envPath = resolve(rootDir, '.env.local')
   const { readFile, writeFile } = await import('fs/promises')
 
   try {
     let envContent = ''
-    try {
-      envContent = await readFile(envPath, 'utf-8')
-    } catch {
-      // File doesn't exist, will create
-    }
+    try { envContent = await readFile(envPath, 'utf-8') } catch { /* will create */ }
 
     if (!envContent.includes('ADMIN_EMAILS=')) {
-      envContent += `\nADMIN_EMAILS=${adminEmails.join(',')}\n`
+      envContent += `\nADMIN_EMAILS=${requiredAdmins.join(',')}\n`
       fixed.push('Added ADMIN_EMAILS to .env.local')
-    } else if (!adminEmails.every((email: string) => envContent.includes(email))) {
-      warnings.push('ADMIN_EMAILS already exists - manually add missing emails')
+    } else {
+      // Merge missing entries into the existing value (was: warn-only, which never wired the agent in).
+      const missing = requiredAdmins.filter((e: string) => !envContent.includes(e))
+      if (missing.length > 0) {
+        envContent = envContent.replace(
+          /^ADMIN_EMAILS=(.*)$/m,
+          (_m, current) => `ADMIN_EMAILS=${[current, ...missing].filter(Boolean).join(',')}`
+        )
+        fixed.push(`Merged ${missing.length} email(s) into ADMIN_EMAILS: ${missing.join(', ')}`)
+      }
     }
 
     if (!envContent.includes('TEST_USER_EMAIL=')) {
       envContent += `TEST_USER_EMAIL=${testUserEmail}\n`
       fixed.push('Added TEST_USER_EMAIL to .env.local')
     } else if (!envContent.includes(testUserEmail)) {
-      warnings.push('TEST_USER_EMAIL already exists - manually update to ' + testUserEmail)
+      envContent = envContent.replace(/^TEST_USER_EMAIL=.*$/m, `TEST_USER_EMAIL=${testUserEmail}`)
+      fixed.push(`Updated TEST_USER_EMAIL to ${testUserEmail}`)
     }
 
-    if (fixed.length > 0) {
-      await writeFile(envPath, envContent)
-    }
+    if (fixed.length > 0) await writeFile(envPath, envContent)
   } catch (err) {
     warnings.push(`Could not update .env.local: ${err}`)
   }

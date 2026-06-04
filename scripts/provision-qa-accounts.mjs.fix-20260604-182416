@@ -29,13 +29,13 @@
  * Supabase ref resolution order:
  *   1. --supabase-ref CLI arg
  *   2. manifest.projects[].supabase_project_ref
- *   3. manifest.projects[].inherit_shared â†’ PLATFORM_TRUST_SUPABASE_URL
+ *   3. manifest.projects[].inherit_shared → PLATFORM_TRUST_SUPABASE_URL
  *      (extracts ref from the URL)
  *   4. .env.local NEXT_PUBLIC_SUPABASE_URL (auto-discovered from repo root)
  *   5. Skip (notify user)
  *
  * Env / tokens:
- *   SUPABASE_MANAGEMENT_TOKEN â€” Management API token (falls back to
+ *   SUPABASE_MANAGEMENT_TOKEN — Management API token (falls back to
  *     ~/.supabase-token). Used to fetch the service_role key from a
  *     Supabase project.
  *
@@ -122,7 +122,7 @@ function getManagementToken() {
 const SUPABASE_TOKEN = getManagementToken();
 
 // ---------------------------------------------------------------------------
-// Supabase Management API â€” fetch service_role key from project ref
+// Supabase Management API — fetch service_role key from project ref
 // ---------------------------------------------------------------------------
 async function fetchServiceRoleKey(projectRef) {
   if (args.serviceKey) return args.serviceKey;
@@ -160,7 +160,7 @@ function loadTestAccountsConfig(repoRoot) {
   const p = join(repoRoot, "test-accounts.config.json");
   if (!existsSync(p)) return null;
   try { return JSON.parse(readFileSync(p, "utf-8")); }
-  catch (e) { console.log(`  âš  test-accounts.config.json unparseable: ${e.message}`); return null; }
+  catch (e) { console.log(`  ⚠ test-accounts.config.json unparseable: ${e.message}`); return null; }
 }
 
 function readEnvFile(envPath) {
@@ -182,7 +182,7 @@ function findSupabaseRef(slug) {
   const proj = projects[slug];
   if (proj?.supabase_project_ref) return proj.supabase_project_ref;
 
-  // 3. manifest.projects[].inherit_shared â†’ PLATFORM_TRUST_SUPABASE_URL
+  // 3. manifest.projects[].inherit_shared → PLATFORM_TRUST_SUPABASE_URL
   if (proj?.inherit_shared?.includes("PLATFORM_TRUST_SUPABASE_URL")) {
     const trustUrl = shared.PLATFORM_TRUST_SUPABASE_URL;
     if (trustUrl) {
@@ -244,8 +244,14 @@ function buildSupabaseUrl(refOrObj) {
   const ref = typeof refOrObj === "string" ? refOrObj : refOrObj?.ref;
   return { url: `https://${ref}.supabase.co`, ref };
 }
+function loadTestAccountsConfig(repoRoot) {
+  const p = join(repoRoot, "test-accounts.config.json");
+  if (!existsSync(p)) return null;
+  try { return JSON.parse(readFileSync(p, "utf-8")); }
+  catch (e) { console.log(`  ⚠ test-accounts.config.json unparseable: ${e.message}`); return null; }
+}
 // ---------------------------------------------------------------------------
-// Supabase Admin API â€” user operations
+// Supabase Admin API — user operations
 // ---------------------------------------------------------------------------
 async function createUser(supabaseUrl, serviceKey, email, password) {
   const url = `${supabaseUrl}/auth/v1/admin/users`;
@@ -346,7 +352,7 @@ function writeEnvVars(envPath, vars) {
   }
 
   writeFileSync(envPath, lines.join("\n") + "\n", "utf-8");
-  console.log(`  âœ“ wrote ${Object.keys(vars).length} var(s) to ${envPath}`);
+  console.log(`  ✓ wrote ${Object.keys(vars).length} var(s) to ${envPath}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -355,7 +361,7 @@ function writeEnvVars(envPath, vars) {
 async function pushToVercel(vercelProjectId, vars) {
   const token = process.env.VERCEL_TOKEN;
   if (!token) {
-    console.log("  âš  VERCEL_TOKEN not set â€” skipping Vercel push");
+    console.log("  ⚠ VERCEL_TOKEN not set — skipping Vercel push");
     return;
   }
   const teamId = manifest.team_id;
@@ -377,12 +383,12 @@ async function pushToVercel(vercelProjectId, vars) {
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       if (res.status === 409) {
-        console.log(`  âš  ${key} already exists on Vercel (HTTP 409) â€” update via dashboard or --overwrite`);
+        console.log(`  ⚠ ${key} already exists on Vercel (HTTP 409) — update via dashboard or --overwrite`);
       } else {
-        console.log(`  âš  Vercel env push ${key}: HTTP ${res.status} â€” ${body.slice(0, 100)}`);
+        console.log(`  ⚠ Vercel env push ${key}: HTTP ${res.status} — ${body.slice(0, 100)}`);
       }
     } else {
-      console.log(`  âœ“ pushed ${key} to Vercel (production+preview, sensitive)`);
+      console.log(`  ✓ pushed ${key} to Vercel (production+preview, sensitive)`);
     }
   }
 }
@@ -410,7 +416,7 @@ async function main() {
   console.log(`Portfolio QA account provisioner`);
   console.log(`Accounts: ${adminUsers.length} admin(s) + 1 test user`);
   console.log(`Target: ${args.all ? `all ${total} products` : `'${args.slug}'`}`);
-  if (args.dryRun) console.log(`\nâš  DRY RUN â€” no changes will be made\n`);
+  if (args.dryRun) console.log(`\n⚠ DRY RUN — no changes will be made\n`);
   console.log("");
 
   let totalCreated = 0;
@@ -424,7 +430,7 @@ async function main() {
     // Resolve Supabase ref
     const supabaseRef = findSupabaseRef(slug);
     if (!supabaseRef) {
-      console.log(`  SKIPPED â€” could not determine Supabase project ref.`);
+      console.log(`  SKIPPED — could not determine Supabase project ref.`);
       console.log(`    Pass --supabase-ref <ref> to specify directly, e.g.:`);
       console.log(`    node scripts/provision-qa-accounts.mjs --slug ${slug} --supabase-ref XXXXX`);
       continue;
@@ -447,41 +453,13 @@ async function main() {
     const repoRoot = resolveRepoRoot(slug);
     const hasRepoRoot = existsSync(repoRoot);
     if (!hasRepoRoot) {
-      console.log(`  âš  Repo root not found at ${repoRoot} â€” .env.local write skipped`);
+      console.log(`  ⚠ Repo root not found at ${repoRoot} — .env.local write skipped`);
     }
 
-
-    // Admin users
-    console.log(`\n  Admin accounts:`);
-    for (const admin of adminUsers) {
-      const email = admin.email;
-      if (args.dryRun) {
-        console.log(`  â†’ would create admin: ${email}`);
-        continue;
-      }
-      try {
-        const pw = generatePassword();
-        const result = await createUser(supabase.url, serviceKey, email, pw);
-        if (result.skipped) {
-          console.log(`  âœ“ ${email} â€” already exists (skipped)`);
-          totalSkipped++;
-        } else if (result.created === false) {
-          console.log(`  âœ“ ${email} â€” already exists, password reset`);
-          totalCreated++;
-        } else {
-          console.log(`  âœ“ ${email} â€” created`);
-          totalCreated++;
-        }
-      } catch (e) {
-        console.error(`  âœ— ${email} â€” ${e.message}`);
-        totalErrors++;
-      }
-    }
-
-// QA agent identities from the product's OWN config (one source of truth per deployment).
+    // QA agent identities from the product's OWN config (one source of truth per deployment).
     const taConfig = hasRepoRoot ? loadTestAccountsConfig(repoRoot) : null;
     if (!taConfig?.adminAgentEmail || !taConfig?.userAgentEmail) {
-      console.log(`  âš  ${slug}: test-accounts.config.json missing adminAgentEmail/userAgentEmail â€” run new-product.mjs scaffold (or generate it). Skipping agent provisioning (NOT falling back to a personal address).`);
+      console.log(`  ⚠ ${slug}: test-accounts.config.json missing adminAgentEmail/userAgentEmail — run new-product.mjs scaffold (or generate it). Skipping agent provisioning (NOT falling back to a personal address).`);
       continue;
     }
     const agents = [
@@ -490,15 +468,15 @@ async function main() {
     ];
     for (const agent of agents) {
       console.log(`\n  ${agent.label}:`);
-      if (args.dryRun) { console.log(`  â†’ would create ${agent.email}`); continue; }
+      if (args.dryRun) { console.log(`  → would create ${agent.email}`); continue; }
       try {
         const pw = generatePassword();
         const result = await createUser(supabase.url, serviceKey, agent.email, pw);
         if (result.skipped) {
-          console.log(`  âœ“ ${agent.email} â€” already exists (password unknown â€” reset with --reset-pw)`);
+          console.log(`  ✓ ${agent.email} — already exists (password unknown — reset with --reset-pw)`);
           totalSkipped++;
         } else {
-          console.log(`  âœ“ ${agent.email} â€” ${result.created === false ? "password reset" : "created"}`);
+          console.log(`  ✓ ${agent.email} — ${result.created === false ? "password reset" : "created"}`);
           totalCreated++;
           if (hasRepoRoot) {
             writeEnvVars(join(repoRoot, ".env.local"), { [agent.emailVar]: agent.email, [agent.pwVar]: pw });
@@ -508,16 +486,83 @@ async function main() {
             if (proj?.vercel_project_id) {
               await pushToVercel(proj.vercel_project_id, { [agent.emailVar]: agent.email, [agent.pwVar]: pw });
             } else {
-              console.log(`  âš  No vercel_project_id for ${slug} â€” Vercel push skipped`);
+              console.log(`  ⚠ No vercel_project_id for ${slug} — Vercel push skipped`);
             }
           }
         }
       } catch (e) {
-        console.error(`  âœ— ${agent.email} â€” ${e.message}`);
+        console.error(`  ✗ ${agent.email} — ${e.message}`);
         totalErrors++;
       }
     }
-    console.log(`\n  Done â€” ${slug}`);
+
+    // Admin users
+    console.log(`\n  Admin accounts:`);
+    for (const admin of adminUsers) {
+      const email = admin.email;
+      if (args.dryRun) {
+        console.log(`  → would create admin: ${email}`);
+        continue;
+      }
+      try {
+        const pw = generatePassword();
+        const result = await createUser(supabase.url, serviceKey, email, pw);
+        if (result.skipped) {
+          console.log(`  ✓ ${email} — already exists (skipped)`);
+          totalSkipped++;
+        } else if (result.created === false) {
+          console.log(`  ✓ ${email} — already exists, password reset`);
+          totalCreated++;
+        } else {
+          console.log(`  ✓ ${email} — created`);
+          totalCreated++;
+        }
+      } catch (e) {
+        console.error(`  ✗ ${email} — ${e.message}`);
+        totalErrors++;
+      }
+    }
+
+// QA agent identities from the product's OWN config (one source of truth per deployment).
+    const taConfig = hasRepoRoot ? loadTestAccountsConfig(repoRoot) : null;
+    if (!taConfig?.adminAgentEmail || !taConfig?.userAgentEmail) {
+      console.log(`  ⚠ ${slug}: test-accounts.config.json missing adminAgentEmail/userAgentEmail — run new-product.mjs scaffold (or generate it). Skipping agent provisioning (NOT falling back to a personal address).`);
+      continue;
+    }
+    const agents = [
+      { label: "admin-agent", email: taConfig.adminAgentEmail, emailVar: "QA_OWNER_EMAIL", pwVar: "QA_OWNER_PASSWORD" },
+      { label: "user-agent",  email: taConfig.userAgentEmail,  emailVar: "QA_USER_EMAIL",  pwVar: "QA_USER_PASSWORD"  },
+    ];
+    for (const agent of agents) {
+      console.log(`\n  ${agent.label}:`);
+      if (args.dryRun) { console.log(`  → would create ${agent.email}`); continue; }
+      try {
+        const pw = generatePassword();
+        const result = await createUser(supabase.url, serviceKey, agent.email, pw);
+        if (result.skipped) {
+          console.log(`  ✓ ${agent.email} — already exists (password unknown — reset with --reset-pw)`);
+          totalSkipped++;
+        } else {
+          console.log(`  ✓ ${agent.email} — ${result.created === false ? "password reset" : "created"}`);
+          totalCreated++;
+          if (hasRepoRoot) {
+            writeEnvVars(join(repoRoot, ".env.local"), { [agent.emailVar]: agent.email, [agent.pwVar]: pw });
+          }
+          if (args.vercel) {
+            const proj = projects[slug];
+            if (proj?.vercel_project_id) {
+              await pushToVercel(proj.vercel_project_id, { [agent.emailVar]: agent.email, [agent.pwVar]: pw });
+            } else {
+              console.log(`  ⚠ No vercel_project_id for ${slug} — Vercel push skipped`);
+            }
+          }
+        }
+      } catch (e) {
+        console.error(`  ✗ ${agent.email} — ${e.message}`);
+        totalErrors++;
+      }
+    }
+    console.log(`\n  Done — ${slug}`);
   }
 
   // Summary
@@ -527,7 +572,7 @@ async function main() {
   console.log(`  Accounts created: ${totalCreated}`);
   console.log(`  Already existed: ${totalSkipped}`);
   console.log(`  Errors: ${totalErrors}`);
-  if (args.dryRun) console.log(`\n  DRY RUN â€” no changes persisted. Re-run without --dry-run to apply.`);
+  if (args.dryRun) console.log(`\n  DRY RUN — no changes persisted. Re-run without --dry-run to apply.`);
 }
 
 main().catch((e) => {

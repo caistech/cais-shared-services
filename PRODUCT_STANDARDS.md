@@ -164,7 +164,21 @@ Every product with an auth gate ships **two separate auth flows and UIs from day
 - [ ] **Automated-tester auth — a real QA account, never a backdoor.** Every repo with an auth gate ships the means for automated testers (`/naive-tester`, `/qa`, `/benchmark`) to authenticate *as a real account*: a **persistent, email-confirmed QA `owner` account** (password in the password manager — never committed, never pasted into a report); a **`docs/TESTING.md`** documenting **Mode A** (type the real login form — this also *tests* the auth path, the default) and **Mode B** (inject a real session cookie to skip the flaky form for deep surface testing); and the shared **session-minter** (`cais-shared-services/scripts/qa-session.mjs` — emits the `@supabase/ssr` cookie, auto-matched to the repo's installed `@supabase/ssr` version: `base64-` for ≥0.5, URL-encoded JSON for <0.5 — a mismatch is silently rejected; consume it, don't fork). **Magic-link-only products (no password field — `signInWithOtp` logins) are the canonical hard case** and use the SAME minter's **`--magic-link` mode**: it mints the real QA session via the service-role `admin.generate_link` → `verify` (needs `QA_TEST_EMAIL` + `SUPABASE_SERVICE_ROLE_KEY`; no email round-trip, no PKCE/redirect-allowlist dependency) — the password grant cannot serve these. To ALSO exercise email delivery, request the link from the real form and read it from a **dedicated, API-readable QA mailbox — never the operator's personal inbox** — then navigate it in the same browser context. **Preview deploys behind Vercel deployment protection** additionally need a **Protection-Bypass-for-Automation** token (the app login is unreachable otherwise — a `vercel.com/login` 401 wall). One-time provisioning per repo (record in `docs/TESTING.md`): create the email-confirmed QA `owner` account, add its email to the admin allowlist (e.g. `ADMIN_EMAILS`), and allowlist `localhost` + the preview `/auth/callback` in the provider's redirect list. **No route or flag may skip authentication** — a test auth-bypass is a critical vulnerability, same severity as an unguarded endpoint. Testers TYPE creds (never DOM-inject — React ignores injected values) and work around the `/browse` daemon by warm-chaining + saving/reloading auth state. *(mmcbuild split QA, 2026-05-25; magic-link canon added 2026-05-25 from the corporate-ai-solutions cockpit naive-test — magic-link-only login + Vercel preview SSO + un-allowlisted localhost callback blocked every other path.)*
 - [ ] **Pipeline intake WIP gate — no new product until the board is triaged.** No new product or operator-originated idea is admitted to the methodology cockpit (`/admin/methodology`) while any card is **untriaged** (not in-research-or-beyond and not terminally decided — incl. "thin-MVP-ready but research never launched"). Hard block at the intake API + disabled UI with a "drain the backlog first" banner; a friction-ful **reasoned, logged override**; the always-on ideation agent's deposits land in an inbox that does not count. *Stop starting, start finishing.* Full rule + the *why*: `MONETISATION_RULES.md` **Rule 16**; pipeline framing: `BUSINESS_MODEL.md` §4 (Gate 0). *(Codified 2026-05-25.)*
 - [ ] **Single-operator deferral trigger** *(when-relevant rule)*. A single-operator internal tool MAY defer the **§8 team-admin org/member layer** and the **full §4 Settings Profile/Notifications sections + the `profiles` table** (auth + persistent nav + Sign Out + a lean Settings are still required). But these become **REQUIRED the moment**: (a) a **second operator** needs access, or (b) the surface gains **public / customer exposure**. The deferral is a *conscious, tracked* decision — record it in the surface's audit + `team_admin_status` in `portfolio-manifest.yaml` — **never a permanent skip.** When the trigger fires, build the org/member layer + the full settings page **before** the second user is onboarded (retrofitting after they're in is the failure mode the TEAM ADMIN rule exists to prevent). *(Codified 2026-05-25 from the methodology cockpit: single-operator → auth-gate + chrome + lean Settings shipped; team-admin + full Profile/Notifications queued behind this trigger.)*
-
+- [ ] **Bounded admin-agent scope — agents never fire destructive admin actions.** The dedicated
+  admin-agent (§9.5) walks the SAFE, idempotent admin checks ONLY: **VT_A1–VT_A4** (Admin Portal
+  Access, Settings Profile, Settings Password, Settings Notifications). **VT_A5 (Sign Out
+  Everywhere)** and **VT_A6 (Delete Account)** are **operator-verified, never agent-run.** The agent
+  must NEVER click any control labelled (case-insensitive, incl. near-variants): "Delete account /
+  Delete my account / Close account / Remove account", "Sign out everywhere / Sign out of all
+  sessions / Sign out all devices / Revoke all sessions". If a goal prompt implies "test
+  everything", these two are the explicit exception. The operator walks VT_A5/VT_A6 by hand and
+  records them (`status: pass|fail`, source `operator`) — they MUST NOT be left unknown (unknown
+  depresses the score identically to fail). Because the producer simply does NOT observe them, the
+  recorder skips them cleanly (it maps na→na and never fabricates a pass — submit-validation-
+  results.mjs, 2026-05-31 fix). Document the denylist by on-screen label in each product's
+  `docs/TESTING.md`; enforce mechanically where the tester supports it, not by prompt alone.
+  *(Codified 2026-06-04: VALIDATION_TEST_PLAN Part A4 walked Delete Account against the operator
+  admin — replaced by a dedicated admin-agent for A1–A4 + operator-verified A5/A6.)*
 - [ ] **SayFix integration** — every product has `@caistech/sayfix-embed` wired in:
   - [ ] **Widget** — `<SayFixWidget repo="xxx" />` in the main layout (floating button)
   - [ ] **Admin setup** — repo added to SayFix admin (`/admin`) with ownership type
@@ -184,41 +198,53 @@ Every product with an auth gate ships **two separate auth flows and UIs from day
 
 ---
 
-## 9.5. STANDARD ADMIN + TEST USER ACCOUNTS (scaffold-time provisioning)
+## 9.5. STANDARD ADMIN + TEST ACCOUNTS (scaffold-time provisioning)
 
-Every product with an auth gate ships **pre-configured with three standard accounts** — two permanent admins and one permanent test user — so that QA, development, and monitoring can run without per-project setup. These accounts are provisioned at scaffold time and remain constant across all products.
+Every product with an auth gate ships **four standard accounts** — two human-operator admins,
+one dedicated admin-AGENT, one non-admin user-agent — so QA runs without per-project setup AND
+so autonomous testers can walk BOTH portals (§8.5) without ever driving a real operator account.
+Provisioned at scaffold time, constant across products, reused every run (NOT regenerated per run).
 
-**Permanent Admin Accounts (both have FULL operator access):**
-- `dennis@corporateaisolutions.com` — Dennis (primary operator)
-- `mcmdennis@gmail.com` — Dennis alt (backup operator)
+**Human-operator admins (FULL access — used BY HAND only, NEVER handed to an agent):**
+- `dennis@corporateaisolutions.com` — primary operator
+- `mcmdennis@gmail.com` — backup operator
 
-**Permanent Test User (non-admin):**
-- `dennis@factory2key.com.au` — Test/QA account (can access product surfaces but not `/admin/*`)
+**Dedicated admin-AGENT (the agent's admin identity — NEW):**
+- `dennis+qaadmin@factory2key.com.au`  *(set to whatever you provision; a plus-alias on a real,
+  deliverable domain so the auth-email checks can pass)* — in `ADMIN_EMAILS`, reaches `/admin`,
+  drives the autonomous admin-portal checks **VT_A1–VT_A4 ONLY** (Portal Access, Settings Profile,
+  Settings Password, Settings Notifications). It is SEPARATE from the two operator admins so no
+  agent run ever touches a real operator account. Its destructive actions — **VT_A5 (Sign Out
+  Everywhere) and VT_A6 (Delete Account)** — are OUT of agent scope (see the §9 codicil
+  "Bounded admin-agent scope").
+
+**Non-admin user-agent (the agent's user identity):**
+- `dennis@factory2key.com.au` — NOT in `ADMIN_EMAILS`; drives VT_B1–VT_B5 and the
+  blocked-from-`/admin` check (VT_B2). `TEST_USER_EMAIL` resolves to this address.
 
 **Configuration:**
-- Add both admin emails to the **`ADMIN_EMAILS` environment variable** (colon or comma-separated, depending on project) at scaffold time. This populates the allowlist in `middleware.ts` (or equivalent auth gate) so unauth requests → `/login`.
-- The test user is a **regular authenticated user** — not on the admin list, so they cannot access `/admin/*` routes. Use this account for QA, user-flow testing, and monitoring.
-- Both admins' emails are in `portfolio-manifest.yaml` under a new **`shared:` → `admin_users`** block so every product bootstrap script can auto-populate `ADMIN_EMAILS` (when environment-sync / onboarding scripts run).
+- `ADMIN_EMAILS` contains the two operator admins **and** the admin-agent. The user-agent is NEVER
+  in `ADMIN_EMAILS`.
+- INVARIANT: admin-agent ∈ `ADMIN_EMAILS`; `dennis@factory2key.com.au` ∉ `ADMIN_EMAILS`.
+  A user/test identity in the admin set fails VT_B2 AND is a real security defect.
+- Adding the admin-agent as a THIRD entry does not break VT_D1 (a presence check on the two
+  operators, not an exact-count).
+- Both operators + the admin-agent live in `portfolio-manifest.yaml` `shared: → admin_users`.
 
-**Why this matters:**
-- **Eliminates per-project setup waste** — no more "add an admin email here, create a test account there" for every new product.
-- **Enables cross-product automation** — `/naive-tester`, `/qa`, and monitoring agents can run using the same `dennis@factory2key.com.au` credentials across all products.
-- **Reduces onboarding friction** — a new product is immediately testable without manual account creation.
+**Passwords:** admin-agent → `QA_OWNER_PASSWORD`; user-agent → `QA_USER_PASSWORD`. Supplied to
+runs via env, never committed, never pasted into a report. Operator-admin passwords are NEVER
+exposed to any agent session.
 
-**Implementation:**
-1. **Scaffold script** (`scripts/onboard-new-project.sh` or equivalent) calls `configure-admin-accounts.sh <project-slug>` after the project is created.
-2. **`configure-admin-accounts.sh`** (new script in cais-shared-services/scripts):
-   - Reads `portfolio-manifest.yaml` for `shared: admin_users`
-   - Sets `ADMIN_EMAILS` on Vercel (via `vercel env add`) with both admin emails
-   - Sets `ADMIN_EMAILS` in `.env.local` for local development
-   - Creates Supabase Auth invites for both admin emails (auto-verified links)
-   - Logs each step so the operator knows what happened
-3. **Test user `dennis@factory2key.com.au`** is created via the same Supabase invite flow but is NOT added to `ADMIN_EMAILS`, so it's a regular user for QA purposes.
+**Why four, not three:** the prior three-account default (two operators + one non-admin test user)
+predated the requirement that every product ship an `/admin` dashboard (§8.5). With only a
+non-admin identity, the admin-portal checks VT_A1–A4 can never resolve — they sit permanently
+unknown and depress the score. The dedicated admin-agent closes that without ever risking an
+operator account (the prior plan walked Delete Account against `dennis@corporateaisolutions.com`).
 
-**Per-project opt-out (rare):**
-If a product has custom admin requirements (e.g., only one admin, or different admins), the bootstrap script allows `--custom-admins "email1,email2"` to override the defaults. Document the override in the product's `docs/TESTING.md`.
-
----
+**Per-project opt-out (rare):** `--custom-admins "e1,e2"` overrides operator defaults; document any
+override in the product's `docs/TESTING.md`. The admin-agent + user-agent pair is NOT optional for
+any product with an `/admin` portal.
+--
 
 ## 10. Where the authoritative prose lives
 
