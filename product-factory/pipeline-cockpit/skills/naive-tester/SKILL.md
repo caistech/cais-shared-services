@@ -1,6 +1,6 @@
 ---
 name: naive-tester
-version: 1.0.0
+version: 1.1.0
 description: |
   Simulate a human beta tester walking through a live web product. Picks a
   persona appropriate to the product (naive end-user, domain operator, mobile
@@ -160,7 +160,7 @@ Extract the **UI-observable** items (the ones a human on the live site can actua
 - **§4 Authenticated chrome + Settings** — **persistent left navbar on every authed page**; a reachable **`/settings`** (Profile / Password / Notifications / Account); **Sign Out** present.
 - **§5 Explanatory header** — every page/panel opens with *what-it-is / what-to-do / why-it-matters*; empty states keep it.
 - **§6 Voice agent** — a voice surface reachable from the chrome (≤3 clicks).
-- **§7 Scaffold metadata** — browser tab **title is the product name** (not "Create Next App" / "Next.js" / empty); favicon isn't the default feather.
+- **§7 Scaffold metadata** — browser tab **title is the product name** (not "Create Next App" / "Next.js" / empty); favicon isn't the default feather. *(OBSERVE & report in prose — but do NOT record a verdict: §7 maps to codes 7 + 8, which are AUTO-owned by run-test. See "Recording readiness verdicts" below.)*
 - **§8 Team admin** — products with public exposure expose an `/admin` team layer (or are legitimately single-user).
 - **§9 Codicils (observable)** — irreversible / cost-incurring / outreach-firing actions **state their consequence before the click + confirm**; **every screen makes the next action obvious (zero dead ends)**; address fields use autocomplete.
 
@@ -383,7 +383,6 @@ these are the NAIVE-observable checks naive-tester owns:
 | 4 | Nav collapses to drawer/hamburger on mobile |
 | 5 | Landing page sells the concept |
 | 6 | Emotional register matches the product (not a dull shell) |
-| 7 | Browser `<title>` = product name (not "Create Next App") |
 | 10 | Voice agent reachable from chrome ≤3 clicks |
 | 22 | Forgot-password link + working reset flow |
 | 23 | Password visibility toggle |
@@ -398,24 +397,32 @@ these are the NAIVE-observable checks naive-tester owns:
 | 34 | Address→Mapbox; company / ABN→ABN lookup |
 | 41 | The human walkthrough itself (friction / "I want that") |
 
+**Codes 7 and 8 are NOT in the table above — they are AUTO-owned.** Code 7 (`<title>` is
+the product name, not a scaffold default) and code 8 (og:image + favicon/manifest) are written
+by **run-test** with `--source auto`. `readiness_results` is **latest-wins per code**, so if
+naive-tester also records 7 or 8 it will *flap the cell* between the two sources. So: **OBSERVE
+§7 and call it out in the report** (a "tab still says Create Next App" finding is valuable human
+signal) — but **never write a verdict for 7 or 8**. Leave those to the auto probe. Record only
+the codes you could actually observe; leave the rest for the AUTO probes / `/voice-auditor`.
+
 **Status per code:** `pass` (met) · `fail` (a ❌ finding) · `na` (the surface/feature isn't in
-this product — e.g. no auth → 22–25 = `na`). Record only the codes you could actually observe;
-leave the rest for the AUTO probes / `/voice-auditor`.
+this product — e.g. no auth → 22–25 = `na`).
 
 Write a results file, then record (verdicts bind to the LIVE prod deployment automatically):
 
 ```bash
 cat > /tmp/readiness.json <<'JSON'
 [{"code":"2","status":"pass","evidence":"reflows clean at 375 + 1440, no h-scroll"},
- {"code":"7","status":"fail","evidence":"tab title still 'Create Next App'"},
- {"code":"22","status":"na","evidence":"no auth flow in this product"}]
+ {"code":"22","status":"na","evidence":"no auth flow in this product"},
+ {"code":"41","status":"pass","evidence":"walkthrough completed; clear value prop, no dead ends"}]
 JSON
 node ~/PycharmProjects/cais-shared-services/scripts/gate-check.mjs \
   record-readiness <product-slug> --source naive-tester --file /tmp/readiness.json
 ```
 
 (Use `--no-deployment` only for a local / non-Vercel target. A `❌` here is a real finding —
-same severity as a bug — and now blocks the card's Gate-1 readiness score.)
+same severity as a bug — and now blocks the card's Gate-1 readiness score. Do NOT put `7` or `8`
+in this file — they are run-test's, and recording them here flaps the cell.)
 
 ## Calibration reference
 
