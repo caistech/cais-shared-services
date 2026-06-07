@@ -18,7 +18,7 @@
 #                      closed the moment this job records via `gate-check.mjs --source voice-auditor`.
 #
 # Secrets required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (for gate-check writes),
-#                   GH_PRODUCT_TOKEN (PAT to checkout the product repo).
+#                   GH_PAT (PAT to checkout the product repo).
 
 name: validation-run
 
@@ -58,7 +58,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: dennissolver/${{ github.event.inputs.slug }}
-          token: ${{ secrets.GH_PRODUCT_TOKEN }}
+          token: ${{ secrets.GH_PAT }}
           path: target
         continue-on-error: true
 
