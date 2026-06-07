@@ -39,8 +39,23 @@ export async function goto(page, url, timeout = 45000) {
   catch { try { await page.goto(url, { waitUntil: 'domcontentloaded', timeout }); return true } catch { return false } }
 }
 
+// Anthropic vision rejects any image dimension > 8000px. A full-page screenshot of a long page
+// (especially a narrow mobile width that reflows very tall) blows past that — so clip tall pages to
+// a safe height (top of the page, where the header/hero/nav/CTA the checks care about live).
+const MAX_SHOT_PX = 7000
 export async function shot(page, label) {
-  const buf = await page.screenshot({ fullPage: true }).catch(() => page.screenshot())
+  const vw = (page.viewportSize?.() || {}).width || 1280
+  let buf
+  try {
+    const h = await page
+      .evaluate(() => Math.max(document.body?.scrollHeight || 0, document.documentElement?.scrollHeight || 0))
+      .catch(() => 0)
+    buf = h && h > MAX_SHOT_PX
+      ? await page.screenshot({ clip: { x: 0, y: 0, width: Math.min(vw, MAX_SHOT_PX), height: MAX_SHOT_PX } })
+      : await page.screenshot({ fullPage: true })
+  } catch {
+    try { buf = await page.screenshot() } catch { buf = Buffer.from('') }
+  }
   return { label, b64: buf.toString('base64') }
 }
 
