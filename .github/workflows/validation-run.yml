@@ -1,0 +1,93 @@
+# validation-run.yml — Piece 2 of the validation orchestrator: the CI runner for the AGENT/REPO
+# producers the cockpit server can't run itself. Dispatched by the cockpit
+# (/api/admin/pipeline/<slug>/run-full-validation) with the product slug + live URL + the
+# deployment to bind verdicts to. Records to readiness_results via scripts/gate-check.mjs.
+#
+# Jobs:
+#   2a  repo-probe   — DEFAULT, REAL: checks out the product repo, runs validation-probe.mjs
+#                      (#35 email sender · #36 @caistech-first · #37 feature pre-flight) and records
+#                      verdicts (source=auto). Deterministic, no browser.
+#   2b  browser-agents — OPT-IN (run_agents=true), FRONTIER/SCAFFOLD: the real naive-tester +
+#                      voice-auditor + dual-portal walk needs a gstack/Claude-Code browser runner,
+#                      which GitHub-hosted runners don't provide. This job is intentionally a
+#                      documented scaffold (it does NOT fake a shallow HTTP "naive-tester" — that
+#                      is the exact anti-pattern this whole effort removes). Wire a SELF-HOSTED
+#                      runner (Dennis's machine, where gstack + browse + Claude Code live) or a
+#                      Playwright+vision agent here; until then it no-ops with a clear message.
+#                      voice-auditor's readiness path (codes 10-21, currently unscored — "2c") is
+#                      closed the moment this job records via `gate-check.mjs --source voice-auditor`.
+#
+# Secrets required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (for gate-check writes),
+#                   GH_PRODUCT_TOKEN (PAT to checkout the product repo).
+
+name: validation-run
+
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: 'Product slug (cockpit productId, e.g. deal-findrs)'
+        required: true
+      url:
+        description: 'Live product URL (context for probes)'
+        required: false
+        default: ''
+      deployment_id:
+        description: 'Deployment the verdicts bind to (blank = --no-deployment)'
+        required: false
+        default: ''
+      run_agents:
+        description: 'Run the experimental browser-agent job (needs a self-hosted runner)'
+        required: false
+        default: 'false'
+
+jobs:
+  repo-probe:
+    name: 2a — repo/URL probe (real)
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - name: Checkout shared-services (gate-check + validation-probe)
+        uses: actions/checkout@v4
+        with:
+          path: shared
+
+      - name: Checkout the product repo
+        uses: actions/checkout@v4
+        with:
+          repository: dennissolver/${{ github.event.inputs.slug }}
+          token: ${{ secrets.GH_PRODUCT_TOKEN }}
+          path: target
+        continue-on-error: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run the repo/URL probe (records #35/#36/#37)
+        run: |
+          if [ ! -d target ] || [ -z "$(ls -A target 2>/dev/null)" ]; then
+            echo "::warning::product repo dennissolver/${{ github.event.inputs.slug }} not checked out (token/visibility?) — skipping repo probe"
+            exit 0
+          fi
+          node shared/scripts/validation-probe.mjs \
+            --slug "${{ github.event.inputs.slug }}" \
+            --repo target \
+            --deployment "${{ github.event.inputs.deployment_id }}" \
+            --gate-check shared/scripts/gate-check.mjs
+
+  browser-agents:
+    name: 2b — browser test-agents (experimental, opt-in)
+    needs: repo-probe
+    if: ${{ github.event.inputs.run_agents == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Frontier notice
+        run: |
+          echo "::warning::2b browser-agent run requested, but GitHub-hosted runners have no gstack/Claude-Code browser."
+          echo "Real naive-tester + voice-auditor + dual-portal walks need a SELF-HOSTED runner"
+          echo "(Dennis's machine: gstack + browse + Claude Code) or a Playwright+vision agent wired here."
+          echo "Recording NOTHING rather than a shallow HTTP fake (degrade-don't-fake)."
+          echo "When wired, this job records via: node shared/scripts/gate-check.mjs record-readiness <slug> --source naive-tester|voice-auditor --checks ..."
