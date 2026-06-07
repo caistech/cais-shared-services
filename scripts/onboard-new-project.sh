@@ -294,6 +294,20 @@ echo "== Updating bash-script project lists =="
 python "$HUB_ROOT/scripts/_onboard-update-bash-lists.py" \
   "$HUB_ROOT" "$GH_REPO" "$VERCEL_SLUG"
 
+# 4b. Provision the standard QA accounts (§9.5) into the product's Supabase + push the QA env
+#     (QA_USER_EMAIL/PW, QA_OWNER_EMAIL/PW) and the ADMIN_EMAILS allowlist to Vercel — so the
+#     dual-portal testers can log in with the one portfolio-wide credential set, zero manual Vercel
+#     edits. Runs AFTER the manifest append (provision reads the new entry). Best-effort: degrades
+#     with a clear re-run hint if a token/config is absent.
+echo ""
+echo "== Provisioning standard QA accounts + Vercel env ($VERCEL_SLUG) =="
+if [ -f "$HUB_ROOT/scripts/provision-qa-accounts.mjs" ]; then
+  node "$HUB_ROOT/scripts/provision-qa-accounts.mjs" --slug "$VERCEL_SLUG" --vercel 2>&1 | sed 's/^/  /' || \
+    echo "  ⚠ QA provisioning incomplete — re-run: node scripts/provision-qa-accounts.mjs --slug $VERCEL_SLUG --vercel"
+else
+  echo "  ⚠ provision-qa-accounts.mjs missing — skip"
+fi
+
 # 5. Sanity-audit: re-parse the manifest by running the env-sync audit
 #    against ONLY the new project. Catches YAML corruption immediately.
 echo ""
