@@ -96,6 +96,9 @@ jobs:
       # authed-surface walk (a real QA account, never a backdoor — PRODUCT_STANDARDS §9.5)
       TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
       QA_USER_PASSWORD: ${{ secrets.QA_USER_PASSWORD }}
+      # admin-agent (dennis+qaadmin@… — a real admin account in ADMIN_EMAILS, NEVER an operator account)
+      QA_ADMIN_EMAIL: ${{ secrets.QA_ADMIN_EMAIL }}
+      QA_OWNER_PASSWORD: ${{ secrets.QA_OWNER_PASSWORD }}
       # preview SSO bypass (if the URL is a protected preview)
       VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
     steps:
@@ -129,6 +132,15 @@ jobs:
         if: ${{ env.ANTHROPIC_API_KEY != '' }}
         run: |
           node scripts/agents/voice-auditor.mjs \
+            --slug "${{ github.event.inputs.slug }}" \
+            --url "${{ github.event.inputs.url }}" \
+            --deployment "${{ github.event.inputs.deployment_id }}"
+        continue-on-error: true
+
+      - name: admin-tester (dual-portal admin checks VT_A1-A4)
+        if: ${{ env.ANTHROPIC_API_KEY != '' && env.QA_OWNER_PASSWORD != '' }}
+        run: |
+          node scripts/agents/admin-tester.mjs \
             --slug "${{ github.event.inputs.slug }}" \
             --url "${{ github.event.inputs.url }}" \
             --deployment "${{ github.event.inputs.deployment_id }}"

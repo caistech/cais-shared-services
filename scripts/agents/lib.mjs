@@ -60,10 +60,12 @@ export async function shot(page, label) {
 }
 
 // Best-effort form login (Mode A — also exercises the real auth path). Returns {ok, note}.
-// A magic-link-only product (no password field) is reported, not faked.
-export async function tryLogin(page, origin, { email, password }) {
-  if (!email || !password) return { ok: false, note: 'no QA creds (TEST_USER_EMAIL/QA_USER_PASSWORD)' }
-  for (const path of ['/login', '/pipeline/login', '/auth/login', '/signin']) {
+// A magic-link-only product (no password field) is reported, not faked. Pass `paths` to control
+// which login routes are tried (e.g. the admin-agent tries /admin/login first).
+export async function tryLogin(page, origin, { email, password, paths }) {
+  if (!email || !password) return { ok: false, note: 'no QA creds supplied' }
+  const loginPaths = paths || ['/login', '/pipeline/login', '/auth/login', '/signin']
+  for (const path of loginPaths) {
     if (!(await goto(page, `${origin}${path}`))) continue
     const pw = page.locator('input[type=password]').first()
     if ((await pw.count().catch(() => 0)) === 0) continue
