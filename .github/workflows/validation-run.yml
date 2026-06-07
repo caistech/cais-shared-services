@@ -46,6 +46,10 @@ jobs:
     name: 2a — repo/URL probe (real)
     runs-on: ubuntu-latest
     env:
+      # gate-check.mjs reads CAIS_GATES_URL / CAIS_GATES_SERVICE_KEY from env (resolveGatesCreds);
+      # the NEXT_PUBLIC_/SUPABASE_ names are kept for any script that reads them directly.
+      CAIS_GATES_URL: ${{ secrets.SUPABASE_URL }}
+      CAIS_GATES_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
