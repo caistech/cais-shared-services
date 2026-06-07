@@ -45,6 +45,8 @@ jobs:
       CAIS_GATES_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       SUPABASE_MANAGEMENT_TOKEN: ${{ secrets.SUPABASE_MANAGEMENT_TOKEN }}
+      # CAS workspace ElevenLabs key — lets #18/#19 run in CI when a product's own key isn't readable.
+      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
     steps:
       - name: Checkout shared-services (config-fixer + gate-check)
         uses: actions/checkout@v4
@@ -53,10 +55,19 @@ jobs:
         with:
           node-version: 20
 
-      - name: Run the config-fixer (records config-lane verdicts; needs-you where a product cred is absent)
+      - name: Build the elevenlabs-convai hub (config-fixer #18/#19 reuse it)
+        run: |
+          if [ -d packages/elevenlabs-convai ]; then
+            npm --prefix packages/elevenlabs-convai ci && npm --prefix packages/elevenlabs-convai run build || \
+              echo "::warning::hub build skipped/failed — #18/#19 will record needs-you (degrade-don't-fake)"
+          fi
+        continue-on-error: true
+
+      - name: Run the config-fixer (--pull-vercel: resolves product env from Vercel, not a local file)
         run: |
           node scripts/config-fixer.mjs \
             --slug "${{ github.event.inputs.slug }}" \
+            --pull-vercel \
             --apply \
             ${{ github.event.inputs.deployment_id && format('--deployment {0}', github.event.inputs.deployment_id) || '' }} \
             ${{ github.event.inputs.checks && format('--checks {0}', github.event.inputs.checks) || '' }}

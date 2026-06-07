@@ -36,7 +36,7 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join, resolve as resolvePath } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { recordReadiness, getLiveProductionDeployment, resolveGatesCreds } from './gate-check.mjs'
 
 const SCRIPTS_DIR = dirname(fileURLToPath(import.meta.url))
@@ -128,28 +128,87 @@ function resolveRepoDir(slug) {
   return direct
 }
 
-function resolveContext(slug) {
+// Pull a product's env from its Vercel project using the workspace token — so the fixer runs in
+// CI / from the phone, not just where the local .env.local lives. Recovers PLAIN vars (the list
+// endpoint returns their values): NEXT_PUBLIC_* URLs, agent ids, ADMIN_EMAILS. SENSITIVE vars are
+// non-readable by design (that's the point) and are NOT returned — the genuinely-secret values come
+// from the Supabase Management API (service key) or a workspace CI secret (ELEVENLABS_API_KEY).
+async function pullVercelEnv(projectId, token) {
+  const out = {}
+  if (!token) return out
+  try {
+    const res = await fetch(`https://api.vercel.com/v9/projects/${encodeURIComponent(projectId)}/env?teamId=${VERCEL_TEAM_ID}&decrypt=true`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) return out
+    const { envs } = await res.json()
+    for (const e of envs || []) if (typeof e.value === 'string' && e.value.length) out[e.key] = e.value
+  } catch { /* best-effort */ }
+  return out
+}
+
+// Fetch a project's CURRENT service_role key from the Supabase Management API (workspace token).
+// More reliable than a possibly-stale .env.local copy — this is what auto-fixes the deal-findrs
+// VT_D2/D3 failure (its committed legacy key was disabled when Supabase rotated to sb_secret_).
+async function fetchSupabaseServiceKey(ref, mgmtToken) {
+  if (!ref || !mgmtToken) return ''
+  try {
+    const res = await fetch(`https://api.supabase.com/v1/projects/${ref}/api-keys`, { headers: { Authorization: `Bearer ${mgmtToken}` } })
+    if (!res.ok) return ''
+    const keys = await res.json()
+    const svc = Array.isArray(keys) ? keys.find((k) => k.name === 'service_role') : null
+    return svc?.api_key || ''
+  } catch { return '' }
+}
+
+async function resolveContext(slug) {
   const repoDir = resolveRepoDir(slug)
-  const env = parseEnvFile(join(repoDir, '.env.local'))
+  const repoPresent = existsSync(repoDir)
+  let env = parseEnvFile(join(repoDir, '.env.local'))
   const mani = manifestEntry(slug)
+  const vToken = vercelToken()
+  const projectId = mani.vercel_project_id || slug
+
+  // Cloud / phone path: pull product env from Vercel when asked, when the local repo isn't here,
+  // or when the local .env.local didn't yield the Supabase URL. Local .env.local wins where present.
+  let pulledFrom = repoPresent ? 'local .env.local' : 'none'
+  if (has('pull-vercel') || !repoPresent || !env.NEXT_PUBLIC_SUPABASE_URL) {
+    const pulled = await pullVercelEnv(projectId, vToken)
+    if (Object.keys(pulled).length) {
+      env = { ...pulled, ...env } // local takes precedence over pulled
+      pulledFrom = repoPresent ? 'local .env.local + Vercel pull' : 'Vercel pull'
+    }
+  }
+
   let supabaseRef = mani.supabase_project_ref || ''
   if (!supabaseRef && env.NEXT_PUBLIC_SUPABASE_URL) {
     const m = env.NEXT_PUBLIC_SUPABASE_URL.match(/https:\/\/([a-z0-9]+)\.supabase\.co/i)
     if (m) supabaseRef = m[1]
   }
+
+  const sbToken = supabaseMgmtToken()
+  // Operator-maintained local key first (authoritative on the operator's machine); fall back to the
+  // CURRENT key from the Management API (the cloud/no-local path, and handles the common rotated-key
+  // case). For a product migrated to the new sb_secret_ format whose legacy key is disabled, BOTH may
+  // be the dead key — the handler then records an honest needs-you (never a fake pass).
+  let supabaseServiceKey = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || ''
+  if (!supabaseServiceKey) supabaseServiceKey = await fetchSupabaseServiceKey(supabaseRef, sbToken)
+
   return {
     slug,
     repoDir,
-    repoPresent: existsSync(repoDir),
+    repoPresent,
+    pulledFrom,
     env,
-    vercelProjectId: mani.vercel_project_id || slug,
+    vercelProjectId: projectId,
     supabaseRef,
-    supabaseServiceKey: env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SERVICE_KEY || '',
-    elevenKey: env.ELEVENLABS_API_KEY || '',
+    supabaseServiceKey,
+    // EL key: product BYOK key (plain/public mirror is readable via pull) or a workspace CI secret.
+    elevenKey: env.ELEVENLABS_API_KEY || env.NEXT_PUBLIC_ELEVENLABS_API_KEY || process.env.ELEVENLABS_API_KEY || '',
     elevenAgents: Object.entries(env).filter(([k]) => /ELEVENLABS_AGENT/i.test(k)).map(([, v]) => v).filter(Boolean),
     adminEmails: env.ADMIN_EMAILS || '',
-    vercelToken: vercelToken(),
-    supabaseToken: supabaseMgmtToken(),
+    vercelToken: vToken,
+    supabaseToken: sbToken,
   }
 }
 
@@ -280,20 +339,21 @@ async function fix_qa_accounts(ctx) {
   const args = [script, '--slug', ctx.slug]
   if (!apply) args.push('--dry-run')
   if (ctx.supabaseServiceKey) args.push('--service-key', ctx.supabaseServiceKey)
-  try {
-    const out = execFileSync('node', args, { encoding: 'utf8', env: { ...process.env } })
-    // The provisioner exits 0 even on per-account failures — inspect the output (degrade-don't-fake).
-    const errMatch = out.match(/Errors:\s*([1-9]\d*)/)
-    if (errMatch || /401|Invalid API key|service[_ ]?role/i.test(out)) {
-      const why = /Invalid API key/i.test(out)
-        ? 'the product Supabase service_role key is invalid/disabled (deal-findrs migrated to sb_secret_ keys) — update SUPABASE_SERVICE_ROLE_KEY in the product .env.local to the new secret key'
-        : `${errMatch ? errMatch[1] : 'some'} account(s) failed`
-      return { status: 'needs-you', evidence: `NEEDS-YOU: QA accounts could not be provisioned — ${why}.` }
-    }
-    return { status: 'pass', evidence: `QA accounts ${apply ? 'provisioned' : 'dry-run planned'}: ${out.trim().split('\n').slice(-1)[0].slice(0, 100)}` }
-  } catch (e) {
-    return { status: 'needs-you', evidence: `NEEDS-YOU: QA account provisioning could not complete (needs the product Supabase service key / management token): ${(e.stderr || e.message || '').toString().slice(0, 140)}` }
+  // spawnSync so we capture BOTH streams — the provisioner exits 0 even on per-account failures, and
+  // the "Invalid API key" detail prints across stdout/stderr (degrade-don't-fake: inspect, never trust 0).
+  const r = spawnSync('node', args, { encoding: 'utf8', env: { ...process.env } })
+  const out = `${r.stdout || ''}\n${r.stderr || ''}`
+  const errMatch = out.match(/Errors:\s*([1-9]\d*)/)
+  if (r.status !== 0 && !errMatch) {
+    return { status: 'needs-you', evidence: `NEEDS-YOU: QA account provisioning could not run: ${(r.stderr || out).toString().trim().slice(0, 140)}` }
   }
+  if (errMatch || /Invalid API key|401/i.test(out)) {
+    const why = /Invalid API key/i.test(out)
+      ? 'the product Supabase service_role key is invalid/disabled (this project migrated to sb_secret_ keys) — set SUPABASE_SERVICE_ROLE_KEY in the product .env.local (or its Vercel env) to the new secret key, then re-run'
+      : `${errMatch ? errMatch[1] : 'some'} account(s) failed`
+    return { status: 'needs-you', evidence: `NEEDS-YOU: QA accounts could not be provisioned — ${why}.` }
+  }
+  return { status: 'pass', evidence: `QA accounts ${apply ? 'provisioned' : 'dry-run planned'}: ${out.trim().split('\n').filter(Boolean).slice(-1)[0].slice(0, 100)}` }
 }
 
 // #28 / VT_D4–D6 — standard profiles table + trigger + RLS, applied via the Supabase mgmt query API.
@@ -420,10 +480,10 @@ const HANDLERS = {
 // main
 // ---------------------------------------------------------------------------
 async function main() {
-  const ctx = resolveContext(slug)
+  const ctx = await resolveContext(slug)
   console.log(`config-fixer — ${slug}  [${apply ? 'APPLY (live mutations)' : 'DRY-RUN'}]`)
-  console.log(`  vercel project: ${ctx.vercelProjectId}  | supabase ref: ${ctx.supabaseRef || '(unresolved)'}  | product env: ${ctx.repoPresent ? ctx.repoDir : '(repo not checked out — Supabase/EL handlers will need it)'}`)
-  console.log(`  tokens: vercel=${ctx.vercelToken ? 'yes' : 'NO'} supabase-mgmt=${ctx.supabaseToken ? 'yes' : 'NO'} eleven=${ctx.elevenKey ? 'yes' : 'NO'}`)
+  console.log(`  vercel project: ${ctx.vercelProjectId}  | supabase ref: ${ctx.supabaseRef || '(unresolved)'}  | product env: ${ctx.pulledFrom}`)
+  console.log(`  creds: vercel=${ctx.vercelToken ? 'yes' : 'NO'} supabase-mgmt=${ctx.supabaseToken ? 'yes' : 'NO'} service-key=${ctx.supabaseServiceKey ? 'yes' : 'NO'} eleven=${ctx.elevenKey ? 'yes' : 'NO'}`)
 
   // Which checks to run.
   let codes
