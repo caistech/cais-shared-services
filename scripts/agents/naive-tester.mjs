@@ -48,7 +48,7 @@ async function main() {
     if (await goto(mobile, origin)) shots.push(await shot(mobile, 'landing — mobile 390'))
 
     const login = await tryLogin(desktop, origin, {
-      email: process.env.TEST_USER_EMAIL || process.env.QA_TEST_EMAIL,
+      email: process.env.QA_USER_EMAIL || process.env.TEST_USER_EMAIL || process.env.QA_TEST_EMAIL,
       password: process.env.QA_USER_PASSWORD || process.env.QA_TEST_PASSWORD,
     })
     if (login.ok) shots.push(await shot(desktop, 'authed surface (after login) — desktop'))

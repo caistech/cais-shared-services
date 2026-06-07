@@ -93,10 +93,13 @@ jobs:
       CAIS_GATES_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       # vision verdicts
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      # authed-surface walk (a real QA account, never a backdoor — PRODUCT_STANDARDS §9.5)
+      # user-agent (a real QA account, never a backdoor — PRODUCT_STANDARDS §9.5). QA_USER_EMAIL is
+      # the canonical name (matches the products' .env.local); TEST_USER_EMAIL kept as a fallback.
+      QA_USER_EMAIL: ${{ secrets.QA_USER_EMAIL }}
       TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
       QA_USER_PASSWORD: ${{ secrets.QA_USER_PASSWORD }}
-      # admin-agent (dennis+qaadmin@… — a real admin account in ADMIN_EMAILS, NEVER an operator account)
+      # admin-agent — a real admin account in ADMIN_EMAILS, NEVER an operator account.
+      QA_OWNER_EMAIL: ${{ secrets.QA_OWNER_EMAIL }}
       QA_ADMIN_EMAIL: ${{ secrets.QA_ADMIN_EMAIL }}
       QA_OWNER_PASSWORD: ${{ secrets.QA_OWNER_PASSWORD }}
       # preview SSO bypass (if the URL is a protected preview)

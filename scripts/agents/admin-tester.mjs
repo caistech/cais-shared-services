@@ -21,7 +21,7 @@ const slug = arg('slug')
 const origin = arg('url').replace(/\/$/, '')
 const deployment = arg('deployment')
 const apiKey = process.env.ANTHROPIC_API_KEY
-const adminEmail = process.env.QA_ADMIN_EMAIL || 'dennis+qaadmin@factory2key.com.au'
+const adminEmail = process.env.QA_OWNER_EMAIL || process.env.QA_ADMIN_EMAIL || 'dennis+qaadmin@factory2key.com.au'
 const adminPw = process.env.QA_OWNER_PASSWORD
 
 // VT_A1–A4 ONLY (A5/A6 are operator-verified, never agent-run). The mandatory-portal rule is baked

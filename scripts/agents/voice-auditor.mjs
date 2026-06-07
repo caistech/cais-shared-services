@@ -63,7 +63,7 @@ async function main() {
     // The key value surface is usually behind auth — log in and look there too.
     const app = await ctx.newPage()
     const login = await tryLogin(app, origin, {
-      email: process.env.TEST_USER_EMAIL || process.env.QA_TEST_EMAIL,
+      email: process.env.QA_USER_EMAIL || process.env.TEST_USER_EMAIL || process.env.QA_TEST_EMAIL,
       password: process.env.QA_USER_PASSWORD || process.env.QA_TEST_PASSWORD,
     })
     if (login.ok) {
