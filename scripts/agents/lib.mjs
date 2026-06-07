@@ -65,21 +65,42 @@ export async function shot(page, label) {
 export async function tryLogin(page, origin, { email, password, paths }) {
   if (!email || !password) return { ok: false, note: 'no QA creds supplied' }
   const loginPaths = paths || ['/login', '/pipeline/login', '/auth/login', '/signin']
+  const onLogin = () => /login|signin/i.test(page.url())
   for (const path of loginPaths) {
     if (!(await goto(page, `${origin}${path}`))) continue
-    const pw = page.locator('input[type=password]').first()
+    // Target VISIBLE fields only — dual-auth/tabbed login pages render hidden signup/reset fields
+    // too, and .first() would otherwise grab the wrong (hidden) tab.
+    const pw = page.locator('input[type=password]:visible').first()
     if ((await pw.count().catch(() => 0)) === 0) continue
-    const em = page.locator('input[type=email], input[name=email]').first()
+    const em = page.locator('input[type=email]:visible, input[name=email]:visible').first()
     try {
       await em.fill(email)
       await pw.fill(password)
-      await Promise.all([
-        page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {}),
-        page.locator('button[type=submit], button:has-text("Sign in"), button:has-text("Log in"), button:has-text("Sign In")').first().click(),
-      ])
-      // Heuristic: logged-in if we left the login URL.
-      return { ok: !/login|signin/i.test(page.url()), note: page.url() }
-    } catch (e) { return { ok: false, note: String(e.message || e).slice(0, 80) } }
+      // Submit via Enter (submits the active form — robust to tabbed UIs + odd button labels), then
+      // fall back to a submit button if we're still on the login page.
+      await pw.press('Enter').catch(() => {})
+      await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {})
+      if (onLogin()) {
+        await page
+          .locator('button[type=submit], button:has-text("Sign in"), button:has-text("Log in"), button:has-text("Sign In"), button:has-text("Continue")')
+          .first()
+          .click({ timeout: 5000 })
+          .catch(() => {})
+        await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {})
+      }
+      // Success = left the login URL OR a Supabase auth cookie is now set.
+      const cookies = await page.context().cookies().catch(() => [])
+      if (!onLogin() || cookies.some((c) => /auth-token|sb-.*-auth/i.test(c.name))) {
+        return { ok: true, note: page.url() }
+      }
+      // Self-diagnose on failure (visible in the CI log) — field/button shape + any error text, so
+      // the next iteration knows WHY (wrong tab? captcha? a real auth error like a disabled key?).
+      const emN = await page.locator('input[type=email]:visible').count().catch(() => 0)
+      const pwN = await page.locator('input[type=password]:visible').count().catch(() => 0)
+      const btns = (await page.locator('button:visible').allInnerTexts().catch(() => [])).map((t) => t.trim()).filter(Boolean).slice(0, 6).join(' | ')
+      const err = ((await page.locator('[role=alert], .error, [class*=error], [class*=Error]').first().innerText().catch(() => '')) || '').replace(/\s+/g, ' ').slice(0, 120)
+      return { ok: false, note: `still on ${page.url()} | visible emails:${emN} pwds:${pwN} | buttons: ${btns} | err: ${err || '(none)'}` }
+    } catch (e) { return { ok: false, note: String(e.message || e).slice(0, 120) } }
   }
   return { ok: false, note: 'no password login form found (magic-link only?)' }
 }
