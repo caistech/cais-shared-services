@@ -168,7 +168,13 @@ export async function recordReadiness({ slug, source, checks, deploymentId = nul
       recorded_by: recordedBy,
     };
   });
-  return rest("readiness_results", { method: "POST", prefer: "return=representation", body: rows });
+  // Upsert on the (product_slug, check_code) unique constraint so a re-run UPDATES the latest
+  // verdict instead of 409-ing on the duplicate key (the scorer takes the newest per code anyway).
+  return rest("readiness_results?on_conflict=product_slug,check_code", {
+    method: "POST",
+    prefer: "resolution=merge-duplicates,return=representation",
+    body: rows,
+  });
 }
 
 /** Read a card's gate2_go + build_type (the scale-infra unlock + gate-path router). */
