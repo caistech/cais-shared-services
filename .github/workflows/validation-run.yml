@@ -37,9 +37,9 @@ on:
         required: false
         default: ''
       run_agents:
-        description: 'Run the experimental browser-agent job (needs a self-hosted runner)'
+        description: 'Run the CI-native browser test-agents (naive-tester + voice-auditor)'
         required: false
-        default: 'false'
+        default: 'true'
 
 jobs:
   repo-probe:
@@ -83,15 +83,53 @@ jobs:
             --gate-check shared/scripts/gate-check.mjs
 
   browser-agents:
-    name: 2b — browser test-agents (experimental, opt-in)
+    name: 2b — browser test-agents (CI-native Playwright + vision)
     needs: repo-probe
-    if: ${{ github.event.inputs.run_agents == 'true' }}
+    if: ${{ github.event.inputs.run_agents != 'false' }}
     runs-on: ubuntu-latest
+    env:
+      # gate-check writes
+      CAIS_GATES_URL: ${{ secrets.SUPABASE_URL }}
+      CAIS_GATES_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # vision verdicts
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # authed-surface walk (a real QA account, never a backdoor — PRODUCT_STANDARDS §9.5)
+      TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+      QA_USER_PASSWORD: ${{ secrets.QA_USER_PASSWORD }}
+      # preview SSO bypass (if the URL is a protected preview)
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
     steps:
-      - name: Frontier notice
+      - name: Checkout shared-services (agents + gate-check)
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Playwright + chromium
         run: |
-          echo "::warning::2b browser-agent run requested, but GitHub-hosted runners have no gstack/Claude-Code browser."
-          echo "Real naive-tester + voice-auditor + dual-portal walks need a SELF-HOSTED runner"
-          echo "(Dennis's machine: gstack + browse + Claude Code) or a Playwright+vision agent wired here."
-          echo "Recording NOTHING rather than a shallow HTTP fake (degrade-don't-fake)."
-          echo "When wired, this job records via: node shared/scripts/gate-check.mjs record-readiness <slug> --source naive-tester|voice-auditor --checks ..."
+          cd scripts/agents
+          npm install
+          npx playwright install --with-deps chromium
+
+      - name: Guard — no ANTHROPIC_API_KEY → record nothing (degrade-don't-fake)
+        if: ${{ env.ANTHROPIC_API_KEY == '' }}
+        run: echo "::warning::ANTHROPIC_API_KEY not set on this repo — the vision agents record NOTHING (no fake verdicts). Add the secret to enable 2b."
+
+      - name: naive-tester (visual/UX NAIVE checks)
+        if: ${{ env.ANTHROPIC_API_KEY != '' }}
+        run: |
+          node scripts/agents/naive-tester.mjs \
+            --slug "${{ github.event.inputs.slug }}" \
+            --url "${{ github.event.inputs.url }}" \
+            --deployment "${{ github.event.inputs.deployment_id }}"
+        continue-on-error: true
+
+      - name: voice-auditor (browser-observable voice checks)
+        if: ${{ env.ANTHROPIC_API_KEY != '' }}
+        run: |
+          node scripts/agents/voice-auditor.mjs \
+            --slug "${{ github.event.inputs.slug }}" \
+            --url "${{ github.event.inputs.url }}" \
+            --deployment "${{ github.event.inputs.deployment_id }}"
+        continue-on-error: true

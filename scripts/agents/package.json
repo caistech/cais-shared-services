@@ -1,0 +1,9 @@
+{
+  "name": "cais-validation-agents",
+  "private": true,
+  "type": "module",
+  "description": "CI-native browser test-agents (Option B) — Playwright drive + Anthropic-vision verdicts, recorded via gate-check. No gstack; runs on a plain CI runner.",
+  "dependencies": {
+    "playwright": "^1.48.0"
+  }
+}
