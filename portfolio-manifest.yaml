@@ -65,6 +65,16 @@ shared:
 # Projects currently managed by the @caistech hub workflow.
 # Slugs match Vercel project names; inherit_shared lists which shared keys
 # apply; envs declares project-specific bindings.
+#
+# NOTE (2026-06-05): This `projects:` list is the ENV-SYNC manifest — consumed by
+# @caistech/portfolio-env-sync + onboard-new-project.sh (which read this FILE). It is
+# NO LONGER the cockpit's portfolio-membership source. Cockpit membership (the
+# /admin/pipeline getProductPipeline gate) now lives in the `portfolio_manifest`
+# Supabase TABLE (Corporate-AI-Solutions migration 20260605120000), written at
+# runtime on review-submit. Do NOT hand-edit this file expecting the cockpit to pick
+# it up — it won't. Keep this list current for env-sync; add cockpit products via the
+# table (review intake upserts it; _onboard-append-manifest.mjs still appends here for
+# env-sync).
 # -----------------------------------------------------------------------------
 projects:
 

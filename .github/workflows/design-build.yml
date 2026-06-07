@@ -141,6 +141,18 @@ jobs:
               for(const t of r.toReach){ out+="- "+(t.label||t.code)+": "+(t.need||"")+"\n"; }
               out+="\n";
             }
+            // Readiness punch-list — the recorded validation verdicts (naive-tester / auto-probe /
+            // judge) surfaced on the card. These are ALSO binding: every fail below must be made to
+            // pass, same as the survey failures. This is what the cockpit "Fix" button targets.
+            if(p.score&&Array.isArray(p.score.checks)){
+              const fails=p.score.checks.filter(c=>c&&c.applicable&&c.status==="fail");
+              if(fails.length){
+                out+="## Validation findings (readiness checks) — ALL fails MUST be made to pass\n";
+                out+="Recorded test verdicts against the live build. GROUND TRUTH — do not re-judge them.\n";
+                for(const c of fails){ const blk=String(c.tier||"").indexOf("HARD")>=0; out+="- ["+(blk?"BLOCKING":"lowers-score")+"] #"+c.code+" "+(c.label||"")+(c.evidence?(" — "+c.evidence):"")+"\n"; }
+                out+="\n";
+              }
+            }
             fs.writeFileSync(process.env.GITHUB_WORKSPACE+"/target/_teardown_brief.md",out);
           ' || echo "(could not build teardown brief — spec may lack survey_gate.result)"
           echo "--- teardown brief ---"; cat "$GITHUB_WORKSPACE/target/_teardown_brief.md" 2>/dev/null || echo "(none)"
