@@ -46,11 +46,18 @@ shared:
 
   # Standard accounts — created in every product's Supabase project by
   # scripts/provision-qa-accounts.mjs. See PRODUCT_STANDARDS.md §9.5.
+  # Standard set (2026-06-08): the two human operators + a dedicated admin-AGENT
+  # (qa-admin@) for the autonomous admin-portal checks, and a non-admin user-agent
+  # (qa-user@) for the user/landing checks. admin_users → each product's ADMIN_EMAILS;
+  # test_user is deliberately NOT in admin_users (must fail the user-blocked-from-/admin
+  # check VT_B2). qa-admin@ is a dedicated agent identity, separate from the operators,
+  # so no agent run ever drives a real operator account.
   admin_users:
-    - email: dennis@corporateaisolutions.com
-    - email: mcmdennis@gmail.com
+    - email: dennis@corporateaisolutions.com         # operator (by hand)
+    - email: mcmdennis@gmail.com                      # operator (by hand)
+    - email: qa-admin@qa.corporateaisolutions.com     # admin-AGENT (QA_OWNER_EMAIL)
   test_user:
-    email: dennis@factory2key.com.au
+    email: qa-user@qa.corporateaisolutions.com        # user-agent (QA_USER_EMAIL)
 
   # Property-services shared infra (one Supabase project + edge functions
   # for property intelligence across F2K, mmcbuild, deal-findrs).
