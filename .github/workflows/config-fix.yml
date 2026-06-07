@@ -1,0 +1,73 @@
+# config-fix.yml — the CONFIG-lane remediation runner (the config analog of design-build.yml).
+# Dispatched by the cockpit (/api/admin/pipeline/<slug>/config-fix) with the product slug + the
+# deployment to bind verdicts to (+ optional explicit check codes). Runs scripts/config-fixer.mjs,
+# which routes each failing CONFIG-lane check to an idempotent infra remediation and records the
+# verdict via gate-check (source=auto).
+#
+# CRED BOUNDARY (honest): GitHub-hosted runners have the workspace-level tokens (Vercel, Supabase
+# management) but NOT a product's .env.local (ElevenLabs BYOK key, the product service key) — those
+# aren't committed. So in CI the token-only checks (#40 Vercel env hygiene, VT_D1 ADMIN_EMAILS) run
+# for real; the product-cred ones (#18/#19 ElevenLabs, QA accounts, and email/profiles where the
+# Supabase ref isn't in the manifest) record as needs-you — never a silent skip, never a fake pass.
+# The FULL config-fix runs locally (operator machine, where the product .env.local is present):
+#   node scripts/config-fixer.mjs --slug <slug> --repo-dir <path> --apply
+#
+# Secrets: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (gate-check writes), VERCEL_TOKEN,
+#          SUPABASE_MANAGEMENT_TOKEN (email/profiles where a ref resolves).
+
+name: config-fix
+
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: 'Product slug (cockpit productId, e.g. deal-findrs)'
+        required: true
+      url:
+        description: 'Live product URL (context)'
+        required: false
+        default: ''
+      deployment_id:
+        description: 'Deployment the verdicts bind to (blank = live prod deployment)'
+        required: false
+        default: ''
+      checks:
+        description: 'Comma list of config check codes (blank = all failing config checks)'
+        required: false
+        default: ''
+
+jobs:
+  config-fix:
+    name: config-lane remediation
+    runs-on: ubuntu-latest
+    env:
+      CAIS_GATES_URL: ${{ secrets.SUPABASE_URL }}
+      CAIS_GATES_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      SUPABASE_MANAGEMENT_TOKEN: ${{ secrets.SUPABASE_MANAGEMENT_TOKEN }}
+      # CAS workspace ElevenLabs key — lets #18/#19 run in CI when a product's own key isn't readable.
+      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+    steps:
+      - name: Checkout shared-services (config-fixer + gate-check)
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build the elevenlabs-convai hub (config-fixer #18/#19 reuse it)
+        run: |
+          if [ -d packages/elevenlabs-convai ]; then
+            npm --prefix packages/elevenlabs-convai ci && npm --prefix packages/elevenlabs-convai run build || \
+              echo "::warning::hub build skipped/failed — #18/#19 will record needs-you (degrade-don't-fake)"
+          fi
+        continue-on-error: true
+
+      - name: Run the config-fixer (--pull-vercel: resolves product env from Vercel, not a local file)
+        run: |
+          node scripts/config-fixer.mjs \
+            --slug "${{ github.event.inputs.slug }}" \
+            --pull-vercel \
+            --apply \
+            ${{ github.event.inputs.deployment_id && format('--deployment {0}', github.event.inputs.deployment_id) || '' }} \
+            ${{ github.event.inputs.checks && format('--checks {0}', github.event.inputs.checks) || '' }}

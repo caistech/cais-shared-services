@@ -517,6 +517,27 @@ async function main() {
         totalErrors++;
       }
     }
+
+    // ADMIN_EMAILS allowlist = the human operators + the admin-AGENT (NEVER the user-agent — it must
+    // fail VT_B2). Pushed at scaffold time so /admin gates correctly out of the box. On an EXISTING
+    // product Vercel 409s (no overwrite here) — use the config-fixer VT_D1 lane or the dashboard to
+    // update an existing allowlist.
+    if (args.vercel && !args.dryRun) {
+      const proj = projects[slug];
+      if (proj?.vercel_project_id) {
+        const adminEmails = [
+          ...new Set(
+            [...adminUsers.map((a) => a.email), taConfig.adminAgentEmail]
+              .filter(Boolean)
+              .map((e) => e.toLowerCase()),
+          ),
+        ].join(",");
+        console.log(`\n  ADMIN_EMAILS (operators + admin-agent):`);
+        await pushToVercel(proj.vercel_project_id, { ADMIN_EMAILS: adminEmails });
+        if (hasRepoRoot) writeEnvVars(join(repoRoot, ".env.local"), { ADMIN_EMAILS: adminEmails });
+      }
+    }
+
     console.log(`\n  Done â€” ${slug}`);
   }
 

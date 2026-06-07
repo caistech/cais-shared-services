@@ -168,8 +168,8 @@ export async function recordReadiness({ slug, source, checks, deploymentId = nul
       recorded_by: recordedBy,
     };
   });
-  // Upsert on the (product_slug, check_code) unique key so a re-run records the LATEST
-  // verdict per code instead of colliding with the prior run's row (409 duplicate-key).
+  // Upsert on the (product_slug, check_code) unique constraint so a re-run UPDATES the latest
+  // verdict instead of 409-ing on the duplicate key (the scorer takes the newest per code anyway).
   return rest("readiness_results?on_conflict=product_slug,check_code", {
     method: "POST",
     prefer: "resolution=merge-duplicates,return=representation",
