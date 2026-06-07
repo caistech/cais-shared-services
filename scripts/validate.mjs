@@ -53,6 +53,18 @@ const opts = {
 
 const COCKPIT_BASE = process.env.COCKPIT_BASE;
 
+// QA auth (§9.5): the spawned skill inherits these via env (NEVER passed in argv, so no
+// secret hits the logs). Present → the skill authenticates as the QA account (Mode A types
+// creds at /login, or Mode B mints via qa-session for magic-link). Absent → public-only walk,
+// loudly flagged (degrade-don't-fake — an auth-less walk records misleading gated verdicts).
+const QA = {
+  email: process.env.QA_TEST_EMAIL,
+  password: process.env.QA_TEST_PASSWORD,
+  service: process.env.SUPABASE_SERVICE_ROLE_KEY, // for --magic-link mint
+  supaUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+};
+const QA_READY = !!(QA.email && (QA.password || (QA.service && QA.supaUrl)));
+
 function log(stage, data) {
   // structured prefixes per the project DEBUGGING STANDARD
   console.log(`[VALIDATE:${stage}]`, typeof data === "string" ? data : JSON.stringify(data));
@@ -102,10 +114,20 @@ function snapshot(spec) {
 function runLocalSkill(producer, url) {
   // The installed gstack skill walks the URL and self-records via gate-check
   // (see ~/.claude/skills/<skill>/SKILL.md "Recording readiness verdicts").
+  const authClause = QA_READY
+    ? `AUTHENTICATE as the QA account before walking gated surfaces: per docs/TESTING.md, ` +
+      `Mode A — go to the login page and TYPE the QA creds from your environment ` +
+      `(QA_TEST_EMAIL${QA.password ? " + QA_TEST_PASSWORD" : ""}); for a magic-link-only product ` +
+      `use Mode B — mint a session with qa-session.mjs --magic-link (uses SUPABASE_SERVICE_ROLE_KEY) ` +
+      `and inject the cookie. Walk BOTH the public AND the authenticated surfaces (and the admin ` +
+      `portal as the admin QA account if the product has one). Do NOT report auth-gated surfaces as ` +
+      `failed for lack of access — you have a real QA account.\n`
+    : `WARNING: no QA creds in the environment — walk PUBLIC surfaces only. Mark auth-gated checks ` +
+      `as 'na' (not 'fail') since you could not reach them; do NOT fabricate a pass or a fail for them.\n`;
   const prompt =
     `/${producer.skill} ${url}\n\n` +
-    `Target product slug: ${slug}. This is an automated validation run. Walk the live URL, ` +
-    `then RECORD your verdicts to readiness_results exactly as the skill documents: ` +
+    `Target product slug: ${slug}. This is an automated validation run. ${authClause}` +
+    `Walk the live URL, then RECORD your verdicts to readiness_results exactly as the skill documents: ` +
     `node ${GATE_CHECK} record-readiness ${slug} --source ${producer.source} ` +
     `${opts.deployment ? `--deployment ${opts.deployment}` : "--no-deployment"} --file <results.json>. ` +
     `Do not skip the recording step — it is the only output that matters here.`;
@@ -131,7 +153,8 @@ async function main() {
   const { url, deployment, spec } = await resolveTarget();
   if (deployment) opts.deployment = deployment;
   const before = snapshot(spec);
-  log("target", { slug, url, deployment: opts.deployment || "(none)", mode: opts.mode });
+  log("target", { slug, url, deployment: opts.deployment || "(none)", mode: opts.mode, qa_auth: QA_READY ? `as ${QA.email}` : "PUBLIC-ONLY (no QA creds)" });
+  if (!QA_READY && opts.mode === "local") log("warn", "no QA creds — set QA_TEST_EMAIL + (QA_TEST_PASSWORD or SUPABASE_SERVICE_ROLE_KEY+NEXT_PUBLIC_SUPABASE_URL) to walk authenticated surfaces (§9.5).");
 
   const producers = opts.only ? PRODUCERS.filter((p) => opts.only.includes(p.source)) : PRODUCERS;
   const results = [];
