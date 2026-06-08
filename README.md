@@ -4,6 +4,11 @@ Shared services hub for the Corporate AI Solutions portfolio. npm workspace mono
 
 ## Packages
 
+> **The complete, canonical capability catalog is [`SHARED_SERVICES.md`](./SHARED_SERVICES.md)** —
+> every `@caistech/*` package + what it offers + when to use it. It is auto-loaded into every agent
+> session. The grouped tables below are a human-readable subset; if they disagree, `SHARED_SERVICES.md`
+> wins, and new/extended packages must be added there.
+
 **Trust & security**
 | Package | Purpose |
 |---------|---------|

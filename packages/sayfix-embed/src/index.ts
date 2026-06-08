@@ -14,7 +14,7 @@
  *   → Navigation links to Report + My Requests (requires auth)
  */
 
-import { Bug, ExternalLink, MessageSquare, Clock, Settings, Wrench } from 'lucide-react';
+import { MessageSquare, Clock, Settings, Wrench } from 'lucide-react';
 
 /* ========================= WIDGET ========================= */
 
@@ -34,28 +34,30 @@ export interface SayFixWidgetProps {
  */
 export function SayFixWidget({
   repo,
-  label = 'Report Issue',
+  label = 'Report a problem — get it SayFixed',
   showIcon = true,
   position = 'bottom-right'
 }: SayFixWidgetProps) {
   const sayfixUrl = `https://sayfix.vercel.app/welcome?product=${encodeURIComponent(repo)}`;
-  
+
   const positionClasses = {
     'bottom-right': 'bottom-6 right-6',
     'bottom-left': 'bottom-6 left-6',
   };
 
+  // Reads clearly as THE support mechanism (so a visitor knows it's where you report a problem),
+  // and the friendly framing sets up the surprise that it's a real coach + fast fix, not a ticket
+  // black hole. Override `label` per product if needed.
   return (
     <a
       href={sayfixUrl}
       target="_blank"
       rel="noopener noreferrer"
       className={`fixed ${positionClasses[position]} bg-stone-900 text-white px-4 py-3 rounded-full shadow-lg hover:bg-stone-800 transition-all flex items-center gap-2 font-medium z-50`}
-      title="Report an issue - opens in new tab"
+      title="Report a problem — opens SayFix in a new tab"
     >
-      {showIcon && <Bug className="w-5 h-5" />}
+      {showIcon && <MessageSquare className="w-5 h-5" />}
       {label}
-      <ExternalLink className="w-3 h-3 opacity-60" />
     </a>
   );
 }

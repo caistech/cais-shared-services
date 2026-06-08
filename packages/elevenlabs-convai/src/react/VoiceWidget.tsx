@@ -47,6 +47,22 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
 
   const status = convo.status as VoiceConnectionStatus;
   const fallback = shouldUseTextFallback(props, status);
+  const connected = status === 'connected';
+
+  // Hand the consumer imperative controls into the live conversation, once, on connect. Lets it
+  // push a user turn or a contextual nudge (e.g. a timed wrap-up) the user didn't type.
+  const readyFiredRef = useRef(false);
+  useEffect(() => {
+    if (connected && !readyFiredRef.current) {
+      readyFiredRef.current = true;
+      props.onReady?.({
+        sendUserMessage: (t: string) => { try { convo.sendUserMessage?.(t); } catch { /* not connected */ } },
+        sendContextualUpdate: (t: string) => { try { convo.sendContextualUpdate?.(t); } catch { /* not connected */ } },
+      });
+    }
+    if (!connected) readyFiredRef.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connected]);
 
   function connect() {
     if (fallback || startedRef.current || status === 'connected') return;
@@ -73,10 +89,15 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
   function submitText(e: FormEvent) {
     e.preventDefault();
     const value = text.trim();
-    if (value) {
+    if (!value) return;
+    if (connected) {
+      // Live session: inject as a user turn the agent actually sees (voice + text, one conversation).
+      try { convo.sendUserMessage?.(value); } catch { /* not connected */ }
+    } else {
+      // No live voice — hand off to the consumer to route (true no-agent fallback).
       props.onTextFallbackSubmit?.(value);
-      setText('');
     }
+    setText('');
   }
 
   // Optional auto-connect on mount.
@@ -127,6 +148,17 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
                   {convo.isMuted ? 'Unmute' : 'Mute'}
                 </button>
               </div>
+              {props.textInput && (
+                <form className="convai-fallback convai-row" onSubmit={submitText} style={{ marginTop: 8 }}>
+                  <input
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    placeholder="Type or paste to the assistant"
+                    aria-label="Type or paste to the assistant"
+                  />
+                  <button className="convai-btn" type="submit">Send</button>
+                </form>
+              )}
             </>
           )}
         </div>

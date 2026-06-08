@@ -144,6 +144,10 @@ export interface CreateAgentOptions {
   // (widget, evaluation, etc.). The post-call webhook is NOT bound here — it is
   // workspace-scoped via bindWorkspaceWebhook() in provision.ts.
   platformSettings?: Record<string, unknown>;
+  // Max conversation length in seconds. ElevenLabs defaults to 600 (10 min) — too short for a
+  // discovery/coaching call. Defaults to 1200 (20 min). The agent should also be told in its prompt
+  // to warn the user when the chat is nearly up ("we keep each chat to ~20 minutes").
+  maxDurationSeconds?: number;
 }
 
 // Override-enablement block written into platform_settings.overrides.
@@ -168,7 +172,7 @@ export async function createAgent(
   apiKey: string,
   options: CreateAgentOptions
 ): Promise<{ agentId: string; agentName: string }> {
-  const { config, systemPrompt, firstMessage, language = 'en', tools } = options;
+  const { config, systemPrompt, firstMessage, language = 'en', tools, maxDurationSeconds = 1200 } = options;
 
   const agentConfig: ElevenLabsAgentConfig = {
     name: config.agentName,
@@ -185,6 +189,10 @@ export async function createAgent(
       tts: {
         voice_id: config.voiceId,
         model_id: config.voiceModel || defaultVoiceModelFor(language),
+      },
+      // 20-min default (vs ElevenLabs' 600s) so a discovery/coaching call isn't cut short.
+      conversation: {
+        max_duration_seconds: maxDurationSeconds,
       },
     },
   };
