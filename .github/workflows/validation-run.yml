@@ -148,3 +148,12 @@ jobs:
             --url "${{ github.event.inputs.url }}" \
             --deployment "${{ github.event.inputs.deployment_id }}"
         continue-on-error: true
+
+      - name: promise-judge (check #9 — promise attributes at quality bar)
+        if: ${{ env.ANTHROPIC_API_KEY != '' }}
+        run: |
+          node scripts/agents/promise-judge.mjs \
+            --slug "${{ github.event.inputs.slug }}" \
+            --url "${{ github.event.inputs.url }}" \
+            --deployment "${{ github.event.inputs.deployment_id }}"
+        continue-on-error: true
