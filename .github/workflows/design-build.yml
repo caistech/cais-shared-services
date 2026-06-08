@@ -325,6 +325,35 @@ jobs:
           opencode run $MODEL_FLAG "$(cat "$GITHUB_WORKSPACE/prompt.txt")" 2>&1 | tee "$GITHUB_WORKSPACE/opencode-output.txt"
           echo "=== files after run ==="; git status --porcelain | head -50
 
+      - name: Typecheck gate — build MUST compile before a PR (self-fix loop)
+        working-directory: target
+        timeout-minutes: 20
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          # The model REASONS about code but won't catch a type error it never RAN. This gate makes
+          # `tsc --noEmit` the hard contract: install deps (tolerate the known peer-range drift), run
+          # tsc, and if it fails, feed the errors back to the builder (Claude via OpenCode) to fix —
+          # loop up to 3×. If still broken, FAIL the job: never open a PR over non-compiling code.
+          set +e
+          MODEL_FLAG=""; [ -n "$OPENCODE_MODEL" ] && MODEL_FLAG="-m $OPENCODE_MODEL"
+          echo "::group::npm install"; npm install --no-audit --no-fund --legacy-peer-deps 2>&1 | tail -25; echo "::endgroup::"
+          MAX=3
+          for i in $(seq 1 $MAX); do
+            echo "::group::typecheck attempt $i/$MAX"
+            npx --yes tsc --noEmit > /tmp/tsc.log 2>&1; code=$?
+            tail -50 /tmp/tsc.log
+            echo "::endgroup::"
+            if [ $code -eq 0 ]; then echo "✓ TYPECHECK PASSED (attempt $i)"; exit 0; fi
+            [ $i -ge $MAX ] && break
+            echo "::warning::typecheck failed (attempt $i) — feeding errors back to the builder"
+            ERRS=$(grep -E "error TS|: error|\.tsx?:[0-9]" /tmp/tsc.log | head -40)
+            opencode run $MODEL_FLAG "The product fails \`npx tsc --noEmit\`. Fix ALL of these TypeScript errors so it compiles cleanly. Change ONLY what is required; do not touch unrelated code or features. Errors:
+          $ERRS" 2>&1 | tail -15
+          done
+          echo "::error::typecheck still failing after $MAX attempts — refusing to open a PR over non-compiling code"
+          exit 1
+
       - name: Commit + push branch, open PR
         id: pr
         working-directory: target
