@@ -85,10 +85,16 @@ jobs:
           # So the builder can `npm install @caistech/elevenlabs-convai` (the hub) and consume it
           # instead of inlining its logic (the forking anti-pattern). The quoted heredoc keeps
           # ${NODE_AUTH_TOKEN} LITERAL in the file; npm expands it from the env at install time.
+          # NOTE: this .npmrc gets COMMITTED with the PR (git add -A), so it must carry everything the
+          # product's Vercel build needs — including legacy-peer-deps, or a @caistech peer-range drift
+          # (e.g. lucide-react) ERESOLVE-fails the deploy. Do NOT drop it: the gate below installs the
+          # SAME way Vercel does (via this file, no CLI flags), so a missing line fails the gate, not
+          # just the deploy.
           cat > "$GITHUB_WORKSPACE/target/.npmrc" <<'NPMRC'
           @caistech:registry=https://npm.pkg.github.com
           //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
           always-auth=true
+          legacy-peer-deps=true
           NPMRC
           echo "wrote target/.npmrc (@caistech → GitHub Packages)"
 
@@ -337,7 +343,10 @@ jobs:
           # loop up to 3×. If still broken, FAIL the job: never open a PR over non-compiling code.
           set +e
           MODEL_FLAG=""; [ -n "$OPENCODE_MODEL" ] && MODEL_FLAG="-m $OPENCODE_MODEL"
-          echo "::group::npm install"; npm install --no-audit --no-fund --legacy-peer-deps 2>&1 | tail -25; echo "::endgroup::"
+          # Install EXACTLY as Vercel does — via the committed .npmrc, NO extra CLI flags. Passing
+          # --legacy-peer-deps here would mask a .npmrc that's missing it (the gate would pass while
+          # the deploy ERESOLVE-fails). The .npmrc above carries legacy-peer-deps, so this resolves.
+          echo "::group::npm install"; npm install --no-audit --no-fund 2>&1 | tail -25; echo "::endgroup::"
           MAX=3
           for i in $(seq 1 $MAX); do
             echo "::group::typecheck attempt $i/$MAX"
