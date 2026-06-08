@@ -42,6 +42,7 @@ export {
   listAgents,
   findAgentsByName,
   defaultVoiceModelFor,
+  DEFAULT_AGENT_LLM,
   toElevenLabsTools,
   WORKSPACE_TOOLS_API,
   toWorkspaceToolConfig,
