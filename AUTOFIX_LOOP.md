@@ -115,6 +115,17 @@ of a fake-green generator.
 - **`recordGate` constraint drift.** The builder's result-report can hit a DB CHECK constraint
   (`pipeline_gates_gate_check`) if it reports a gate value the schema doesn't allow — cosmetic, but
   keep the reporter's enum in sync with the table constraint.
+- **The code builder must RUN the build, not just reason about it.** A strong model (Claude via
+  OpenCode) still ships type errors it never *executed* — deal-findrs took **three** failed deploys
+  (a `never`-typed Supabase insert, an excess `Record` key) before this was caught. **Gate the
+  builder:** after it writes code, run `npm install` (+ `--legacy-peer-deps` if the project has a
+  peer-range drift) and `npx tsc --noEmit`; on failure, feed the errors back to the builder to
+  self-fix (loop a few times), and **FAIL the job rather than open a PR over non-compiling code**
+  (`design-build.yml`'s typecheck gate). Verification, not model IQ, is the fix.
+- **Untyped Supabase client → `never` on insert/update.** `createClient(url, key)` with no
+  `<Database>` generic (or a generated type that lacks a *newly-added* table) infers `never` for
+  `.insert()/.update()` payloads → a tsc failure. Type the server-only admin client as `any`, or
+  regenerate the `Database` types to include the new table. (Now in `bug-knowledge.json`.)
 
 ---
 

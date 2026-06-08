@@ -3,6 +3,23 @@
   "description": "Centralized bug knowledge base - agents MUST check this before fixing any bug",
   "entries": [
     {
+      "id": "supabase-untyped-client-never-insert",
+      "product": "shared / any Next.js + @supabase/supabase-js",
+      "error_pattern": "Argument of type {...} is not assignable to parameter of type never (on .insert/.update)",
+      "error_symptoms": [
+        "tsc/next build fails on supabase .update({...}) or .insert({...})",
+        "Type error: ... not assignable to parameter of type never",
+        "appears after adding a NEW table not in the generated Database types"
+      ],
+      "attempts": [],
+      "solution": {
+        "approach": "An untyped createClient(url,key) (no <Database> generic), or a generated Database type missing the new table, infers never for insert/update payloads.",
+        "answer": "Type the server-only admin client as any (let _admin: any; createClient(url,key)) OR regenerate the Database types to include the new table (supabase gen types / the Management API typescript endpoint). For admin/webhook routes, any is fine."
+      },
+      "fixed_at": "2026-06-08",
+      "fixed_by": "auto-fix-loop (deal-findrs voice_sessions)"
+    },
+    {
       "id": "pg-create-policy-no-if-not-exists",
       "product": "shared / any Supabase migration",
       "error_pattern": "CREATE POLICY IF NOT EXISTS ... syntax error at or near NOT",
