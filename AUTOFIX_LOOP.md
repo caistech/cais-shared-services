@@ -156,8 +156,17 @@ autonomous fix loop. Map each component:
 **SayFix-specific must-haves (from §2/§3):**
 - Every ticket ends fixed/must-fix/needs-you/won't-fix — never silently closed (golden rule).
 - The builder bills a key you hold (Anthropic-direct), so a dead balance can't stall auto-fix.
+- **The fixer MUST run the build before opening a PR — a typecheck/build gate that self-fixes and
+  fails-rather-than-ships.** This is the single biggest lesson: Claude (via OpenCode) *reasons* about
+  code but won't catch a type error it never *ran* — without the gate, the auto-fixer ships PRs that
+  don't compile and you debug deploys one error at a time. Copy `design-build.yml`'s gate verbatim:
+  after the model writes code → `npm install` (+`--legacy-peer-deps` if needed) → `npx tsc --noEmit`
+  → on failure feed errors back to the model to fix (loop ~3×) → if still broken, **fail the job,
+  don't open the PR.** A green PR must mean a compiling PR.
+- The builder must be able to **install your private packages** (`NODE_AUTH_TOKEN` + scoped
+  `.npmrc`) in BOTH the builder runner and the product's deploy — else it inlines/forks them.
 - Verify the fix on the **live redeployed** build (not just "PR merged") before closing — bind to
-  the deployment.
+  the deployment. Migrations don't run on a Vercel deploy — apply them as part of the fix.
 - The fixer opens a **PR, never auto-merges** — the PR is the human checkpoint; forks it couldn't
   resolve get logged into the PR body.
 - `@caistech`-first: the fixer consumes the hub, never re-forks helpers.
