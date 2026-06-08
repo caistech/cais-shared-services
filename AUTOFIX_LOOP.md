@@ -96,12 +96,16 @@ of a fake-green generator.
 - **One shared QA-account set, provisioned everywhere.** The CI testers use ONE credential set;
   every product must have those accounts (manifest `shared:` + `provision-qa-accounts.mjs`), or
   per-product logins fail.
-- **A browser-agent tester's sandbox can't read the product's `.env.local`.** Telling the agent
-  "log in with the password in `.env.local`" fails permission-denied — it then walks UNAUTHED and
-  only covers the public surface (a SayFix naive-tester run, 2026-06-08, left the entire authed flow
-  + admin console untested for exactly this). The orchestrator must read the QA credential in the
-  PARENT and **inline the value into the agent's prompt** (or mint a session via the service-role
-  helper, `qa-session.mjs --magic-link`), never delegate the file read to the sandboxed agent.
+- **Never auth a browser-agent tester off `.env.local` — the model doesn't touch local data.** The
+  pipeline's testers run in CI where there is no `.env.local`; the right pattern (and the one to use
+  even locally) is to **mint a real QA session from the service-role key** — `qa-session.mjs
+  --magic-link` does `admin.generate_link` → `verify` → a session cookie, with `SUPABASE_SERVICE_ROLE_KEY`
+  + `QA_TEST_EMAIL` resolved from the cloud (workspace secret / Management API), NOT a password and NOT
+  a local file. Hand the agent the **session**, never a credential to read. A SayFix run (2026-06-08)
+  tried to make the sandboxed subagent read `.env.local`, hit permission-denied, and walked unauthed —
+  the off-model mistake this gotcha exists to prevent. (Both portals need their shared QA account
+  provisioned + session-mintable — incl. the dedicated admin-agent per §9.5 — or that portal can't be
+  walked.)
 - **A unit-test vocabulary/standards firewall doesn't cover the marketing/landing surface.** The
   in-app string check (state labels + comms templates) passed, yet the naive-tester caught dev
   jargon — "code / deploy / bug" — on the public landing hero, which no unit test guarded. The
