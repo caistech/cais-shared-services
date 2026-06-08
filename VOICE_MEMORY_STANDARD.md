@@ -70,11 +70,22 @@ Everything below makes those two real and safe.
     - **Ephemeral anon** — a visitor with no account and no consent: the session is single-visit;
       **never tell them the agent remembers them**, and purge on the anon-TTL.
     - **Opt-in-identified anon** *(SayFix's case)* — an anonymous visitor who **explicitly consents**
-      to be remembered and provides a recall key (name + email). The consent gate ("Do you want to
-      be kept updated about this ticket?" → yes → capture name/email) is what *legitimises*
-      cross-visit recall for a non-authed user: bind the consented email to the `convai_anon_session`,
-      recall by it on return, and still honour the TTL + see/clear surface (Rule 12). Without the
-      explicit opt-in, an anon stays ephemeral. Pre-auth single-user *internal* builds may instead
+      to be remembered (gate: "Do you want to be kept updated about this ticket?" → capture name +
+      email). Two recall modes — pick by how durable the promise is:
+      - **Same-device, session-bound (cheap; hub primitives).** Recall off the `convai_anon_session`
+        token (mint/verify in the hub) persisted in the browser. ⚠️ **Hub anon memory is ephemeral
+        by design** — `handleSaveMemory` tags it with `anon_session_id` and it is **purged on session
+        expiry** (only `anon_session_id = NULL` authed memory persists). So this lasts only as long as
+        the token lives, and is device/cookie-bound. Fine for "same browser, welcome back"; NOT
+        durable recall.
+      - **Durable / cross-device, verified-email (the real promise; a product-side BUILD).** The
+        correct shape: **verify the email (magic-link/OTP) → derive a stable server-side `user_id`
+        from the verified email → store memory as authed (`anon_session_id = NULL`, persists) →
+        recall by that identity.** A raw/typed email must **never** key recall — trusting it lets
+        anyone read another user's memory (cross-tenant disclosure; violates Rule 9). The hub gives
+        the anon-session + table primitives + the loop handlers; the verify + stable-id derivation is
+        yours to build.
+      Without the opt-in, an anon stays ephemeral. Pre-auth single-user *internal* builds may instead
       key to a **founder-hardcoded `user_id`** so the loop runs in the thin slice without auth.
 12. **Memory is owned, deletable, correctable, and retained on a clock** — own-row RLS; memory +
     transcripts **cascade on account deletion** (§4 Settings) and follow a stated **retention/TTL**
