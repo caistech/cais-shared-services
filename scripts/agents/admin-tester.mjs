@@ -70,8 +70,24 @@ async function main() {
     if (await goto(page, `${origin}/admin`)) shots.push(await shot(page, 'admin control panel (/admin)'))
     // VT_A2-A4 — the SETTINGS page (profile/password/notifications). Prefer the shared /settings the
     // admin uses; fall back to a dedicated /admin/settings if a product has one.
+    let onSettings = false
     for (const p of ['/settings', '/admin/settings']) {
-      if (await goto(page, `${origin}${p}`)) { shots.push(await shot(page, `settings page (${p})`)); break }
+      if (await goto(page, `${origin}${p}`)) { shots.push(await shot(page, `settings page (${p}) — default tab`)); onSettings = true; break }
+    }
+    // Settings is usually tabbed (Profile default; Security/Password + Notifications behind tabs).
+    // Click each so VT_A3 (password/eye toggle) + VT_A4 (notifications) can actually be judged —
+    // otherwise the agent only sees the Profile tab and honestly records na for A3/A4.
+    if (onSettings) {
+      const clicked = new Set()
+      for (const tab of ['Security', 'Password', 'Notifications', 'Account']) {
+        const el = page.locator(`[role=tab]:has-text("${tab}"), button:has-text("${tab}"), a:has-text("${tab}")`).first()
+        if ((await el.count().catch(() => 0)) === 0) continue
+        try {
+          await el.click({ timeout: 4000 })
+          await page.waitForTimeout(700)
+          if (!clicked.has(tab)) { shots.push(await shot(page, `settings "${tab}" tab`)); clicked.add(tab) }
+        } catch { /* tab not clickable — skip */ }
+      }
     }
 
     if (!shots.length) { console.error('admin-tester: could not load /admin — recording nothing'); return 1 }
