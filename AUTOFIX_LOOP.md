@@ -34,7 +34,7 @@ of a fake-green generator.
 
 | # | Component | Job | In this codebase |
 |---|---|---|---|
-| 1 | **Producers** | Generate findings against a live target | headless probes (`survey`, `auto-probes`), repo greps (`validation-probe.mjs`), CI-native browser agents (`scripts/agents/{naive-tester,voice-auditor,admin-tester}.mjs`) |
+| 1 | **Producers** | Generate findings against a live target | headless probes (`survey`, `auto-probes`); repo-grep code/config checks (`validation-probe.mjs` — #35/36/37 + the voice code checks #11/16/17); CI-native browser agents (`scripts/agents/{naive-tester,voice-auditor,admin-tester}.mjs`); the #9 quality-bar judge (`scripts/agents/promise-judge.mjs`) — **every check has a producer that RE-VERIFIES it, not just finds it** |
 | 2 | **Ingest seam** | ONE function every producer records through | `scripts/gate-check.mjs` → `recordReadiness()` / `record-readiness` CLI → a results table |
 | 3 | **Scorer** | Pure function: findings → a transparent score + per-check state | `src/lib/methodology/score.ts` (`scoreCard`) |
 | 4 | **Fixer-lane router** | Each finding carries *who fixes it and how* | `readiness_criteria.fixer` column + `gate-readiness/fixer-lanes.json` |
@@ -199,7 +199,8 @@ autonomous fix loop. Map each component:
 - **Ingest:** `cais-shared-services/scripts/gate-check.mjs`
 - **Config fixer:** `cais-shared-services/scripts/config-fixer.mjs`
 - **Browser agents (find + verify):** `cais-shared-services/scripts/agents/{lib,naive-tester,voice-auditor,admin-tester}.mjs`
-- **Repo producer:** `cais-shared-services/scripts/validation-probe.mjs`
+- **#9 promise-bar judge:** `cais-shared-services/scripts/agents/promise-judge.mjs` (loads `promise_attributes`, screenshots, Claude-judges each "X, not Y" bar)
+- **Repo producer (code/config checks):** `cais-shared-services/scripts/validation-probe.mjs` (#35/36/37 + voice #11/16/17)
 - **Code builder:** `cais-shared-services/.github/workflows/design-build.yml` (+ `validation-run.yml`, `config-fix.yml`)
 - **Scorer + fixer lanes:** `Corporate-AI-Solutions/src/lib/methodology/score.ts`, `gate-readiness/fixer-lanes.json`
 - **Card UI (lane grouping + waiver):** `Corporate-AI-Solutions/src/components/admin/ValidationFindings.tsx`
