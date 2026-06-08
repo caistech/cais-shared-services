@@ -58,6 +58,10 @@ jobs:
       # Precedence: manual dispatch input > DESIGN_BUILD_MODEL var > shared OPENCODE_MODEL var > Sonnet default.
       OPENCODE_MODEL: ${{ github.event.inputs.model || vars.DESIGN_BUILD_MODEL || vars.OPENCODE_MODEL || 'opencode/claude-sonnet-4-6' }}
       BRANCH: design-build/${{ github.event.inputs.slug }}-${{ github.run_id }}
+      # Lets npm install private @caistech/* from GitHub Packages, so the builder CONSUMES the hub
+      # (e.g. @caistech/elevenlabs-convai) instead of inlining/forking its logic. GH_PAT must carry
+      # read:packages scope. Read by the .npmrc written into target/ below.
+      NODE_AUTH_TOKEN: ${{ secrets.GH_PAT }}
 
     steps:
       - name: Checkout shared-services (standards + template)
@@ -75,6 +79,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - name: Wire @caistech GitHub Packages auth into the target repo
+        run: |
+          # So the builder can `npm install @caistech/elevenlabs-convai` (the hub) and consume it
+          # instead of inlining its logic (the forking anti-pattern). The quoted heredoc keeps
+          # ${NODE_AUTH_TOKEN} LITERAL in the file; npm expands it from the env at install time.
+          cat > "$GITHUB_WORKSPACE/target/.npmrc" <<'NPMRC'
+          @caistech:registry=https://npm.pkg.github.com
+          //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
+          always-auth=true
+          NPMRC
+          echo "wrote target/.npmrc (@caistech → GitHub Packages)"
 
       - name: Install OpenCode
         run: npm i -g opencode-ai@latest
