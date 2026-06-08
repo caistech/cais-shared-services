@@ -65,9 +65,17 @@ Everything below makes those two real and safe.
     (shown once), stored as a **sensitive** env (per the Vercel sensitive-env rule), and an
     unverified request is **rejected (401)**. An unverified webhook = anyone with the URL can
     forge transcripts and poison the user's memory.
-11. **Cross-session memory is authed-only; anon is ephemeral** — never tell an anonymous user the
-    agent remembers them. Pre-auth single-user builds key to a **founder-hardcoded `user_id`** so
-    the loop runs in the thin slice without an auth system.
+11. **Three identity tiers — pick the right one; default anon to ephemeral.**
+    - **Authed** — `user_id` from the verified session (the normal case). Cross-session memory on.
+    - **Ephemeral anon** — a visitor with no account and no consent: the session is single-visit;
+      **never tell them the agent remembers them**, and purge on the anon-TTL.
+    - **Opt-in-identified anon** *(SayFix's case)* — an anonymous visitor who **explicitly consents**
+      to be remembered and provides a recall key (name + email). The consent gate ("Do you want to
+      be kept updated about this ticket?" → yes → capture name/email) is what *legitimises*
+      cross-visit recall for a non-authed user: bind the consented email to the `convai_anon_session`,
+      recall by it on return, and still honour the TTL + see/clear surface (Rule 12). Without the
+      explicit opt-in, an anon stays ephemeral. Pre-auth single-user *internal* builds may instead
+      key to a **founder-hardcoded `user_id`** so the loop runs in the thin slice without auth.
 12. **Memory is owned, deletable, correctable, and retained on a clock** — own-row RLS; memory +
     transcripts **cascade on account deletion** (§4 Settings) and follow a stated **retention/TTL**
     (pairs with the migration's anon-purge); the user can **see and clear** what's remembered (a
@@ -99,6 +107,32 @@ Everything below makes those two real and safe.
     hand-set `NEXT_PUBLIC_*`.
 19. **Consume the hub, never re-implement** — `@caistech/elevenlabs-convai` server + its `/react`
     VoiceWidget; **BYOK** (the user's ElevenLabs key).
+
+### The three-leg wiring recipe (do ALL THREE — building a voice agent? this is the checklist)
+
+A voice agent that only mounts *some* of these has **storage, not memory** (the SafeFix/Morgan
+failure: the conversation was stored, but nothing distilled it and nothing recalled it). When a
+session builds or audits any voice agent, wire every leg via the hub — never hand-roll:
+
+1. **PERSIST + DISTIL (end of call).** Mount the post-call webhook on `handlePostCallWebhook`, and
+   pass an **`onConversationComplete` distiller** (the hub's extension seam) that reads the
+   transcript, extracts the salient, durable memories, and writes them via `handleSaveMemory`.
+   Without the distiller, `convai_memory` stays **empty** — storage only. Use
+   `distillConversationToMemory` (the hub orchestrator: read messages → your `extract` fn →
+   idempotent `handleSaveMemory`) so you only supply the per-product extraction. **A bare ack-only
+   post-call route is the #1 way this leg is silently skipped.**
+2. **RECALL + INJECT (start of call).** Call `handleStartConversation` at connect (binds identity,
+   returns `isReturningUser` + context), then `handleRecallMemory`, and **inject the pulled state
+   into the agent's opening** — via the session override / `sendContextualUpdate` / `VoiceWidget.onReady`
+   — so the agent *speaks from* recall. A "welcome back" banner the agent can't see is **not**
+   recall (Rule 15: enrich before/at greeting; degrade-don't-fake on miss, Rule 13).
+3. **CAPTURE-AS-YOU-GO (during call) is a *separate* path from memory.** Domain field capture
+   (`save_field`-style tools → the product record) is NOT the memory loop; it's product-domain data
+   (Rule 8). Both must be reliable: a model that drops tool calls over a long call breaks capture
+   (use the hub's `DEFAULT_AGENT_LLM`, and a deterministic end-of-call backstop as the safety net).
+
+If any leg is missing, the agent re-meets the user every time. Morgan is the reference
+implementation; SayFix consumes the identical loop with the opt-in-identified-anon tier (Rule 11).
 
 ## G. The floor principle
 
