@@ -83,6 +83,10 @@ export {
 } from './webhook-handlers.js';
 export type { TableNames, OnConversationComplete } from './webhook-handlers.js';
 
+// Memory loop — PERSIST+DISTIL leg (call from onConversationComplete)
+export { distillConversationToMemory } from './memory-distill.js';
+export type { DistilledMemory, MemoryExtractor, DistillParams } from './memory-distill.js';
+
 // Next.js webhook route factory (server-side)
 export { createConvaiWebhookRoutes } from './routes.js';
 export type {
