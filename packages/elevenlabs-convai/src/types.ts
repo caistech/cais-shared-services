@@ -92,6 +92,13 @@ export interface ElevenLabsAgentConfig {
       voice_id: string;
       model_id: string;
     };
+    // Conversation-level limits/behaviour. `max_duration_seconds` caps the call length;
+    // ElevenLabs defaults to 600s (10 min) when omitted — coaching/discovery calls need longer,
+    // so createAgent sets a 20-min default (see CreateAgentOptions.maxDurationSeconds).
+    conversation?: {
+      max_duration_seconds?: number;
+      [key: string]: unknown;
+    };
   };
   platform_settings?: {
     webhook?: {
