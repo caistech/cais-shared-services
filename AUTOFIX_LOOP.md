@@ -96,6 +96,17 @@ of a fake-green generator.
 - **One shared QA-account set, provisioned everywhere.** The CI testers use ONE credential set;
   every product must have those accounts (manifest `shared:` + `provision-qa-accounts.mjs`), or
   per-product logins fail.
+- **A browser-agent tester's sandbox can't read the product's `.env.local`.** Telling the agent
+  "log in with the password in `.env.local`" fails permission-denied — it then walks UNAUTHED and
+  only covers the public surface (a SayFix naive-tester run, 2026-06-08, left the entire authed flow
+  + admin console untested for exactly this). The orchestrator must read the QA credential in the
+  PARENT and **inline the value into the agent's prompt** (or mint a session via the service-role
+  helper, `qa-session.mjs --magic-link`), never delegate the file read to the sandboxed agent.
+- **A unit-test vocabulary/standards firewall doesn't cover the marketing/landing surface.** The
+  in-app string check (state labels + comms templates) passed, yet the naive-tester caught dev
+  jargon — "code / deploy / bug" — on the public landing hero, which no unit test guarded. The
+  browser tester (a producer) is what catches what the unit test can't reach; treat its findings as
+  real, route them to the code fixer, and keep this doc current with them.
 - **The code builder must be able to install your private packages.** Without GitHub-Packages auth
   in the builder runner (`NODE_AUTH_TOKEN` + an `@scope:registry` `.npmrc`), the builder **inlines /
   forks** hub logic instead of consuming it (the exact anti-pattern). Wire the token into BOTH the
