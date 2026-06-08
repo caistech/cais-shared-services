@@ -78,14 +78,15 @@ async function main() {
     // Click each so VT_A3 (password/eye toggle) + VT_A4 (notifications) can actually be judged —
     // otherwise the agent only sees the Profile tab and honestly records na for A3/A4.
     if (onSettings) {
-      const clicked = new Set()
-      for (const tab of ['Security', 'Password', 'Notifications', 'Account']) {
-        const el = page.locator(`[role=tab]:has-text("${tab}"), button:has-text("${tab}"), a:has-text("${tab}")`).first()
+      // Prefer real tab/nav controls (not arbitrary buttons like "Change Password", which would
+      // misfire and waste a slot). One distinct screenshot per tab, with enough settle time.
+      for (const tab of ['Security', 'Notifications', 'Account']) {
+        const el = page.locator(`[role=tab]:has-text("${tab}"), nav a:has-text("${tab}"), aside a:has-text("${tab}"), button:has-text("${tab}")`).first()
         if ((await el.count().catch(() => 0)) === 0) continue
         try {
           await el.click({ timeout: 4000 })
-          await page.waitForTimeout(700)
-          if (!clicked.has(tab)) { shots.push(await shot(page, `settings "${tab}" tab`)); clicked.add(tab) }
+          await page.waitForTimeout(1200)
+          shots.push(await shot(page, `settings "${tab}" tab`))
         } catch { /* tab not clickable — skip */ }
       }
     }
