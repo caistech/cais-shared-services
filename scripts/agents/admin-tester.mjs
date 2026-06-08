@@ -26,11 +26,16 @@ const adminPw = process.env.QA_OWNER_PASSWORD
 
 // VT_A1–A4 ONLY (A5/A6 are operator-verified, never agent-run). The mandatory-portal rule is baked
 // into VT_A1's instruction so the model fails (not na) when no admin control panel is present.
+//
+// VT_A1 is judged against the /admin control panel; VT_A2–A4 (profile/password/notifications) are
+// judged against the SETTINGS page — products commonly ship ONE shared /settings (the admin is a
+// user too) rather than a duplicate admin-only settings page, so the agent screenshots /settings
+// for these and the labels say "Settings", not "Admin Settings".
 const CHECKS = [
-  { code: 'VT_A1', label: 'Admin control panel renders at /admin with no auth block (a dashboard: members/metrics/management — NOT a login page or 404). Every product MUST ship an admin portal — if none is present, mark FAIL, never na.' },
-  { code: 'VT_A2', label: 'Admin Settings → Profile: fields render and look saveable' },
-  { code: 'VT_A3', label: 'Admin Settings → Password: a password field with a visibility (eye) toggle is present' },
-  { code: 'VT_A4', label: 'Admin Settings → Notifications: at least one notification toggle is present' },
+  { code: 'VT_A1', label: 'Admin control panel renders at /admin with no auth block (a dashboard / config console: user management, integrations, billing — NOT a login page or 404). Every product MUST ship an admin portal — if none is present, mark FAIL, never na.' },
+  { code: 'VT_A2', label: 'Settings → Profile: profile fields (name/email/etc.) render and look saveable' },
+  { code: 'VT_A3', label: 'Settings → Password: a password field with a visibility (eye) toggle is present' },
+  { code: 'VT_A4', label: 'Settings → Notifications: at least one notification toggle is present' },
 ]
 
 async function main() {
@@ -61,10 +66,12 @@ async function main() {
     }
 
     const shots = []
-    if (await goto(page, `${origin}/admin`)) shots.push(await shot(page, 'admin dashboard (/admin)'))
-    // Admin settings — try the common locations.
-    for (const p of ['/admin/settings', '/settings']) {
-      if (await goto(page, `${origin}${p}`)) { shots.push(await shot(page, `admin settings (${p})`)); break }
+    // VT_A1 — the admin control panel.
+    if (await goto(page, `${origin}/admin`)) shots.push(await shot(page, 'admin control panel (/admin)'))
+    // VT_A2-A4 — the SETTINGS page (profile/password/notifications). Prefer the shared /settings the
+    // admin uses; fall back to a dedicated /admin/settings if a product has one.
+    for (const p of ['/settings', '/admin/settings']) {
+      if (await goto(page, `${origin}${p}`)) { shots.push(await shot(page, `settings page (${p})`)); break }
     }
 
     if (!shots.length) { console.error('admin-tester: could not load /admin — recording nothing'); return 1 }
