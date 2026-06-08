@@ -5,7 +5,11 @@
 > *same* self/auto-fix machinery can be dropped onto another product — specifically **SayFix**, to
 > turn its bug-finders into an autonomous fix loop. Read this before copying pieces across.
 >
-> **Last updated:** 2026-06-08.
+> **Last updated:** 2026-06-08 (latest iteration). **Proven end-to-end on deal-findrs:** all three
+> lanes fired — config (Vercel env / Supabase / ElevenLabs provisioning), the dual-portal browser
+> agents (user + admin, incl. a real admin-login auth bug caught + fixed), and code (the voice-stack
+> renovation via the builder → PR → merge → DB migration applied → re-verify). The §3 gotchas are
+> things this loop actually hit and solved — port them, not just the happy path.
 
 ---
 
@@ -92,6 +96,25 @@ of a fake-green generator.
 - **One shared QA-account set, provisioned everywhere.** The CI testers use ONE credential set;
   every product must have those accounts (manifest `shared:` + `provision-qa-accounts.mjs`), or
   per-product logins fail.
+- **The code builder must be able to install your private packages.** Without GitHub-Packages auth
+  in the builder runner (`NODE_AUTH_TOKEN` + an `@scope:registry` `.npmrc`), the builder **inlines /
+  forks** hub logic instead of consuming it (the exact anti-pattern). Wire the token into BOTH the
+  builder runner *and* the product's deploy (Vercel `GITHUB_PACKAGES_TOKEN`). Quick scope check: if
+  the product already installs other `@scope/*` packages in prod, the token's scope is fine.
+- **A builder may DECLARE a dependency without CONSUMING it.** It can add `@scope/pkg` to
+  `package.json` yet keep the hand-rolled implementation. A `package.json` grep passes; real
+  consumption is a further step. Verify imports, not just the dependency line.
+- **`CREATE POLICY IF NOT EXISTS` is invalid Postgres** (no `IF NOT EXISTS` on `CREATE POLICY`) — an
+  auto-generated RLS migration using it fails on `db push`. Guard policies in a `DO $$ … pg_policies
+  … $$` block. (Now in `bug-knowledge.json` so the builder won't regenerate it — that's the loop's
+  memory preventing a repeat.)
+- **Migrations don't run on a Vercel/static deploy.** A code fix that adds a table will compile but
+  **error at runtime** until the migration is applied. Apply it as part of the fix — idempotently via
+  the Supabase **Management API query endpoint** (same path `config-fixer.mjs` uses for the profiles
+  table), not "merge the PR and hope."
+- **`recordGate` constraint drift.** The builder's result-report can hit a DB CHECK constraint
+  (`pipeline_gates_gate_check`) if it reports a gate value the schema doesn't allow — cosmetic, but
+  keep the reporter's enum in sync with the table constraint.
 
 ---
 
