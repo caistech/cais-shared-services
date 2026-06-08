@@ -76,23 +76,31 @@ export async function tryLogin(page, origin, { email, password, paths }) {
     try {
       await em.fill(email)
       await pw.fill(password)
-      // Submit via Enter (submits the active form — robust to tabbed UIs + odd button labels), then
-      // fall back to a submit button if we're still on the login page.
+      // Poll for auth (left login URL OR a Supabase auth cookie) — robust to slow flows like the
+      // admin sign-in, which does a server-side ADMIN_EMAILS check then a hard redirect.
+      const waitAuthed = async (ms) => {
+        const deadline = Date.now() + ms
+        while (Date.now() < deadline) {
+          if (!onLogin()) return true
+          const cookies = await page.context().cookies().catch(() => [])
+          if (cookies.some((c) => /auth-token|sb-.*-auth/i.test(c.name))) return true
+          await page.waitForTimeout(500)
+        }
+        return false
+      }
+      // Submit via Enter (submits the active form — robust to tabbed UIs + odd button labels).
       await pw.press('Enter').catch(() => {})
-      await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {})
-      if (onLogin()) {
+      let authed = await waitAuthed(12000)
+      // Fallback: if it never started submitting, click an explicit submit button, then poll longer.
+      if (!authed) {
         await page
           .locator('button[type=submit], button:has-text("Sign in"), button:has-text("Log in"), button:has-text("Sign In"), button:has-text("Continue")')
           .first()
           .click({ timeout: 5000 })
           .catch(() => {})
-        await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {})
+        authed = await waitAuthed(18000)
       }
-      // Success = left the login URL OR a Supabase auth cookie is now set.
-      const cookies = await page.context().cookies().catch(() => [])
-      if (!onLogin() || cookies.some((c) => /auth-token|sb-.*-auth/i.test(c.name))) {
-        return { ok: true, note: page.url() }
-      }
+      if (authed) return { ok: true, note: page.url() }
       // Self-diagnose on failure (visible in the CI log) — field/button shape + any error text, so
       // the next iteration knows WHY (wrong tab? captcha? a real auth error like a disabled key?).
       const emN = await page.locator('input[type=email]:visible').count().catch(() => 0)
