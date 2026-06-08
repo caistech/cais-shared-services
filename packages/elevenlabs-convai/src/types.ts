@@ -282,6 +282,29 @@ export interface VoiceWidgetProps extends VoiceConfigBase {
   title?: string;
   autoConnect?: boolean;
   className?: string;
+
+  /**
+   * Render a persistent text box in the connected panel (alongside voice), wired to
+   * `sendUserMessage` so the user can type/paste INTO the live conversation — the agent sees it as
+   * a user turn. Off by default (other consumers are voice-only). Distinct from `textFallback`,
+   * which only appears when voice can't run. Use this when users need to paste data mid-call.
+   */
+  textInput?: boolean;
+
+  /**
+   * Called once the live session is connected, with imperative controls into THIS conversation.
+   * Lets the consumer push messages the user didn't type — e.g. a timed "wrap up, ~2 min left"
+   * contextual update the agent speaks, or a programmatic user message. No-op before connect.
+   */
+  onReady?: (controls: VoiceControls) => void;
+}
+
+/** Imperative handle into a live conversation, handed to `onReady`. */
+export interface VoiceControls {
+  /** Send a USER turn into the conversation (the agent responds to it). */
+  sendUserMessage: (text: string) => void;
+  /** Send non-spoken context that steers the agent's next turn (e.g. a time-remaining nudge). */
+  sendContextualUpdate: (text: string) => void;
 }
 
 export type VoiceConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
