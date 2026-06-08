@@ -18,6 +18,13 @@ export const WORKSPACE_TOOLS_API = `${ELEVENLABS_API}/tools`;
 const VOICE_MODEL_ENGLISH_DEFAULT = 'eleven_flash_v2';
 const VOICE_MODEL_MULTILINGUAL_DEFAULT = 'eleven_turbo_v2_5';
 
+// Portfolio-standard reasoning LLM for ALL ElevenLabs agents (the non-Claude-Code workhorse).
+// gpt-4o-mini dropped tool calls over long conversations (the SafeFix intake lost 20 min of
+// field capture); gpt-4.1-mini is the same cheap/low-latency tier but materially more reliable at
+// function-calling + instruction-following. Set at the hub so every agent inherits it — override
+// per-agent via config.llmModel only for a deliberate exception.
+export const DEFAULT_AGENT_LLM = 'gpt-4.1-mini';
+
 export function defaultVoiceModelFor(language: string): string {
   return language === 'en' ? VOICE_MODEL_ENGLISH_DEFAULT : VOICE_MODEL_MULTILINGUAL_DEFAULT;
 }
@@ -180,7 +187,7 @@ export async function createAgent(
       agent: {
         prompt: {
           prompt: systemPrompt,
-          llm: config.llmModel || 'gpt-4o-mini',
+          llm: config.llmModel || DEFAULT_AGENT_LLM,
           temperature: config.temperature || 0.7,
         },
         first_message: firstMessage,
@@ -269,7 +276,7 @@ export async function updateAgent(
   if (options.systemPrompt) {
     agentPatch.prompt = {
       prompt: options.systemPrompt,
-      llm: options.llmModel || 'gpt-4o-mini',
+      llm: options.llmModel || DEFAULT_AGENT_LLM,
       temperature: options.temperature || 0.7,
     };
   }

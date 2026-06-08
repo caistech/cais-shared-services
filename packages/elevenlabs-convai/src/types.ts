@@ -20,7 +20,7 @@ export interface ConvAIAgentConfig {
   voiceModel?: string;        // Default: language-aware — 'eleven_flash_v2' for English, 'eleven_turbo_v2_5' for multilingual. See defaultVoiceModelFor().
 
   // LLM
-  llmModel?: string;          // Default: 'gpt-4o-mini'
+  llmModel?: string;          // Default: DEFAULT_AGENT_LLM ('gpt-4.1-mini') — the portfolio-standard agent reasoning model. Override only for a deliberate exception.
   temperature?: number;       // Default: 0.7
 
   // Webhook — optional. When omitted, no webhook block is sent to ElevenLabs.
