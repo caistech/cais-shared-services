@@ -77,6 +77,79 @@ if (apexHits.length > 0) { emailStatus = 'fail'; emailEvidence = `bare-apex send
 else if (verifiedHits.length > 0) { emailStatus = 'pass'; emailEvidence = `verified subdomain sender (${verifiedHits.length} ref(s))` }
 results.push({ code: '35', status: emailStatus, evidence: emailEvidence })
 
+// --- Voice integration code checks (#11/#16/#17), CONDITIONAL on the product actually using
+// ElevenLabs/convai. Only recorded when voice is present; otherwise left to the scorer's
+// applies_when (na). These are the repo-grep CI producer for the voice CODE checks the local
+// gstack voice-auditor used to record — so they re-verify automatically after a code-lane fix.
+let pkgJson = {}; try { pkgJson = JSON.parse(pkg || '{}') } catch {}
+const deps = Object.keys({ ...(pkgJson.dependencies || {}), ...(pkgJson.devDependencies || {}) })
+const usesVoice = deps.includes('@caistech/elevenlabs-convai') || deps.includes('@11labs/client') ||
+  exists('src/app/api/webhooks/elevenlabs') || grepSrc(/elevenlabs|convai/i, 1).length > 0
+if (usesVoice) {
+  const codeOf = (l) => l.slice(l.indexOf(': ') + 2) // grepSrc lines are "rel: <trimmed code>"
+  const notComment = (c) => !/^\s*(\/\/|\*|\/\*)/.test(c)
+
+  // #11 — consumes the @caistech hub AND no client-side key exposure.
+  const hasHub = deps.includes('@caistech/elevenlabs-convai')
+  const keyRefs = grepSrc(/NEXT_PUBLIC_ELEVENLABS_API_KEY/, 10).map(codeOf).filter(notComment)
+  const keyExposed = keyRefs.length > 0
+  results.push({
+    code: '11',
+    status: hasHub && !keyExposed ? 'pass' : 'fail',
+    evidence: hasHub && !keyExposed
+      ? 'consumes @caistech/elevenlabs-convai; no NEXT_PUBLIC_ELEVENLABS_API_KEY usage (server-side key)'
+      : `${hasHub ? '' : 'no @caistech/elevenlabs-convai dep; '}${keyExposed ? `client key exposed: ${keyRefs[0].trim().slice(0, 70)}` : ''}`.trim(),
+  })
+
+  // collect the convai webhook route files
+  const webhookFiles = []
+  const walkWh = (dir) => {
+    let ents = []; try { ents = fs.readdirSync(path.join(repo, dir), { withFileTypes: true }) } catch { return }
+    for (const en of ents) {
+      const r = path.join(dir, en.name)
+      if (en.isDirectory()) { if (!/node_modules|\.next|\.git/.test(en.name)) walkWh(r) }
+      else if (/route\.(t|j)sx?$/.test(en.name) && /webhooks?[\\/].*(elevenlabs|convai)/i.test(r)) webhookFiles.push(r)
+    }
+  }
+  walkWh('src')
+
+  // #17 — every convai webhook verifies HMAC.
+  if (webhookFiles.length === 0) {
+    results.push({ code: '17', status: 'na', evidence: 'no elevenlabs/convai webhook routes found' })
+  } else {
+    const unverified = webhookFiles.filter((f) => !/verifyWebhook|verifyElevenLabsWebhook|createHmac|timingSafeEqual|x-elevenlabs-signature/i.test(read(f)))
+    results.push({
+      code: '17',
+      status: unverified.length === 0 ? 'pass' : 'fail',
+      evidence: unverified.length === 0 ? `HMAC verify present in all ${webhookFiles.length} convai webhook(s)` : `no HMAC verify in ${unverified.length}/${webhookFiles.length} (e.g. ${unverified[0]})`,
+    })
+  }
+
+  // #16 — identity server-derived, not read from client conversation metadata. SCOPED to the VOICE
+  // files only: Stripe etc. legitimately read session.metadata.user_id — that's not the convai
+  // identity issue, and grepping all of src/ false-fails on it.
+  const voiceCodeFiles = []
+  const walkVoice = (dir) => {
+    let ents = []; try { ents = fs.readdirSync(path.join(repo, dir), { withFileTypes: true }) } catch { return }
+    for (const en of ents) {
+      const r = path.join(dir, en.name)
+      if (en.isDirectory()) { if (!/node_modules|\.next|\.git/.test(en.name)) walkVoice(r) }
+      else if (/\.(t|j)sx?$/.test(en.name) && /(^|[\\/])(voice|elevenlabs|convai)/i.test(r)) voiceCodeFiles.push(r)
+    }
+  }
+  walkVoice('src')
+  const badIdRead = voiceCodeFiles.find((f) => read(f).split('\n').some((ln) => /metadata.{0,3}(user_id|company_id)/i.test(ln) && notComment(ln.trim())))
+  const serverBind = voiceCodeFiles.some((f) => /voice_sessions|conversation_id/i.test(read(f)))
+  results.push({
+    code: '16',
+    status: badIdRead ? 'fail' : serverBind ? 'pass' : 'na',
+    evidence: badIdRead
+      ? `voice identity read from client metadata (${badIdRead})`
+      : serverBind ? 'identity bound server-side (voice_sessions / conversation_id), not client metadata'
+      : 'no voice identity-binding pattern found in voice files',
+  })
+}
+
 // --- record each via gate-check.mjs record-readiness (the shared seam) ---
 const checksArg = results.map((r) => `${r.code}=${r.status}`).join(',')
 console.log('[validation-probe] results:', JSON.stringify(results, null, 2))

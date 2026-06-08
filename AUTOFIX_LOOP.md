@@ -126,6 +126,16 @@ of a fake-green generator.
   `<Database>` generic (or a generated type that lacks a *newly-added* table) infers `never` for
   `.insert()/.update()` payloads → a tsc failure. Type the server-only admin client as `any`, or
   regenerate the `Database` types to include the new table. (Now in `bug-knowledge.json`.)
+- **Every check needs a producer that RE-VERIFIES it — not just one that FOUND it.** A check first
+  recorded by a *local-only* producer (e.g. a gstack repo-auditor) won't flip after a CI fix, because
+  nothing in CI re-evaluates it — it sits stale at its old verdict (we had to hand-record the voice
+  code checks #11/16/17 once). Give every check a CI producer: surface checks → the browser agents;
+  code/config checks → a **repo-grep probe** (`validation-probe.mjs`); quality-bar checks → an **LLM
+  judge** (`promise-judge.mjs` for #9). If a check has no re-verify producer, it's a silent gap.
+- **Scope repo greps to the relevant files.** A broad `src/` grep false-fails on unrelated legitimate
+  code — the #16 "no client-supplied identity" check matched the *Stripe* webhook's
+  `session.metadata.user_id` (perfectly fine) until it was scoped to the voice files only. Narrow the
+  grep to the feature's files; degrade to `na` when genuinely ambiguous, never a false `fail`.
 
 ---
 
