@@ -34,7 +34,7 @@ of a fake-green generator.
 
 | # | Component | Job | In this codebase |
 |---|---|---|---|
-| 1 | **Producers** | Generate findings against a live target | headless probes (`survey`, `auto-probes`), repo greps (`validation-probe.mjs`), CI-native browser agents (`scripts/agents/{naive-tester,voice-auditor,admin-tester}.mjs`) |
+| 1 | **Producers** | Generate findings against a live target | headless probes (`survey`, `auto-probes`); repo-grep code/config checks (`validation-probe.mjs` — #35/36/37 + the voice code checks #11/16/17); CI-native browser agents (`scripts/agents/{naive-tester,voice-auditor,admin-tester}.mjs`); the #9 quality-bar judge (`scripts/agents/promise-judge.mjs`) — **every check has a producer that RE-VERIFIES it, not just finds it** |
 | 2 | **Ingest seam** | ONE function every producer records through | `scripts/gate-check.mjs` → `recordReadiness()` / `record-readiness` CLI → a results table |
 | 3 | **Scorer** | Pure function: findings → a transparent score + per-check state | `src/lib/methodology/score.ts` (`scoreCard`) |
 | 4 | **Fixer-lane router** | Each finding carries *who fixes it and how* | `readiness_criteria.fixer` column + `gate-readiness/fixer-lanes.json` |
@@ -96,6 +96,17 @@ of a fake-green generator.
 - **One shared QA-account set, provisioned everywhere.** The CI testers use ONE credential set;
   every product must have those accounts (manifest `shared:` + `provision-qa-accounts.mjs`), or
   per-product logins fail.
+- **A browser-agent tester's sandbox can't read the product's `.env.local`.** Telling the agent
+  "log in with the password in `.env.local`" fails permission-denied — it then walks UNAUTHED and
+  only covers the public surface (a SayFix naive-tester run, 2026-06-08, left the entire authed flow
+  + admin console untested for exactly this). The orchestrator must read the QA credential in the
+  PARENT and **inline the value into the agent's prompt** (or mint a session via the service-role
+  helper, `qa-session.mjs --magic-link`), never delegate the file read to the sandboxed agent.
+- **A unit-test vocabulary/standards firewall doesn't cover the marketing/landing surface.** The
+  in-app string check (state labels + comms templates) passed, yet the naive-tester caught dev
+  jargon — "code / deploy / bug" — on the public landing hero, which no unit test guarded. The
+  browser tester (a producer) is what catches what the unit test can't reach; treat its findings as
+  real, route them to the code fixer, and keep this doc current with them.
 - **The code builder must be able to install your private packages.** Without GitHub-Packages auth
   in the builder runner (`NODE_AUTH_TOKEN` + an `@scope:registry` `.npmrc`), the builder **inlines /
   forks** hub logic instead of consuming it (the exact anti-pattern). Wire the token into BOTH the
@@ -188,7 +199,8 @@ autonomous fix loop. Map each component:
 - **Ingest:** `cais-shared-services/scripts/gate-check.mjs`
 - **Config fixer:** `cais-shared-services/scripts/config-fixer.mjs`
 - **Browser agents (find + verify):** `cais-shared-services/scripts/agents/{lib,naive-tester,voice-auditor,admin-tester}.mjs`
-- **Repo producer:** `cais-shared-services/scripts/validation-probe.mjs`
+- **#9 promise-bar judge:** `cais-shared-services/scripts/agents/promise-judge.mjs` (loads `promise_attributes`, screenshots, Claude-judges each "X, not Y" bar)
+- **Repo producer (code/config checks):** `cais-shared-services/scripts/validation-probe.mjs` (#35/36/37 + voice #11/16/17)
 - **Code builder:** `cais-shared-services/.github/workflows/design-build.yml` (+ `validation-run.yml`, `config-fix.yml`)
 - **Scorer + fixer lanes:** `Corporate-AI-Solutions/src/lib/methodology/score.ts`, `gate-readiness/fixer-lanes.json`
 - **Card UI (lane grouping + waiver):** `Corporate-AI-Solutions/src/components/admin/ValidationFindings.tsx`
