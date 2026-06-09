@@ -395,7 +395,25 @@ jobs:
           MODEL_FLAG=""
           if [ -n "$OPENCODE_MODEL" ]; then MODEL_FLAG="-m $OPENCODE_MODEL"; fi
           echo "=== cwd: $(pwd) ==="
+          # BUILD-ACTUALLY-HAPPENED guard + retry. OpenCode headless sometimes quits after the READ
+          # phase without writing any product code (ExecutorAI 2026-06-09: a FUNDED run read the
+          # transcript + repo for ~120s/$0.46 and wrote nothing — a no-op PR that looked "successful").
+          # Detect real product changes (under src/), and if there are none, re-invoke with a short
+          # forcing prompt up to MAX times. Still nothing → FAIL (never open an empty PR as success).
+          src_changed() { [ -n "$(git status --porcelain -- src 2>/dev/null)" ]; }
           opencode run $MODEL_FLAG "$(cat "$GITHUB_WORKSPACE/prompt.txt")" 2>&1 | tee "$GITHUB_WORKSPACE/opencode-output.txt"
+          MAX=3
+          attempt=1
+          while ! src_changed && [ "$attempt" -le "$MAX" ]; do
+            echo "::warning::builder produced NO source changes (attempt $attempt/$MAX) — re-invoking with a forcing prompt"
+            opencode run $MODEL_FLAG "You produced ZERO file changes under src/. That is a FAILED run — the deliverable is CODE, not a plan, summary, or read-through. STOP reading and START editing files NOW. Implement the product per ./_spec.json — and read .coach_conversation.messages in it for the founder's detailed feature list — plus ./_standards and the HARD RULES: rewrite src/app/page.tsx into the REAL product landing (not the 'CAIS App' placeholder), build the pages/components/routes the founder described, add the dual-auth /admin surface, and plant the survey markers. EDIT FILES NOW; do not stop until src/ has real changes." 2>&1 | tail -25
+            attempt=$((attempt+1))
+          done
+          if ! src_changed; then
+            echo "::error::builder produced NO source changes after $MAX forcing attempts — refusing to open an empty PR. (Check OpenCode is funded + the model is responding.)"
+            exit 1
+          fi
+          echo "✓ builder produced source changes"
           echo "=== files after run ==="; git status --porcelain | head -50
 
       - name: Typecheck gate — build MUST compile before a PR (self-fix loop)
