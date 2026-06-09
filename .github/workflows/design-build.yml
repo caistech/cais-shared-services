@@ -11,13 +11,17 @@ name: Design & Build (architect → builder)
 # standards-aligned default AND logs that fork into the PR body (and decisions.json) for the human
 # to override at review. The PR is the only human checkpoint. Its url is POSTed back to the card.
 #
-# EXISTING-REPO PATH ONLY (TEARDOWN / RENOVATE): the product already has a repo, so we branch off
-# it. Net-new-repo (no repo yet) is a later increment.
+# design-build CUSTOMIZES an existing repo — it never creates one (provisioning owns that). Two
+# framings, selected by the VERDICT input:
+#   verdict=NEW (TEARDOWN/RENOVATE's sibling): the repo is a freshly-provisioned cais-starter (by
+#     new-product) — customize the generic starter to the card spec. No survey failures yet.
+#   verdict=TEARDOWN / RENOVATE: an existing live product — rebuild it against its recorded survey
+#     findings. A brand-new product must be provisioned by new-product BEFORE design-build runs.
 #
 # Lives in: caistech/cais-shared-services/.github/workflows/design-build.yml (must be on default branch).
 #
 # Required Actions secrets (same set as survey.yml):
-#   OPENCODE_AUTH_JSON, GH_PAT (needs contents:write + pull-requests:write on dennissolver/*),
+#   OPENCODE_AUTH_JSON, GH_PAT (contents:write + pull-requests:write on dennissolver/*),
 #   COCKPIT_BASE
 # Optional repo variable: DESIGN_BUILD_MODEL (this job's model; falls back to shared OPENCODE_MODEL, then Sonnet)
 
@@ -66,6 +70,36 @@ jobs:
     steps:
       - name: Checkout shared-services (standards + template)
         uses: actions/checkout@v4
+
+      - name: Resolve target repo (must be provisioned first)
+        id: repo
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          # design-build CUSTOMIZES an existing repo — it never creates one. A brand-new product is
+          # provisioned first by new-product (repo from cais-starter + Supabase + Vercel + voice +
+          # deploy), which then dispatches design-build with verdict=NEW to customize the generic
+          # starter to spec. So the repo MUST already exist here; a 404 means provisioning didn't run.
+          set -e
+          OWNER=dennissolver
+          REPO="$SLUG"
+          code=$(curl -sS -o /tmp/repo.json -w '%{http_code}' \
+            -H "Authorization: Bearer $GH_PAT" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$OWNER/$REPO")
+          if [ "$code" != "200" ]; then
+            echo "::error::repo $OWNER/$REPO not found (HTTP $code). Provision the product first (new-product), then re-run design-build — design-build no longer creates repos."
+            exit 1
+          fi
+          # NET-NEW vs existing is the VERDICT, not repo existence: verdict=NEW = a freshly provisioned
+          # cais-starter to customize to spec (no survey failures yet); TEARDOWN/RENOVATE = an existing
+          # live product to fix against its recorded survey findings.
+          if [ "${VERDICT_IN:-}" = "NEW" ]; then
+            echo "repo $OWNER/$REPO exists; verdict=NEW — customize the freshly-provisioned starter to spec"
+            echo "NET_NEW=true" >> "$GITHUB_ENV"
+          else
+            echo "repo $OWNER/$REPO exists; verdict=${VERDICT_IN:-TEARDOWN} — existing-repo (teardown/renovate) path"
+            echo "NET_NEW=false" >> "$GITHUB_ENV"
+          fi
 
       - name: Checkout target product repo
         uses: actions/checkout@v4
@@ -199,6 +233,27 @@ jobs:
 
       - name: Build the design+build prompt
         run: |
+          # NET-NEW override preamble: for a brand-new (empty) repo there is no existing site to
+          # rebuild and no survey failures — redirect the agent to scaffold a fresh thin MVP, while
+          # KEEPING all the shared marker/standards/no-fake/distribution rules below. The existing
+          # path writes an empty preamble (byte-identical behaviour to before).
+          if [ "${NET_NEW:-false}" = "true" ]; then
+            {
+              printf '%s\n' "NET-NEW BUILD OVERRIDE — READ FIRST. This repo is a freshly-provisioned GENERIC STARTER"
+              printf '%s\n' "(cais-starter: portfolio DNA wired, but NO product content yet) — there is NO existing site"
+              printf '%s\n' "to rebuild and NO survey failures / _teardown_brief to fix. IGNORE every instruction below"
+              printf '%s\n' "that assumes an existing site to \"rebuild in place\" or survey failures to \"fix\" — they do"
+              printf '%s\n' "not apply. INSTEAD: build out the product on top of this starter, using ./_template"
+              printf '%s\n' "(cais-build-template-v2) for any patterns it lacks, targeting ./_spec.json per the THIN_MVP_RUBRIC — the FULL"
+              printf '%s\n' "experience that makes the validation audience feel the promise, with ZERO scale-"
+              printf '%s\n' "infrastructure (no multi-tenant / billing / dashboards / auth-backend pre-GO). Build the"
+              printf '%s\n' "real product surfaces (most effort goes into BUILDING, not the plan). Everything below about"
+              printf '%s\n' "the 14 survey markers, _standards, no-fake forms, the distribution loop, and PHASE 2 STILL"
+              printf '%s\n\n' "APPLIES — only the \"fix survey failures / rebuild in place\" framing is replaced by this build."
+            } > "$GITHUB_WORKSPACE/prompt.txt"
+          else
+            : > "$GITHUB_WORKSPACE/prompt.txt"
+          fi
           {
             printf 'You are the Product Factory architect+builder for "%s". Verdict that triggered this: %s.\n\n' "$SLUG" "${VERDICT_IN:-TEARDOWN}"
             printf 'You are running FULLY AUTONOMOUS. Do NOT stop to ask permission for ordinary work.\n'
@@ -318,7 +373,7 @@ jobs:
             printf '  not open a PR, do not run curl. The workflow handles git + PR. Remove ./_spec.json,\n'
             printf '  ./_teardown_brief.md, ./_standards, ./_template, ./opencode.json from the working tree\n'
             printf '  before finishing so they are not committed (keep ./design-plan.md and ./decisions.json).\n'
-          } > "$GITHUB_WORKSPACE/prompt.txt"
+          } >> "$GITHUB_WORKSPACE/prompt.txt"
           echo "--- prompt ---"; cat "$GITHUB_WORKSPACE/prompt.txt"
 
       - name: Run design+build (OpenCode, headless, autonomous)
@@ -342,6 +397,13 @@ jobs:
           # tsc, and if it fails, feed the errors back to the builder (Claude via OpenCode) to fix —
           # loop up to 3×. If still broken, FAIL the job: never open a PR over non-compiling code.
           set +e
+          # Scrub the staged helper dirs BEFORE typechecking. _template (cais-build-template-v2) and
+          # _standards import packages NOT installed in the product (e.g. @caistech/corporate-components),
+          # so tsc throws spurious, UNFIXABLE errors on them that doom the self-fix loop (ExecutorAI run
+          # 2026-06-09: the gate failed only on _template/* errors). The agent is told to remove them but
+          # may not — don't depend on it. KEEP opencode.json (the self-fix opencode calls need it; the
+          # commit step removes it after).
+          rm -rf _standards _template _spec.json _teardown_brief.md bug-knowledge.json 2>/dev/null || true
           MODEL_FLAG=""; [ -n "$OPENCODE_MODEL" ] && MODEL_FLAG="-m $OPENCODE_MODEL"
           # Install EXACTLY as Vercel does — via the committed .npmrc, NO extra CLI flags. Passing
           # --legacy-peer-deps here would mask a .npmrc that's missing it (the gate would pass while
