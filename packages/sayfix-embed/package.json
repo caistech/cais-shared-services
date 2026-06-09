@@ -1,11 +1,19 @@
 {
   "name": "@caistech/sayfix-embed",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "SayFix bug reporting widget - GBTA-controlled service layer",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
     "react": ">=18",
@@ -15,6 +23,12 @@
   "devDependencies": {
     "@types/react": "^18",
     "typescript": "^5"
+  },
+  "files": [
+    "dist/"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   },
   "repository": {
     "type": "git",

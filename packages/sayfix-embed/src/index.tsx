@@ -12,9 +12,65 @@
  *
  *   <SayFixNav ticketCount={3} />
  *   → Navigation links to Report + My Requests (requires auth)
+ *
+ * Zero runtime dependencies (react is a peer) — the icons are inlined SVGs (lucide paths, MIT)
+ * so the widget drops into any repo without a lucide-react version to reconcile.
  */
 
-import { MessageSquare, Clock, Settings, Wrench } from 'lucide-react';
+/* ========================= ICONS (inlined lucide, MIT) ========================= */
+
+interface IconProps {
+  className?: string;
+}
+
+function svgProps(className?: string) {
+  return {
+    className,
+    width: 24,
+    height: 24,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 2,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true,
+  };
+}
+
+function MessageSquare({ className }: IconProps) {
+  return (
+    <svg {...svgProps(className)}>
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
+function Clock({ className }: IconProps) {
+  return (
+    <svg {...svgProps(className)}>
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}
+
+function Settings({ className }: IconProps) {
+  return (
+    <svg {...svgProps(className)}>
+      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function Wrench({ className }: IconProps) {
+  return (
+    <svg {...svgProps(className)}>
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+    </svg>
+  );
+}
 
 /* ========================= WIDGET ========================= */
 
@@ -29,14 +85,14 @@ export interface SayFixWidgetProps {
 /**
  * Floating "Report Issue" button widget
  * Opens SayFix in a new tab
- * 
+ *
  * Note: Just pass the repo name - SayFix knows which GitHub account it belongs to
  */
 export function SayFixWidget({
   repo,
   label = 'Report a problem — get it SayFixed',
   showIcon = true,
-  position = 'bottom-right'
+  position = 'bottom-right',
 }: SayFixWidgetProps) {
   const sayfixUrl = `https://sayfix.vercel.app/welcome?product=${encodeURIComponent(repo)}`;
 
@@ -173,12 +229,12 @@ export interface InvestigationResult {
 
 /**
  * Trigger investigation on a ticket - searches codebase + bug KB
- * 
+ *
  * This connects to SayFix backend to:
  * 1. Search the product's GitHub repo for relevant code
  * 2. Search bug-knowledge.json for similar past issues
  * 3. Either answer the question or trigger a fix
- * 
+ *
  * Requires GITHUB_TOKEN to be configured in SayFix Vercel
  */
 export async function investigateTicket(ticketId: string): Promise<InvestigationResult | null> {
@@ -187,7 +243,7 @@ export async function investigateTicket(ticketId: string): Promise<Investigation
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'investigate' }),
   });
-  
+
   if (!res.ok) return null;
   return res.json();
 }
@@ -201,7 +257,7 @@ export async function fixTicket(ticketId: string): Promise<InvestigationResult |
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'fix' }),
   });
-  
+
   if (!res.ok) return null;
   return res.json();
 }
