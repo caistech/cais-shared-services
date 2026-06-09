@@ -116,7 +116,9 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
     <div className={placementClass(props.placement)}>
       {!open && (
         <button className="convai-btn" onClick={openAndConnect} aria-label={launcherLabel(props.mode)}>
-          <span aria-hidden>🎙️</span>
+          {props.avatarUrl
+            ? <img className="convai-launch-avatar" src={props.avatarUrl} alt="" aria-hidden />
+            : <span aria-hidden>🎙️</span>}
           {launcherLabel(props.mode)}
         </button>
       )}
@@ -128,6 +130,20 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
           aria-label="Voice assistant"
         >
           <button className="convai-close" onClick={close} aria-label="Close voice assistant">×</button>
+          {props.avatarUrl && (
+            <div className="convai-coach">
+              {/* A face to talk to — people speak more freely to a face than a mic icon. The ring
+                  pulses while connected (the coach is "listening"). */}
+              <img
+                className={`convai-avatar${connected ? ' convai-avatar--live' : ''}`}
+                src={props.avatarUrl}
+                alt={props.coachName ? `${props.coachName}, your coach` : 'Voice coach'}
+              />
+              <span className="convai-coach-name">
+                {props.coachName ?? 'Coach'}{connected ? ' — listening' : ''}
+              </span>
+            </div>
+          )}
           <p className="convai-header">{panelHeader(props)}</p>
 
           {fallback ? (
