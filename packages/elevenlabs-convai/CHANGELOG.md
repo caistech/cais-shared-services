@@ -1,5 +1,17 @@
 # @caistech/elevenlabs-convai — Changelog
 
+## 0.4.7 — 2026-06-10
+
+A face for the coach — the standard portfolio voice surface.
+
+### Added
+- **`avatarUrl` + `coachName` props on `VoiceWidget`.** When `avatarUrl` is set (a path to an image
+  in the consumer's `/public`, e.g. `/female_avatar.jpeg`), the open panel shows a circular avatar +
+  the coach's name, and the launcher shows the face instead of the mic emoji. The ring pulses while
+  connected ("listening"). People speak more freely to a face than a mic icon — this makes the
+  Morgan-style face-coach the one consistent voice surface across the portfolio. Backward-compatible
+  (no avatar → unchanged mic-emoji launcher).
+
 ## 0.4.6 — 2026-06-09
 
 Proactive greeter for the React widget.

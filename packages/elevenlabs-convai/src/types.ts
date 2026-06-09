@@ -288,6 +288,12 @@ export interface VoiceWidgetProps extends VoiceConfigBase {
    */
   autoOpen?: boolean;
   autoConnect?: boolean;
+  /** A face for the coach (URL to an image in the consumer's /public, e.g. "/female_avatar.jpeg").
+   * When set, the panel shows a circular avatar + name and the launcher shows the face — people
+   * speak more freely to a face than a mic icon. The standard portfolio coach surface. */
+  avatarUrl?: string;
+  /** The coach's display name shown under the avatar (e.g. "Morgan"). */
+  coachName?: string;
   className?: string;
 
   /**

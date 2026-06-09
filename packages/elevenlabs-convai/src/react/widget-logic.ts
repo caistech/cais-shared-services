@@ -109,6 +109,15 @@ export const WIDGET_CSS = `
 }
 .convai-panel--fullpage { position: static; width: 100%; max-width: 640px; margin: 0 auto; }
 .convai-header { font-size: 14px; line-height: 1.4; color: #374151; margin: 0 0 12px; }
+.convai-coach { display: flex; flex-direction: column; align-items: center; margin: 4px 0 10px; }
+.convai-avatar {
+  width: 88px; height: 88px; border-radius: 9999px; object-fit: cover;
+  box-shadow: 0 0 0 3px #e5e7eb; transition: box-shadow .3s;
+}
+.convai-avatar--live { box-shadow: 0 0 0 3px #0f766e; animation: convai-pulse 2s ease-in-out infinite; }
+@keyframes convai-pulse { 0%,100% { box-shadow: 0 0 0 3px #0f766e; } 50% { box-shadow: 0 0 0 7px rgba(15,118,110,.30); } }
+.convai-coach-name { margin-top: 6px; font-size: 13px; color: #6b7280; }
+.convai-launch-avatar { width: 28px; height: 28px; border-radius: 9999px; object-fit: cover; margin: -2px -2px -2px -6px; }
 .convai-status { font-size: 14px; font-weight: 600; margin: 8px 0; }
 .convai-row { display: flex; gap: 8px; align-items: center; }
 .convai-fallback input {
