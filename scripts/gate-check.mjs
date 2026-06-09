@@ -185,6 +185,30 @@ export async function getCard(slug) {
   return Array.isArray(rows) && rows.length ? rows[0] : null;
 }
 
+/**
+ * Write the provisioned infra identifiers back onto the cockpit's product_validation_status row,
+ * so the pipeline KNOWS the product is built — live URL + repo + Vercel + Supabase. WITHOUT this,
+ * provisioning is invisible to the cockpit: the card keeps mvp_url=null, looks un-built, and gets
+ * DUPLICATED (the ExecutorAI duplicate, 2026-06-09). Update-only (PATCH) — it never inserts, so
+ * the pipeline card must already exist (created at coach/admit). Only writes the fields supplied.
+ * Returns the updated row(s); an empty array means no matching card (a standalone run, not piped).
+ */
+export async function recordProvision({ slug, mvpUrl, githubRepo, vercelProject, supabaseRef }) {
+  if (!slug) throw new Error("recordProvision: slug is required");
+  const patch = {};
+  if (mvpUrl) patch.mvp_url = mvpUrl;
+  if (githubRepo) patch.github_repo = githubRepo;
+  if (vercelProject) patch.vercel_project = vercelProject;
+  if (supabaseRef) patch.supabase_ref = supabaseRef;
+  if (Object.keys(patch).length === 0) return [];
+  patch.updated_at = new Date().toISOString();
+  return rest(`product_validation_status?product_slug=eq.${encodeURIComponent(slug)}`, {
+    method: "PATCH",
+    prefer: "return=representation",
+    body: patch,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Vercel: what is production ACTUALLY serving right now (Delta 2)
 // ---------------------------------------------------------------------------

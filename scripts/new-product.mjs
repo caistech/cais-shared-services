@@ -48,7 +48,7 @@ import { homedir } from "node:os";
 import { dirname, join, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
-import { getCard, recordGate } from "./gate-check.mjs";
+import { getCard, recordGate, recordProvision } from "./gate-check.mjs";
 
 // ---------------------------------------------------------------------------
 // args + config
@@ -352,6 +352,32 @@ async function stepVercel() {
 }
 
 // ---------------------------------------------------------------------------
+// Resolve the ACTUAL production URL Vercel assigned this project.
+// ---------------------------------------------------------------------------
+// Do NOT assume `<slug>.vercel.app`: if that subdomain is already taken by another
+// account, Vercel gives THIS project a suffixed alias and the bare domain serves
+// someone else's app — exactly the ExecutorAI collision (2026-06-09) where the run
+// reported `executorai.vercel.app` (a stranger's app) instead of its real alias.
+// Prefer: the bare slug domain IF we actually own it → the canonical team alias →
+// the first non-preview alias → the bare domain as a last resort.
+async function resolveProdUrl(prjId) {
+  const bare = `${SLUG}.vercel.app`;
+  if (DRY || !prjId) return `https://${bare}`;
+  const teamQ = `?teamId=${CONFIG.vercelTeam}`;
+  const proj = await (await api(`https://api.vercel.com/v9/projects/${prjId}${teamQ}`, { token: VERCEL_TOKEN })).json().catch(() => ({}));
+  const aliases = (proj?.targets?.production?.alias || []).filter(
+    (a) => typeof a === "string" && a.endsWith(".vercel.app") && !a.includes("-git-"),
+  );
+  const pick =
+    aliases.find((a) => a === bare) ||
+    aliases.find((a) => a.startsWith(`${SLUG}-`) && a.includes("corporate-ai-solutions")) ||
+    aliases[0] ||
+    bare;
+  if (pick !== bare) warn(`'${bare}' is taken by another project — using the assigned domain ${pick}`);
+  return `https://${pick}`;
+}
+
+// ---------------------------------------------------------------------------
 // step: production deploy (promote the working branch)
 // ---------------------------------------------------------------------------
 // Locked in after SayFix (2026-05-26): a git-linked push only creates a PREVIEW
@@ -360,7 +386,7 @@ async function stepVercel() {
 // the working branch to production explicitly so env changes take effect and a
 // working prod URL exists for the validation outreach link.
 
-async function stepDeploy(prjId) {
+async function stepDeploy(prjId, prodUrl) {
   step("Production deploy (promote the working branch)");
   if (DRY) { info(`DRY: POST /v13/deployments target=production ref=${CONFIG.branch}`); return; }
   if (!prjId) { warn("no Vercel project id â€” skipping deploy"); return; }
@@ -374,7 +400,7 @@ async function stepDeploy(prjId) {
   });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) { warn(`deploy trigger failed: ${d.error?.message || JSON.stringify(d).slice(0, 120)}`); return null; }
-  ok(`production deploy triggered: ${d.id || "(queued)"} â€” env now live at https://${SLUG}.vercel.app`);
+  ok(`production deploy triggered: ${d.id || "(queued)"} â€” env now live at ${prodUrl || `https://${SLUG}.vercel.app`}`);
   return d.id || null;
 }
 
@@ -511,7 +537,7 @@ function stepOnboard(ref) {
 // step: ElevenLabs (shared helper only â€” never the deprecated webhook shape)
 // ---------------------------------------------------------------------------
 
-async function stepVoice() {
+async function stepVoice(prodUrl) {
   if (!CONFIG.voice) { step("ElevenLabs voice â€” skipped (no key / --no-voice)"); return; }
   step("ElevenLabs voice agent");
   if (DRY) { info("DRY: provisionVoiceAgent via @caistech/elevenlabs-convai"); return; }
@@ -523,7 +549,7 @@ async function stepVoice() {
   catch (e) { warn(`@caistech/elevenlabs-convai not importable (${e.message}). Install it in cais-shared-services + rerun, or provision later. Skipping.`); return; }
   if (typeof provision !== "function") { warn("provisionVoiceAgent not exported by the hub â€” skipping."); return; }
 
-  const baseUrl = `https://${SLUG}.vercel.app`;
+  const baseUrl = prodUrl || `https://${SLUG}.vercel.app`;
   const voiceId = process.env.ELEVENLABS_VOICE_ID || "21m00Tcm4TlvDq8ikWAM"; // canonical warm default
   try {
     const result = await provision(process.env.ELEVENLABS_API_KEY, {
@@ -601,11 +627,12 @@ function stepRegisterAndGit(ref) {
   stepHarvestLocal();
   await stepResend();             // mint per-product sending key BEFORE Vercel + onboard use it
   const prjId = await stepVercel();
+  const prodUrl = await resolveProdUrl(prjId);   // the REAL assigned URL (handles a slug collision)
   stepOnboard(ref);
   stepTestAccountsConfig();
-  await stepVoice();
+  await stepVoice(prodUrl);
   stepRegisterAndGit(ref);
-  const deployId = await stepDeploy(prjId);  // promote the working branch to production (env now live)
+  const deployId = await stepDeploy(prjId, prodUrl);  // promote the working branch to production (env now live)
 
   // Record the provisioning on the cockpit ledger â€” visible on the card, and the
   // ledger entry the gate reads. (Informational; the URL-share gate keys on a
@@ -615,6 +642,21 @@ function stepRegisterAndGit(ref) {
       await recordGate({ slug: SLUG, gate: "provisioned", status: "pass", deploymentId: deployId, recordedBy: "new-product.mjs" });
       ok("recorded 'provisioned' in the pipeline ledger");
     } catch (e) { warn(`could not record provisioned gate (non-fatal): ${e.message}`); }
+
+    // WRITE-BACK (the gap that caused the ExecutorAI duplicate): stamp the live URL + infra
+    // identifiers onto the cockpit card so the pipeline KNOWS this product is built and never
+    // re-provisions it. mvp_url is what survey / design-build / readiness all read.
+    try {
+      const rows = await recordProvision({
+        slug: SLUG,
+        mvpUrl: prodUrl,
+        githubRepo: `${CONFIG.githubOwner}/${SLUG}`,
+        vercelProject: prjId,
+        supabaseRef: ref,
+      });
+      if (Array.isArray(rows) && rows.length) ok(`wrote provisioned identifiers back to the cockpit card (mvp_url=${prodUrl})`);
+      else warn(`no cockpit card for '${SLUG}' to write identifiers onto — standalone run, or create the card first`);
+    } catch (e) { warn(`could not write provisioned identifiers to the cockpit (non-fatal): ${e.message}`); }
   }
 
   step("Done â€” remaining manual steps");
