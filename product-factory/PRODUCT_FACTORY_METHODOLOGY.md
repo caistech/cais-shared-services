@@ -164,7 +164,7 @@ The 14 are fixed (set, survey denominator, marker contract, IP datapackage all u
 
 ### Stage 5 · Score & Sign-off  *(house: Certificate of Occupancy)*
 **Purpose:** aggregate to a single GO/no-go. ≥80% weighted AND no blockers.
-- **HAVE:** **`score.ts` / `loadCardScore` is the live canonical scorer** (45-check, tier-aware, compute-on-read, tested). `pipeline_gates` PASS is the GO record. `gate-check.mjs` binds a PASS to the live deployment (a stale build does not pass).
+- **HAVE:** **`score.ts` / `loadCardScore` is the live canonical scorer** (46-check, tier-aware, compute-on-read, tested). `pipeline_gates` PASS is the GO record. `gate-check.mjs` binds a PASS to the live deployment (a stale build does not pass).
 - **NEED:** **finish scorer reconciliation** — confirm `recalculate-score` is a pure `loadCardScore` adapter and **shelve the SQL `compute_readiness`** (validated-but-redundant duplicate; the old `AS_BUILT` wrongly called it canonical). Build the **Certificate of Occupancy** artifact (`certificate-of-occupancy.json`) with the **30-day auto-reset** (`valid_until` / `user_feedback_flag`) — currently GO is only a gate row, the CoO is designed but not emitted.
 
 ### Stage 6 · Handover & Market-test  *(house: settlement day)*
@@ -182,7 +182,7 @@ The 14 are fixed (set, survey denominator, marker contract, IP datapackage all u
 ## 5. The scorer — single source of truth (correcting the old docs)
 
 There were three scorers; the canon is now one read-path:
-- **CANONICAL:** `score.ts` / `loadCardScore` — tier-aware, 45-check, compute-on-read. The cockpit UI and the gate read this.
+- **CANONICAL:** `score.ts` / `loadCardScore` — tier-aware, 46-check, compute-on-read. The cockpit UI and the gate read this.
 - **ADAPTER (verify):** `recalculate-score/route.ts` — should be a thin pass-through to `loadCardScore`; retire any residual hardcoded formula.
 - **SHELVED:** the SQL `compute_readiness` function + 63-row `readiness_criteria` — a validated but redundant duplicate. **Not the live path.** (`AS_BUILT.md` previously documented this as canonical — that was the drift.)
 

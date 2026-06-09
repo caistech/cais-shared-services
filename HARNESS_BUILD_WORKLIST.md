@@ -66,13 +66,14 @@
 
 - **Context:** rubric check **#42 — Agent-discoverable** (llms.txt + schema.org/JSON-LD + /.well-known agent manifest) added to the catalogue + cockpit DB on 2026-06-09. **CONDITIONAL-WEIGHTED, weight Med, method AUTO, gated on a NEW feature tag `public-web`** (driven by the Google I/O 2026 agent-web shift; see `PRODUCT_STANDARDS.md` §11). Migration `Corporate-AI-Solutions/supabase/migrations/20260609000000_readiness_criteria_agent_discoverable.sql` is **applied** to ref `tfgtfhwvrswjvkyeyvsp`. Source chain unchanged (workbook → `extract_workbook.py` → `criteria.json` + seed). Catalogue is now **46 checks**; **7 feature tags** (`…/email/public-web`).
 - **The scoring ENGINE needs NO change** — `src/lib/methodology/score.ts` + `readiness.ts` are dynamic (applicability = `card.features.includes(c.applies_when)`, no hardcoded count); `readiness_results` accepts any `check_code`; the waiver route validates against the DB. **#42 already scores.**
-- **Tasks — so `public-web` can be SET on a card + the producer can WRITE:**
-  1. **HIGH** — `src/app/api/methodology/cards/[slug]/route.ts:80` — add `'public-web'` to the `z.enum([...])` (PATCH rejects the tag otherwise).
-  2. **HIGH** — `src/components/methodology/CockpitControls.tsx:36` — add `'public-web'` to the `FEATURES` array + a `FEATURE_LABEL` entry (~L37–44), e.g. `'public-web': 'Public web (agent-discoverable)'`. The checkbox UI (`:184–204`) is data-driven, so it auto-renders.
-  3. **MED** — `src/lib/methodology/enroll-card.ts:21` — add `"public-web"` to `KNOWN_FEATURES`.
-  4. **LOW** — stale "45-check" → "46": `src/lib/methodology/score.ts:3` + `src/app/admin/methodology/readiness/page.tsx:8` (the page heading `:130` is already dynamic `{criteria.length}`).
-- **New producer:** the `/agent-ready` skill (spec: `AGENT_READY_SKILL_SPEC.md`) calls `upsertReadinessResult({ productSlug, checkCode: '42', status, source: 'auto', evidence })` and may call `addFeatures(supabase, slug, ['public-web'])` on detection. Locked precedence: a live `/agent-ready` pass > static auto-probe.
-- **Depends on:** nothing — the engine already handles #42; this is enum/label surfacing + the producer. Lower priority than the (shipped) #1–4. Full context: memory `project_agent_readiness_42_cockpit_followups` (CAS slug) + `project_agent_readiness_rubric`.
+- **Feature-surfacing tasks — DONE 2026-06-09** (cockpit branch `feat/public-web-feature-dry`, commit `c194138`; off `feat/per-check-waiver` because the #42 migration `75da67b` lives there, not on `main`). Applied as the **DRY + cross-repo-guard** change, not the raw 3-spot patch:
+  1. **New single source** `src/lib/methodology/features.ts` (`KNOWN_FEATURES` + `FEATURE_LABEL`). The PATCH `z.enum` (`cards/[slug]/route.ts`) and the cockpit checkboxes (`CockpitControls.tsx`) now **derive** from it; `enroll-card.ts` re-exports it. Adding a feature is now ONE edit. Zod-4 `z.enum(KNOWN_FEATURES)` over the `as const` array typechecks (no tuple-cast needed).
+  2. **Both drifted tags added to the canon-of-7**, not just `public-web`: the review caught that `KNOWN_FEATURES` had also lost **`address-or-abn-fields`** (had 5, canon is 7) — so auto-enrollment (`addFeatures`) silently couldn't union it. Both now present.
+  3. **Cross-repo guard** `__tests__/features.canon.test.ts` asserts `KNOWN_FEATURES` ≡ keys of `cais-shared-services/gate-readiness/applicability.json` `features` (the real source of truth) when the sibling repo is checked out, with an embedded 7-tag snapshot as the CI guard. Closes the drift *class*, not just this instance.
+  4. **Stale "45-check" → "46" swept fully**: `score.ts`, `survey.ts` (review-caught extra), `readiness/page.tsx`, **and the generated `src/content/methodology-doc.ts`** — fixed at SOURCE (`product-factory/PRODUCT_FACTORY_METHODOLOGY.md` lines 167+185 in THIS repo) + `npm run gen:methodology`, not by hand-editing the generated file. ⚠️ **The source-doc edit is UNCOMMITTED** in this repo's dirty `feat/fixer-lanes` tree — commit it so a future regen doesn't revert the snapshot.
+  - Verified: `tsc` clean, lint clean, `vitest run src/lib/methodology` = 114/114 (incl. the new guard hitting the real cross-repo assertion). **Cockpit commit not pushed.**
+- **STILL TO BUILD — the `/agent-ready` producer (spec-only, NOT shipped).** There is no `src/app/api/agent-ready` and no skill yet — `AGENT_READY_SKILL_SPEC.md` is a spec. It will call `upsertReadinessResult({ productSlug, checkCode: '42', status, source: 'auto', evidence })` and `addFeatures(supabase, slug, ['public-web'])` on detection (that hook now works for both new tags). Locked precedence: a live `/agent-ready` pass > static auto-probe.
+- **Depends on:** nothing — the engine handles #42 and the tags are now settable. Full context: memory `project_agent_readiness_42_cockpit_followups` (CAS slug) + `project_agent_readiness_rubric`.
 
 ---
 
@@ -106,10 +107,15 @@
   (evidence) proposal only yields real verdicts once a two-stream voice interview completes;
   the Gate-0 (desk-hypothesis) proposal works today.
 
-- **#5 Agent-readiness #42 wiring — NOT STARTED (added 2026-06-09).** The engine already
-  auto-scores #42 (dynamic); remaining = surface `public-web` in 3 hardcoded enums (cards API
-  `route.ts:80` z.enum · `CockpitControls.tsx:36` FEATURES · `enroll-card.ts:21` KNOWN_FEATURES),
-  stale "45-check" → 46, and the `/agent-ready` producer. Low priority; no dependencies.
+- **#5 Agent-readiness #42 wiring — FEATURE-SURFACING DONE, producer remaining (2026-06-09).**
+  The engine auto-scored #42 from day one (dynamic). The feature-surfacing half is now shipped
+  to cockpit branch `feat/public-web-feature-dry` (commit `c194138`, not pushed) as a **DRY +
+  cross-repo-guard** change: one source `lib/methodology/features.ts` feeds the z.enum +
+  checkboxes + enroll-card; **both** drifted tags (`public-web` AND `address-or-abn-fields`)
+  restored to the canon-of-7; a guard test pins `KNOWN_FEATURES` to `applicability.json`; the
+  "45-check"→"46" sweep done incl. the regenerated methodology-doc. `tsc`/lint/114 tests green.
+  **Remaining = the `/agent-ready` producer (spec-only, not built).** One loose end: the
+  source-doc "46-check" edit is uncommitted in this repo's `feat/fixer-lanes` tree.
 
 The spine + cockpit they build on are live — see project memory `pipeline-gate-live`
 (SayFix slug) + `methodology-intake-gate-live`.
