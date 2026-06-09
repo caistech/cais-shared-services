@@ -594,22 +594,37 @@ async function stepVoice(prodUrl) {
 // accounts, never the operator's personal email. JSON has no interpolation, so
 // the domain is substituted here at generation time (an un-substituted ${...}
 // left in the file would make the audit look for a literal placeholder address).
-function stepTestAccountsConfig() {
-  step("Write test-accounts.config.json (QA identities)");
+function stepTestAccountsConfig(ref) {
+  step("QA accounts — write config + CREATE + email-confirm");
   const qaDomain = process.env.QA_TEST_DOMAIN || "qa.corporateaisolutions.com";
   const templatePath = join(HUB_ROOT, "templates", "test-accounts.config.template.json");
   const outPath = join(PORTFOLIO_BASE, SLUG, "test-accounts.config.json");
 
-  if (DRY) { info(`DRY: write ${outPath} (qaDomain=${qaDomain})`); return; }
-  if (existsSync(outPath)) { ok(`test-accounts.config.json exists â€” leaving as-is`); return; }
+  if (DRY) { info(`DRY: write ${outPath} + create+confirm QA accounts (provision-qa-accounts.mjs --slug ${SLUG})`); return; }
 
-  let tpl;
-  try { tpl = readFileSync(templatePath, "utf8"); }
-  catch { warn(`template missing at ${templatePath} â€” skipping QA config`); return; }
+  // 1. Write the identities config (the portfolio-gate audit + provision-qa-accounts read it).
+  if (existsSync(outPath)) {
+    ok(`test-accounts.config.json exists â€” leaving as-is`);
+  } else {
+    let tpl;
+    try { tpl = readFileSync(templatePath, "utf8"); }
+    catch { warn(`template missing at ${templatePath} â€” skipping QA config + accounts`); return; }
+    writeFileSync(outPath, tpl.replace(/\$\{QA_TEST_DOMAIN\}/g, qaDomain));
+    ok(`wrote test-accounts.config.json (qaDomain=${qaDomain})`);
+  }
 
-  const resolved = tpl.replace(/\$\{QA_TEST_DOMAIN\}/g, qaDomain);
-  writeFileSync(outPath, resolved);
-  ok(`wrote test-accounts.config.json (qaDomain=${qaDomain})`);
+  // 2. ACTUALLY create + email-confirm the accounts. Writing the config ALONE left every fresh
+  //    product with a config naming accounts that don't exist, so validation hit the auth wall
+  //    every time (ExecutorAI 2026-06-09: testers blocked at the email-confirm gate). The creator
+  //    (provision-qa-accounts.mjs) already existed + uses admin.createUser({email_confirm:true}) —
+  //    it just was never invoked. Wire it so the standard QA owner/user can log in IMMEDIATELY
+  //    (no email round-trip), and the validation cycle never blocks on a missing login.
+  const r = run("node", [
+    join(HUB_ROOT, "scripts", "provision-qa-accounts.mjs"),
+    "--slug", SLUG, "--supabase-ref", ref, "--root", join(PORTFOLIO_BASE, SLUG),
+  ]);
+  if (r.status === 0) ok(`QA accounts created + email-confirmed â€” validation can log in immediately`);
+  else warn(`provision-qa-accounts failed (non-fatal): ${(r.stderr || r.stdout || "").trim().slice(0, 200)}`);
 }
 // ---------------------------------------------------------------------------
 // step: platform-trust registration + git
@@ -643,7 +658,7 @@ function stepRegisterAndGit(ref) {
   await stepResend();             // mint per-product sending key BEFORE Vercel + onboard use it
   const prjId = await stepVercel();
   stepOnboard(ref);
-  stepTestAccountsConfig();
+  stepTestAccountsConfig(ref);
   // Voice baseUrl only feeds the agent's allowedOrigins, which already carries the
   // `https://*.vercel.app` wildcard — so a provisional guess pre-deploy is fine here.
   await stepVoice(`https://${SLUG}.vercel.app`);
