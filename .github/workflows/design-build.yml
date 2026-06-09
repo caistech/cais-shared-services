@@ -397,6 +397,13 @@ jobs:
           # tsc, and if it fails, feed the errors back to the builder (Claude via OpenCode) to fix —
           # loop up to 3×. If still broken, FAIL the job: never open a PR over non-compiling code.
           set +e
+          # Scrub the staged helper dirs BEFORE typechecking. _template (cais-build-template-v2) and
+          # _standards import packages NOT installed in the product (e.g. @caistech/corporate-components),
+          # so tsc throws spurious, UNFIXABLE errors on them that doom the self-fix loop (ExecutorAI run
+          # 2026-06-09: the gate failed only on _template/* errors). The agent is told to remove them but
+          # may not — don't depend on it. KEEP opencode.json (the self-fix opencode calls need it; the
+          # commit step removes it after).
+          rm -rf _standards _template _spec.json _teardown_brief.md bug-knowledge.json 2>/dev/null || true
           MODEL_FLAG=""; [ -n "$OPENCODE_MODEL" ] && MODEL_FLAG="-m $OPENCODE_MODEL"
           # Install EXACTLY as Vercel does — via the committed .npmrc, NO extra CLI flags. Passing
           # --legacy-peer-deps here would mask a .npmrc that's missing it (the gate would pass while
