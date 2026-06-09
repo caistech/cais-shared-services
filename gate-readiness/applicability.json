@@ -7,7 +7,8 @@
     "supabase": "uses Supabase (idempotent migrations via CLI / RLS every table / no client-side service key)",
     "third-party-content": "users create or share content built on third-party IP",
     "address-or-abn-fields": "has address or company/ABN input fields",
-    "email": "the product sends email"
+    "email": "the product sends email",
+    "public-web": "has a public-facing web surface (landing/marketing/app site) that AI search + browser agents can reach — N/A for pure internal tools, headless/MCP-only infra, or CLI products"
   },
   "applies_when": {
     "10": "voice",
@@ -28,6 +29,7 @@
     "33": "third-party-content",
     "34": "address-or-abn-fields",
     "35": "email",
-    "38": "supabase"
+    "38": "supabase",
+    "42": "public-web"
   }
 }

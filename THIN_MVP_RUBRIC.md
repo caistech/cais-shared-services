@@ -122,19 +122,28 @@ nothing a viewer feels (too much).
 
 §0–5 decide *what's in the slice*. §6 decides *whether the slice is ready to send* — the
 Gate-1 question ("is the thin MVP ready for the validation outreach link?"). It is now
-**machine-applied policy**: the 45 checks below were each assigned a tier by Dennis in the
+**machine-applied policy**: the 46 checks below were each assigned a tier by Dennis in the
 `GATE_READINESS_REVIEW_V4` workbook (every check `Confirm=Y`, zero overrides). The full
 catalogue with per-check source/method/notes lives in
 `gate-readiness/criteria.json` and the cockpit `readiness_criteria` table.
 
-**Five tiers (ratified tally — 45 checks):**
+> **Post-ratification addition (2026-06-09): #42 Agent-discoverable** (CONDITIONAL-WEIGHTED,
+> `public-web`). Added after Google I/O 2026 commoditised voice-to-structure / web-fetch and
+> shipped **WebMCP** + auto-browse **Information Agents** — the rubric had no check for whether
+> a product is discoverable/legible to AI search + browser agents (now a real traffic channel).
+> Appended to the workbook with `Confirm=Y` and regenerated through `extract_workbook.py`, so the
+> single-source-of-truth invariant holds. *Operability* (key actions as WebMCP tools) stays a
+> Tier-1 / post-Gate-2 concern; *cross-agent integration* is `BUSINESS_MODEL.md` §5 **D3**
+> distribution evidence, not a readiness check.
+
+**Five tiers (ratified tally — 46 checks):**
 
 | Tier | Count | Role at Gate 1 |
 |---|---|---|
 | **HARD** | 7 | **Blocks the Launch button.** No waiver. (P1 live link · P2 named distributor · P3 four gate questions · #2 responsive · #7 real `<title>` · #39 no committed secrets · #40 Vercel env hygiene.) |
 | **CONDITIONAL-HARD** | 14 | HARD **only when that feature exists** — auth (#22–25), voice (#10–11,13–14,16–19), IP/3rd-party content (#33), Supabase (#38). If the feature is present and the check fails → blocks. |
 | **WEIGHTED** | 13 | **Feeds the GO / REDESIGN / NO-GO score** (waivable). Carries a High/Med/Low weight. #9 (promise attributes at quality bar) is the central one. |
-| **CONDITIONAL-WEIGHTED** | 5 | Weighted **only when that feature exists** (#15 memory pattern, #20 cross-session memory, #29 Sign Out, #34 Mapbox/ABN, #35 email sender). |
+| **CONDITIONAL-WEIGHTED** | 6 | Weighted **only when that feature exists** (#15 memory pattern, #20 cross-session memory, #29 Sign Out, #34 Mapbox/ABN, #35 email sender, **#42 agent-discoverable** — `public-web`). |
 | **TOO-MUCH** | 1 | **Inverse guard** (P4): scale-infra *present* pre-GO is itself a flag (team admin / billing / settings = over-build). |
 | **DEFER** | 5 | Scale-infra, **not scored at Gate 1** (#8 OG image · #21 memory GDPR surface · #27 full settings · #28 profiles table · #30 team admin). These re-enter at Gate 2 / Tier-1 per `BUSINESS_MODEL.md` §7. |
 
@@ -204,7 +213,7 @@ not "welcome back" · see-yourself = in-browser video, not audio-only.*
 
 ## 8. Where the ratified data lives (canonical sources)
 
-- **`gate-readiness/criteria.json`** — the 45-check catalogue (ratified tiers + weights). The
+- **`gate-readiness/criteria.json`** — the 46-check catalogue (ratified tiers + weights). The
   single source the cockpit table and this doc both reflect.
 - **`gate-readiness/promise-attributes.json`** — the per-product "X, not Y" bars.
 - **`gate-readiness/extract_workbook.py`** — regenerates both JSONs + the SQL seed from the

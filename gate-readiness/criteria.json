@@ -2,14 +2,14 @@
   "source": "GATE_READINESS_REVIEW_V4.xlsx — Criteria Classification (List 4)",
   "ratified": true,
   "all_confirmed": true,
-  "count": 45,
+  "count": 46,
   "tier_tally": {
     "HARD": 7,
     "TOO-MUCH": 1,
     "WEIGHTED": 13,
     "DEFER": 5,
     "CONDITIONAL-HARD": 14,
-    "CONDITIONAL-WEIGHTED": 5
+    "CONDITIONAL-WEIGHTED": 6
   },
   "criteria": [
     {
@@ -596,6 +596,19 @@
       "weight": "High",
       "notes": "Naive-tester walkthrough = the codified \"I want that\" check. HIGH.",
       "applies_when": null
+    },
+    {
+      "code": "42",
+      "check": "Agent-discoverable: llms.txt + schema.org/JSON-LD + /.well-known agent manifest",
+      "source": "PS §11",
+      "method": "AUTO",
+      "relevance": "COND",
+      "proposed_tier": "CONDITIONAL-WEIGHTED",
+      "confirmed": true,
+      "tier": "CONDITIONAL-WEIGHTED",
+      "weight": "Med",
+      "notes": "CONDITIONAL-WEIGHTED (public-web) - agent-era discoverability after Google I/O 2026 (WebMCP + Information Agents auto-browse). Applies where a public web surface exists: llms.txt + schema.org/JSON-LD + /.well-known agent manifest so AI search/agents find + correctly describe the product. Operability (key actions as WebMCP tools) defers to Tier-1 (post-Gate-2); cross-agent integration feeds the BizModel §5 D3 distribution-leverage score.",
+      "applies_when": "public-web"
     }
   ]
 }
