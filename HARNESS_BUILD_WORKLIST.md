@@ -18,6 +18,7 @@
 2. **Derive `mvp_ready` from the score** (Gate 1)
 3. **Evidence-proposed triage / decision** (Gate 0 + Gate 2)
 4. **Hybrid pool-discovery + auto two-stream** (Gate 1→2) — *compose* `/office-hours` + existing discovery primitives, do not build bespoke
+5. **Agent-readiness #42 wiring** (added 2026-06-09, after the original four) — surface the new `public-web` feature tag + the `/agent-ready` producer so the new rubric check is settable + writable
 
 ---
 
@@ -61,6 +62,18 @@
   - **New glue only:** pool-hypothesis fields on the card, the office-hours↔evidence↔operator loop, the validated-ICP handoff, auto-dual-stream creation.
 - **Depends on:** nothing hard; can run parallel to #1 but lower priority than the keystone.
 
+## 5 — Agent-readiness check #42 wiring  [added 2026-06-09]
+
+- **Context:** rubric check **#42 — Agent-discoverable** (llms.txt + schema.org/JSON-LD + /.well-known agent manifest) added to the catalogue + cockpit DB on 2026-06-09. **CONDITIONAL-WEIGHTED, weight Med, method AUTO, gated on a NEW feature tag `public-web`** (driven by the Google I/O 2026 agent-web shift; see `PRODUCT_STANDARDS.md` §11). Migration `Corporate-AI-Solutions/supabase/migrations/20260609000000_readiness_criteria_agent_discoverable.sql` is **applied** to ref `tfgtfhwvrswjvkyeyvsp`. Source chain unchanged (workbook → `extract_workbook.py` → `criteria.json` + seed). Catalogue is now **46 checks**; **7 feature tags** (`…/email/public-web`).
+- **The scoring ENGINE needs NO change** — `src/lib/methodology/score.ts` + `readiness.ts` are dynamic (applicability = `card.features.includes(c.applies_when)`, no hardcoded count); `readiness_results` accepts any `check_code`; the waiver route validates against the DB. **#42 already scores.**
+- **Tasks — so `public-web` can be SET on a card + the producer can WRITE:**
+  1. **HIGH** — `src/app/api/methodology/cards/[slug]/route.ts:80` — add `'public-web'` to the `z.enum([...])` (PATCH rejects the tag otherwise).
+  2. **HIGH** — `src/components/methodology/CockpitControls.tsx:36` — add `'public-web'` to the `FEATURES` array + a `FEATURE_LABEL` entry (~L37–44), e.g. `'public-web': 'Public web (agent-discoverable)'`. The checkbox UI (`:184–204`) is data-driven, so it auto-renders.
+  3. **MED** — `src/lib/methodology/enroll-card.ts:21` — add `"public-web"` to `KNOWN_FEATURES`.
+  4. **LOW** — stale "45-check" → "46": `src/lib/methodology/score.ts:3` + `src/app/admin/methodology/readiness/page.tsx:8` (the page heading `:130` is already dynamic `{criteria.length}`).
+- **New producer:** the `/agent-ready` skill (spec: `AGENT_READY_SKILL_SPEC.md`) calls `upsertReadinessResult({ productSlug, checkCode: '42', status, source: 'auto', evidence })` and may call `addFeatures(supabase, slug, ['public-web'])` on detection. Locked precedence: a live `/agent-ready` pass > static auto-probe.
+- **Depends on:** nothing — the engine already handles #42; this is enum/label surfacing + the producer. Lower priority than the (shipped) #1–4. Full context: memory `project_agent_readiness_42_cockpit_followups` (CAS slug) + `project_agent_readiness_rubric`.
+
 ---
 
 ## Status
@@ -92,6 +105,11 @@
   clean, 52/52 methodology tests pass. **Remaining:** live verification — the Gate-2
   (evidence) proposal only yields real verdicts once a two-stream voice interview completes;
   the Gate-0 (desk-hypothesis) proposal works today.
+
+- **#5 Agent-readiness #42 wiring — NOT STARTED (added 2026-06-09).** The engine already
+  auto-scores #42 (dynamic); remaining = surface `public-web` in 3 hardcoded enums (cards API
+  `route.ts:80` z.enum · `CockpitControls.tsx:36` FEATURES · `enroll-card.ts:21` KNOWN_FEATURES),
+  stale "45-check" → 46, and the `/agent-ready` producer. Low priority; no dependencies.
 
 The spine + cockpit they build on are live — see project memory `pipeline-gate-live`
 (SayFix slug) + `methodology-intake-gate-live`.
