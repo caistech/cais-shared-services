@@ -85,7 +85,7 @@
 | `@caistech/corporate-components` | Shared React: auth, header, footer, explanatory page header (R3), trust scaffolding (R15), ABN lookup, address autocomplete, brand Tailwind palette + global CSS. |
 | `@caistech/next-auth` | Standard auth utilities for Next.js + Supabase. |
 | `@caistech/report-generator` | Markdown → branded PDF (brand + disclaimer + watermark + page numbers). |
-| `@caistech/sayfix-embed` | SayFix bug-reporting widget — GBTA-controlled service layer. Wire `<SayFixWidget repo="…" />` per the PRODUCT_STANDARDS SayFix gate. |
+| `@caistech/sayfix-embed` | SayFix bug-reporting widget — GBTA-controlled service layer. Wire `<SayFixWidget repo="…" />` (root layout; `repo` MUST equal the SayFix `repos.github_repo`) per the PRODUCT_STANDARDS SayFix gate. **v0.3.0+ ships a compiled `dist/` + zero runtime deps (inlined SVG icons) → no `transpilePackages` needed; ≤0.2.0 shipped raw `src/index.ts` JSX and broke Next builds.** Rollout runbook: `SAYFIX_INTEGRATION_ROLLOUT.md`. |
 | `@caistech/byok-setup` | BYOK key-onboarding wizard — reads `byok.config.json`, validates pasted keys, generates secrets, distributes to `.env.local` + Vercel. |
 
 ## Portfolio operations (hub tooling, not product deps)
