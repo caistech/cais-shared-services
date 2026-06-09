@@ -11,17 +11,17 @@ name: Design & Build (architect → builder)
 # standards-aligned default AND logs that fork into the PR body (and decisions.json) for the human
 # to override at review. The PR is the only human checkpoint. Its url is POSTed back to the card.
 #
-# TWO PATHS, auto-detected by repo existence (the "Resolve target repo" step):
-#   EXISTING-REPO (TEARDOWN / RENOVATE): the product already has a repo — branch off it, rebuild to spec.
-#   NET-NEW-REPO (no repo yet): create dennissolver/<slug> (auto_init) + scaffold a brand-new thin MVP
-#   from cais-build-template-v2 per the card spec, then PR it. Verdict is forced to NEW on this path.
+# design-build CUSTOMIZES an existing repo — it never creates one (provisioning owns that). Two
+# framings, selected by the VERDICT input:
+#   verdict=NEW (TEARDOWN/RENOVATE's sibling): the repo is a freshly-provisioned cais-starter (by
+#     new-product) — customize the generic starter to the card spec. No survey failures yet.
+#   verdict=TEARDOWN / RENOVATE: an existing live product — rebuild it against its recorded survey
+#     findings. A brand-new product must be provisioned by new-product BEFORE design-build runs.
 #
 # Lives in: caistech/cais-shared-services/.github/workflows/design-build.yml (must be on default branch).
 #
 # Required Actions secrets (same set as survey.yml):
-#   OPENCODE_AUTH_JSON, GH_PAT (contents:write + pull-requests:write on dennissolver/*; for the
-#     NET-NEW path it also needs repo-creation rights: classic 'repo' scope, or a fine-grained PAT
-#     with Administration:write + Repository-creation on the dennissolver account),
+#   OPENCODE_AUTH_JSON, GH_PAT (contents:write + pull-requests:write on dennissolver/*),
 #   COCKPIT_BASE
 # Optional repo variable: DESIGN_BUILD_MODEL (this job's model; falls back to shared OPENCODE_MODEL, then Sonnet)
 
@@ -71,45 +71,34 @@ jobs:
       - name: Checkout shared-services (standards + template)
         uses: actions/checkout@v4
 
-      - name: Resolve target repo (create dennissolver/<slug> if net-new)
+      - name: Resolve target repo (must be provisioned first)
         id: repo
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
         run: |
-          # The product repo may not exist yet (a brand-new idea straight from the coach — the cause
-          # of the "Checkout target product repo → Not Found" failures). Probe it; if 404, CREATE it
-          # (auto_init so it has a main branch the checkout + PR can use) and mark the run NET-NEW so
-          # the prompt scaffolds a fresh thin MVP instead of rebuilding. Existing repo → unchanged.
+          # design-build CUSTOMIZES an existing repo — it never creates one. A brand-new product is
+          # provisioned first by new-product (repo from cais-starter + Supabase + Vercel + voice +
+          # deploy), which then dispatches design-build with verdict=NEW to customize the generic
+          # starter to spec. So the repo MUST already exist here; a 404 means provisioning didn't run.
           set -e
           OWNER=dennissolver
           REPO="$SLUG"
           code=$(curl -sS -o /tmp/repo.json -w '%{http_code}' \
             -H "Authorization: Bearer $GH_PAT" -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/$OWNER/$REPO")
-          if [ "$code" = "200" ]; then
-            echo "repo $OWNER/$REPO exists — existing-repo path (TEARDOWN/RENOVATE)"
-            echo "NET_NEW=false" >> "$GITHUB_ENV"
-          elif [ "$code" = "404" ]; then
-            echo "repo $OWNER/$REPO not found — creating it (NET-NEW path)"
-            ccode=$(curl -sS -o /tmp/create.json -w '%{http_code}' -X POST \
-              -H "Authorization: Bearer $GH_PAT" -H "Accept: application/vnd.github+json" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              https://api.github.com/user/repos \
-              -d "{\"name\":\"$REPO\",\"private\":true,\"auto_init\":true,\"description\":\"$REPO — Product Factory thin MVP (net-new)\"}")
-            if [ "$ccode" != "201" ]; then
-              echo "::error::repo creation failed (HTTP $ccode) — does GH_PAT carry repo-creation rights?"
-              cat /tmp/create.json; exit 1
-            fi
-            # Wait until the new repo is queryable so the checkout step doesn't race a 404.
-            for i in 1 2 3 4 5 6; do
-              rc=$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $GH_PAT" "https://api.github.com/repos/$OWNER/$REPO")
-              [ "$rc" = "200" ] && { echo "repo ready"; break; }
-              echo "waiting for repo to be ready (HTTP $rc)…"; sleep 5
-            done
+          if [ "$code" != "200" ]; then
+            echo "::error::repo $OWNER/$REPO not found (HTTP $code). Provision the product first (new-product), then re-run design-build — design-build no longer creates repos."
+            exit 1
+          fi
+          # NET-NEW vs existing is the VERDICT, not repo existence: verdict=NEW = a freshly provisioned
+          # cais-starter to customize to spec (no survey failures yet); TEARDOWN/RENOVATE = an existing
+          # live product to fix against its recorded survey findings.
+          if [ "${VERDICT_IN:-}" = "NEW" ]; then
+            echo "repo $OWNER/$REPO exists; verdict=NEW — customize the freshly-provisioned starter to spec"
             echo "NET_NEW=true" >> "$GITHUB_ENV"
-            echo "VERDICT_IN=NEW" >> "$GITHUB_ENV"
           else
-            echo "::error::unexpected status $code probing $OWNER/$REPO"; cat /tmp/repo.json; exit 1
+            echo "repo $OWNER/$REPO exists; verdict=${VERDICT_IN:-TEARDOWN} — existing-repo (teardown/renovate) path"
+            echo "NET_NEW=false" >> "$GITHUB_ENV"
           fi
 
       - name: Checkout target product repo
@@ -250,11 +239,12 @@ jobs:
           # path writes an empty preamble (byte-identical behaviour to before).
           if [ "${NET_NEW:-false}" = "true" ]; then
             {
-              printf '%s\n' "NET-NEW BUILD OVERRIDE — READ FIRST. This repository is EMPTY: there is NO existing site"
+              printf '%s\n' "NET-NEW BUILD OVERRIDE — READ FIRST. This repo is a freshly-provisioned GENERIC STARTER"
+              printf '%s\n' "(cais-starter: portfolio DNA wired, but NO product content yet) — there is NO existing site"
               printf '%s\n' "to rebuild and NO survey failures / _teardown_brief to fix. IGNORE every instruction below"
               printf '%s\n' "that assumes an existing site to \"rebuild in place\" or survey failures to \"fix\" — they do"
-              printf '%s\n' "not apply. INSTEAD: scaffold a BRAND-NEW THIN MVP into this empty repo from ./_template"
-              printf '%s\n' "(cais-build-template-v2), targeting ./_spec.json per the THIN_MVP_RUBRIC — the FULL"
+              printf '%s\n' "not apply. INSTEAD: build out the product on top of this starter, using ./_template"
+              printf '%s\n' "(cais-build-template-v2) for any patterns it lacks, targeting ./_spec.json per the THIN_MVP_RUBRIC — the FULL"
               printf '%s\n' "experience that makes the validation audience feel the promise, with ZERO scale-"
               printf '%s\n' "infrastructure (no multi-tenant / billing / dashboards / auth-backend pre-GO). Build the"
               printf '%s\n' "real product surfaces (most effort goes into BUILDING, not the plan). Everything below about"
