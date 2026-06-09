@@ -435,8 +435,12 @@ jobs:
           # Scrub helper files in case the agent didn't.
           rm -rf _standards _template _spec.json _teardown_brief.md opencode.json decisions.json.bak bug-knowledge.json 2>/dev/null || true
 
+          # Commit AS the operator's GitHub identity (numeric noreply), not a bare address. Vercel's
+          # git-author verification BLOCKS any deploy whose commit email isn't tied to a GitHub account —
+          # the bare design-build@corporateaisolutions.com blocked every preview deploy (ExecutorAI,
+          # 2026-06-09). The noreply below maps to dennissolver (the repo owner), so previews deploy.
           git config user.name  "cais-design-build[bot]"
-          git config user.email "design-build@corporateaisolutions.com"
+          git config user.email "40324159+dennissolver@users.noreply.github.com"
           # Branch from FRESH remote main so the agent's base is never stale (avoids the
           # rejected-push drift that bites local clones). The work is already in the working tree;
           # create the branch at current HEAD but ensure origin/main is fetched for an up-to-date base.
