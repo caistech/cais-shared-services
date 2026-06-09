@@ -98,6 +98,25 @@ try {
   if (exRes.ok) existingAgentId = (await exRes.json())?.[0]?.voice_agent_id || undefined;
 } catch { /* first provision — none yet */ }
 
+// Safety: never ADOPT an agent id that another repo also points at. A wrong/shared voice_agent_id
+// would otherwise hijack the other product's agent (rename + overwrite its prompt). If it's shared,
+// drop it so we create a fresh agent for THIS repo instead. (deal-findrs/f2k-projects, 2026-06-09.)
+if (existingAgentId) {
+  try {
+    const shareRes = await fetch(
+      `${SUPA_URL}/rest/v1/repos?select=github_repo&voice_agent_id=eq.${existingAgentId}&github_repo=neq.${repo}`,
+      { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } },
+    );
+    if (shareRes.ok) {
+      const others = await shareRes.json();
+      if (others?.length) {
+        console.warn(`⚠ voice_agent_id ${existingAgentId} is also on ${others.map((o) => o.github_repo).join(", ")} — not adopting a shared agent; creating a fresh one for ${repo}.`);
+        existingAgentId = undefined;
+      }
+    }
+  } catch { /* if the share-check fails, fall through — provisionVoiceAgent still name-guards on adopt */ }
+}
+
 const baseUrl = "https://sayfix.vercel.app";
 let result;
 try {
