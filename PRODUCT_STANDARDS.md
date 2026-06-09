@@ -268,6 +268,21 @@ This is the portable checklist. The full prose (the *why*, the worked examples, 
 
 ---
 
+## 11. AGENT-READINESS (every product with a public web surface)
+*Source: Google I/O 2026 agent-web shift — WebMCP (Chrome origin trial), auto-browse Information Agents, native voice-to-structure. Scored by gate-readiness check **#42** (CONDITIONAL-WEIGHTED, `public-web`) + the `/gtm-auditor` Agent-Readiness dimension.*
+
+AI search and browser agents are now a real traffic + distribution channel. A product an agent can't *find*, *read*, or *drive* is invisible/inoperable to it. Three layers, gated differently — only Layer 1 is a Gate-1 readiness check; Layers 2–3 are Tier-1 / distribution concerns (don't over-build pre-GO):
+
+- [ ] **Layer 1 — DISCOVERABLE (Gate-1, check #42).** `/llms.txt` (what the product is + key URLs in agent-legible form), **schema.org / JSON-LD** structured metadata on the landing page, and a `/.well-known/` agent manifest — so AI search + Information Agents find the product and describe it *correctly*. Cheap, experience-adjacent → belongs in even a thin MVP. **Verify (AUTO):** `curl -s <url>/llms.txt` returns content; landing HTML contains a `<script type="application/ld+json">` block; `/.well-known/` manifest resolves.
+- [ ] **Layer 2 — OPERABLE (Tier-1, post-Gate-2 — DEFER at Gate 1).** Key end-user actions (sign up, create-the-core-thing, the product's main verb) exposed as **WebMCP tools** so a browser agent can drive the white-label app. Scale-ish; build it with the Tier-1 platform, *not* in the validation slice (treating it as Gate-1 is the over-build failure P4 guards).
+- [ ] **Layer 3 — INTEGRATABLE (distribution — BizModel §5 D3).** Optional **remote MCP server** so the product is a tool *inside other agents* — the agent-era "output creates the next user" loop. This is **D3 distribution-leverage evidence**, surfaced by `/gtm-auditor`'s Agent-Readiness dimension, not a readiness checkbox.
+
+**Substrate:** don't hand-roll per product. The shared `@caistech/webmcp-kit` (the promoted `storefront-mcp`) is the intended one-install path for Layers 1–3 across the portfolio — consume it (the `@caistech`-first rule), and add the repo to `/gtm-auditor`'s Agent-Readiness scan.
+
+**Lane-aware:** *whose* brand/manifest travels follows the same gate as the rest of GTM — a white-label distributor product exposes the **distributor's** agent surface, never a CAS-branded one.
+
+---
+
 ## Appendix — applied audit: methodology cockpit (`/admin/methodology`, 2026-05-25)
 
 First use of this checklist, against the cockpit shipped this session.

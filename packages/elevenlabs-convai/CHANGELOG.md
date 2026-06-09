@@ -1,5 +1,29 @@
 # @caistech/elevenlabs-convai — Changelog
 
+## 0.4.6 — 2026-06-09
+
+Proactive greeter for the React widget.
+
+### Added
+- **`autoOpen` prop on `VoiceWidget`.** Opens the panel on mount showing the greeting/header
+  with a one-tap "start" button — connects (and requests mic) only on that tap. The
+  "greets-then-connects" pattern for a proactive greeter on a public page, where `autoConnect`
+  (mic-on-load) is too aggressive. Backward-compatible: default behaviour (launcher → open+connect)
+  is unchanged; the new pre-connect panel state only appears when the panel is open but no session
+  has started yet.
+
+## 0.4.5 — 2026-06-09
+
+Re-provisioning fix: an agent that already had tools could not be re-provisioned.
+
+### Fixed
+- **`setAgentTools` re-sent inline `tools` alongside the new `tool_ids`.** It spread the agent's
+  current `prompt` (which can carry a vestigial inline `tools` array) and added `tool_ids`, so
+  ElevenLabs rejected the PATCH with `400 "Cannot specify both tools and tool IDs"` on every
+  re-provision of an agent that already had `tool_ids`. Now strips `tools` + stale `tool_ids` from
+  the prompt before writing the new `tool_ids`. Surfaced re-provisioning 11 SayFix per-product
+  agents onto gpt-4.1-mini + the memory tools — 10 of them failed until this fix.
+
 ## 0.4.0 — 2026-05-25
 
 The tools fix every voice product needs — plus self-verifying provisioning so a

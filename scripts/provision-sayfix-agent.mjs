@@ -80,11 +80,41 @@ const systemPrompt =
   `PRODUCT CONTEXT (for grounding your questions, not for fixing):\n${digest}`;
 
 // --- provision via the hub package ---
-let provisionVoiceAgent;
-try { ({ provisionVoiceAgent } = await import("@caistech/elevenlabs-convai")); }
+let provisionVoiceAgent, createConversationTools, conversationContinuityPrompt;
+try { ({ provisionVoiceAgent, createConversationTools, conversationContinuityPrompt } = await import("@caistech/elevenlabs-convai")); }
 catch (e) {
   console.error(`Could not import @caistech/elevenlabs-convai (run npm install in cais-shared-services): ${e.message}`);
   process.exit(1);
+}
+
+// Idempotency key: re-use the agent already on this repo's row so re-running UPDATES in place
+// (new model, tools, webhook) instead of creating a duplicate.
+let existingAgentId;
+try {
+  const exRes = await fetch(
+    `${SUPA_URL}/rest/v1/repos?select=voice_agent_id&github_owner=eq.${owner}&github_repo=eq.${repo}`,
+    { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } },
+  );
+  if (exRes.ok) existingAgentId = (await exRes.json())?.[0]?.voice_agent_id || undefined;
+} catch { /* first provision — none yet */ }
+
+// Safety: never ADOPT an agent id that another repo also points at. A wrong/shared voice_agent_id
+// would otherwise hijack the other product's agent (rename + overwrite its prompt). If it's shared,
+// drop it so we create a fresh agent for THIS repo instead. (deal-findrs/f2k-projects, 2026-06-09.)
+if (existingAgentId) {
+  try {
+    const shareRes = await fetch(
+      `${SUPA_URL}/rest/v1/repos?select=github_repo&voice_agent_id=eq.${existingAgentId}&github_repo=neq.${repo}`,
+      { headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` } },
+    );
+    if (shareRes.ok) {
+      const others = await shareRes.json();
+      if (others?.length) {
+        console.warn(`⚠ voice_agent_id ${existingAgentId} is also on ${others.map((o) => o.github_repo).join(", ")} — not adopting a shared agent; creating a fresh one for ${repo}.`);
+        existingAgentId = undefined;
+      }
+    }
+  } catch { /* if the share-check fails, fall through — provisionVoiceAgent still name-guards on adopt */ }
 }
 
 const baseUrl = "https://sayfix.vercel.app";
@@ -94,14 +124,25 @@ try {
     config: {
       agentName: `SayFix — ${repo}`,
       voiceId: process.env.ELEVENLABS_VOICE_ID || "21m00Tcm4TlvDq8ikWAM",
-      llmModel: "gpt-4o-mini",
+      // gpt-4.1-mini, NOT gpt-4o-mini: the older model DROPS TOOL CALLS over a long call, so the
+      // memory tools (get_conversation_context / save_*) silently stop firing past the first turn
+      // (the bug that kept the loop from ever producing jobs). See bug-knowledge.json
+      // convai-gpt4o-mini-drops-tool-calls-long-calls.
+      llmModel: "gpt-4.1-mini",
       temperature: 0.4,
       voiceModel: "eleven_turbo_v2",
     },
-    systemPrompt,
+    // Continuity prompt teaches the agent to call get_conversation_context at the start of every
+    // call and to save_message / save_memory / update_conversation_topic as it goes.
+    systemPrompt: systemPrompt + conversationContinuityPrompt,
     firstMessage: `Hi! I'm here to help with ${repo}. What's not working?`,
     baseUrl,
+    // The five memory tools, pointing at SayFix's /api/convai/webhooks/* routes.
+    tools: createConversationTools(baseUrl),
+    // Bind the post-call workspace webhook to our post_call route (distil + persist).
+    postCallWebhookPath: "/api/convai/webhooks/post_call",
     allowedOrigins: [baseUrl, "https://*.vercel.app", "http://localhost:3000"],
+    existingAgentId,
   });
 } catch (e) {
   console.error(`provisionVoiceAgent failed: ${e.message}`);
@@ -125,3 +166,24 @@ console.log(
     ? `✓ agent ${agentId} provisioned + written to repos(${owner}/${repo}). SayFix will render it on that project's intake.`
     : `agent ${agentId} created but repos update failed (HTTP ${r.status}) — set voice_agent_id manually.`,
 );
+
+// --- convai_agents row (REQUIRED) — the memory webhook handlers look the agent up by
+//     elevenlabs_agent_id; without this row start_conversation returns "Agent not found" and the
+//     loop never recalls/persists. System-owned (zero UUID); the webhook routes use service role. ---
+const SYSTEM_OWNER = "00000000-0000-0000-0000-000000000000";
+const ar = await fetch(`${SUPA_URL}/rest/v1/convai_agents?on_conflict=elevenlabs_agent_id`, {
+  method: "POST",
+  headers: {
+    apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}`, "Content-Type": "application/json",
+    Prefer: "resolution=merge-duplicates,return=minimal",
+  },
+  body: JSON.stringify({ user_id: SYSTEM_OWNER, agent_name: `SayFix — ${repo}`, elevenlabs_agent_id: agentId, status: "active" }),
+});
+console.log(ar.ok ? `✓ convai_agents row upserted for ${agentId}.` : `⚠ convai_agents upsert failed (HTTP ${ar.status} ${await ar.text()}) — the memory loop will report "Agent not found" until this row exists.`);
+
+// --- webhook secret (shown ONLY when the workspace webhook was just created) ---
+if (result.webhookSecret) {
+  console.log(`\n⚑ POST-CALL WEBHOOK SECRET (set as ELEVENLABS_WEBHOOK_SECRET in sayfix .env.local + Vercel, sensitive, prod+preview):\n   ${result.webhookSecret}\n   Without it the post_call route still runs but skips HMAC verification.`);
+} else {
+  console.log(`\n(No new webhook secret returned — an existing workspace webhook for ${baseUrl} was reused. Keep the ELEVENLABS_WEBHOOK_SECRET you already stored.)`);
+}

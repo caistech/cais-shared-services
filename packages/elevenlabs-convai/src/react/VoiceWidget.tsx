@@ -100,11 +100,17 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
     setText('');
   }
 
-  // Optional auto-connect on mount.
+  // Proactive behaviour on mount. autoConnect = open + connect (requests mic on load).
+  // autoOpen = open the panel showing the greeting, but connect only on the user's tap (no mic
+  // until then) — the gentler "greets-then-connects" greeter for a public page.
   useEffect(() => {
     if (props.autoConnect) openAndConnect();
+    else if (props.autoOpen) setOpen(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Panel is open but the user hasn't started a session yet (the autoOpen greeter state).
+  const preConnect = !connected && status !== 'connecting' && !startedRef.current;
 
   return (
     <div className={placementClass(props.placement)}>
@@ -134,6 +140,14 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
               />
               <button className="convai-btn" type="submit">Send</button>
             </form>
+          ) : preConnect ? (
+            // autoOpen greeter: the greeting is in the header above; one tap to start (mic only now).
+            <div className="convai-row">
+              <button className="convai-btn" onClick={connect} aria-label={launcherLabel(props.mode)}>
+                <span aria-hidden>🎙️</span>
+                {launcherLabel(props.mode)}
+              </button>
+            </div>
           ) : (
             <>
               <div className="convai-status" aria-live="polite">

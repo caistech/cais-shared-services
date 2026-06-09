@@ -121,7 +121,7 @@ Everything below makes those two real and safe.
 
 ### The three-leg wiring recipe (do ALL THREE — building a voice agent? this is the checklist)
 
-A voice agent that only mounts *some* of these has **storage, not memory** (the SafeFix/Morgan
+A voice agent that only mounts *some* of these has **storage, not memory** (the SayFix/Morgan
 failure: the conversation was stored, but nothing distilled it and nothing recalled it). When a
 session builds or audits any voice agent, wire every leg via the hub — never hand-roll:
 

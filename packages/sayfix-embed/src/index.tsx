@@ -12,9 +12,68 @@
  *
  *   <SayFixNav ticketCount={3} />
  *   → Navigation links to Report + My Requests (requires auth)
+ *
+ * SELF-CONTAINED: zero runtime deps (react peer only), icons are inlined SVGs (lucide, MIT), and
+ * ALL styling is inline `style={}` — NO Tailwind / CSS framework dependency. Tailwind doesn't scan
+ * node_modules, so a className-styled widget renders UNSTYLED in a consumer; inline styles render
+ * identically in every repo with zero per-repo config. (Learned on the f2k-projects rollout, 2026-06-09.)
  */
 
-import { MessageSquare, Clock, Settings, Wrench } from 'lucide-react';
+import type { CSSProperties } from 'react';
+
+/* ========================= ICONS (inlined lucide, MIT) ========================= */
+
+interface IconProps {
+  size?: number;
+}
+
+function svgProps(size = 20) {
+  return {
+    width: size,
+    height: size,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 2,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true,
+  };
+}
+
+function MessageSquare({ size }: IconProps) {
+  return (
+    <svg {...svgProps(size)}>
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
+function Clock({ size }: IconProps) {
+  return (
+    <svg {...svgProps(size)}>
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}
+
+function Settings({ size }: IconProps) {
+  return (
+    <svg {...svgProps(size)}>
+      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function Wrench({ size }: IconProps) {
+  return (
+    <svg {...svgProps(size)}>
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+    </svg>
+  );
+}
 
 /* ========================= WIDGET ========================= */
 
@@ -27,36 +86,47 @@ export interface SayFixWidgetProps {
 }
 
 /**
- * Floating "Report Issue" button widget
- * Opens SayFix in a new tab
- * 
- * Note: Just pass the repo name - SayFix knows which GitHub account it belongs to
+ * Floating "Report a problem" button. Opens SayFix in a new tab. Fully self-styled (inline) so it
+ * renders identically in any repo regardless of CSS framework.
  */
 export function SayFixWidget({
   repo,
   label = 'Report a problem — get it SayFixed',
   showIcon = true,
-  position = 'bottom-right'
+  position = 'bottom-right',
 }: SayFixWidgetProps) {
   const sayfixUrl = `https://sayfix.vercel.app/welcome?product=${encodeURIComponent(repo)}`;
 
-  const positionClasses = {
-    'bottom-right': 'bottom-6 right-6',
-    'bottom-left': 'bottom-6 left-6',
+  const style: CSSProperties = {
+    position: 'fixed',
+    bottom: 24,
+    ...(position === 'bottom-left' ? { left: 24 } : { right: 24 }),
+    zIndex: 2147483000,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    background: '#1c1917',
+    color: '#ffffff',
+    padding: '12px 18px',
+    borderRadius: 9999,
+    boxShadow: '0 8px 24px rgba(0,0,0,0.22)',
+    fontWeight: 500,
+    fontSize: 15,
+    lineHeight: 1.2,
+    fontFamily: 'inherit',
+    textDecoration: 'none',
+    cursor: 'pointer',
   };
 
-  // Reads clearly as THE support mechanism (so a visitor knows it's where you report a problem),
-  // and the friendly framing sets up the surprise that it's a real coach + fast fix, not a ticket
-  // black hole. Override `label` per product if needed.
   return (
     <a
       href={sayfixUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className={`fixed ${positionClasses[position]} bg-stone-900 text-white px-4 py-3 rounded-full shadow-lg hover:bg-stone-800 transition-all flex items-center gap-2 font-medium z-50`}
+      style={style}
       title="Report a problem — opens SayFix in a new tab"
     >
-      {showIcon && <MessageSquare className="w-5 h-5" />}
+      {showIcon && <MessageSquare size={18} />}
       {label}
     </a>
   );
@@ -69,31 +139,37 @@ export interface SayFixNavProps {
   showAdmin?: boolean;
 }
 
+const navLink: CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
+  color: '#57534e',
+  fontSize: 14,
+  textDecoration: 'none',
+};
+
 /**
  * Navigation component for SayFix in product chrome
  */
 export function SayFixNav({ ticketCount = 0, showAdmin = false }: SayFixNavProps) {
   return (
-    <nav className="flex items-center gap-4 text-sm">
-      <a href="https://sayfix.vercel.app/new" target="_blank" rel="noopener noreferrer"
-         className="flex items-center gap-2 text-stone-600 hover:text-stone-900">
-        <MessageSquare className="w-4 h-4" />
+    <nav style={{ display: 'inline-flex', alignItems: 'center', gap: 16, fontFamily: 'inherit' }}>
+      <a href="https://sayfix.vercel.app/new" target="_blank" rel="noopener noreferrer" style={navLink}>
+        <MessageSquare size={16} />
         Report
       </a>
-      <a href="https://sayfix.vercel.app/tickets" target="_blank" rel="noopener noreferrer"
-         className="flex items-center gap-2 text-stone-600 hover:text-stone-900">
-        <Clock className="w-4 h-4" />
+      <a href="https://sayfix.vercel.app/tickets" target="_blank" rel="noopener noreferrer" style={navLink}>
+        <Clock size={16} />
         My Requests
         {ticketCount > 0 && (
-          <span className="bg-teal-700 text-white text-xs px-1.5 py-0.5 rounded-full">
+          <span style={{ background: '#0f766e', color: '#fff', fontSize: 12, padding: '2px 6px', borderRadius: 9999 }}>
             {ticketCount}
           </span>
         )}
       </a>
       {showAdmin && (
-        <a href="https://sayfix.vercel.app/admin" target="_blank" rel="noopener noreferrer"
-           className="flex items-center gap-2 text-stone-600 hover:text-stone-900">
-          <Settings className="w-4 h-4" />
+        <a href="https://sayfix.vercel.app/admin" target="_blank" rel="noopener noreferrer" style={navLink}>
+          <Settings size={16} />
           SayFix Admin
         </a>
       )}
@@ -116,9 +192,9 @@ export function SayFixAdminLink({ label = 'SayFix Projects' }: SayFixAdminLinkPr
       href="https://sayfix.vercel.app/admin"
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 text-sm font-medium text-stone-600 hover:text-stone-900"
+      style={{ ...navLink, fontWeight: 500 }}
     >
-      <Wrench className="w-4 h-4" />
+      <Wrench size={16} />
       {label}
     </a>
   );
@@ -173,12 +249,7 @@ export interface InvestigationResult {
 
 /**
  * Trigger investigation on a ticket - searches codebase + bug KB
- * 
- * This connects to SayFix backend to:
- * 1. Search the product's GitHub repo for relevant code
- * 2. Search bug-knowledge.json for similar past issues
- * 3. Either answer the question or trigger a fix
- * 
+ *
  * Requires GITHUB_TOKEN to be configured in SayFix Vercel
  */
 export async function investigateTicket(ticketId: string): Promise<InvestigationResult | null> {
@@ -187,7 +258,7 @@ export async function investigateTicket(ticketId: string): Promise<Investigation
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'investigate' }),
   });
-  
+
   if (!res.ok) return null;
   return res.json();
 }
@@ -201,7 +272,7 @@ export async function fixTicket(ticketId: string): Promise<InvestigationResult |
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'fix' }),
   });
-  
+
   if (!res.ok) return null;
   return res.json();
 }

@@ -92,7 +92,7 @@ The contact graph is **built once and engaged twice** (stage 3 validates demand;
 Five dimensions, scored **twice** with the *same* rubric: as **hypotheses** (desk research, confidence-flagged) by the ideation agent at stage 1, then as **evidence** from the two interview streams at the stage-4 go/no-go.
 
 - **A. End-user demand:** (1) Pain severity, (2) Market gap strength.
-- **B. Distribution leverage:** (3) **Distributor onsell opportunity** — *this is a GATE*.
+- **B. Distribution leverage:** (3) **Distributor onsell opportunity** — *this is a GATE*. Counts **human** onsell (a distributor reselling to their book) **and**, since the Google I/O 2026 agent-web shift, **agent distribution**: a product exposed as a WebMCP / remote-MCP tool becomes a tool *inside someone else's agent* — the agent-era "output creates the next user" loop. The `/gtm-auditor` Agent-Readiness dimension produces this evidence; agent-operability/integration that goes beyond the Gate-1 `#42 agent-discoverable` readiness check is scored *here* (D3), not at Gate 1.
 - **C. Market + factory economics:** (4) Reachable market size (= Σ distributors × book size, not raw category spend), (5) Factory build-fit (can we ship cheap/fast on existing `@caistech` substrate).
 
 **Decision logic (one-time policy, applied uniformly by the machine — not per-product gut calls):**

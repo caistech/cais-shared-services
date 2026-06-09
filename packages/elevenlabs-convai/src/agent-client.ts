@@ -19,7 +19,7 @@ const VOICE_MODEL_ENGLISH_DEFAULT = 'eleven_flash_v2';
 const VOICE_MODEL_MULTILINGUAL_DEFAULT = 'eleven_turbo_v2_5';
 
 // Portfolio-standard reasoning LLM for ALL ElevenLabs agents (the non-Claude-Code workhorse).
-// gpt-4o-mini dropped tool calls over long conversations (the SafeFix intake lost 20 min of
+// gpt-4o-mini dropped tool calls over long conversations (the SayFix intake lost 20 min of
 // field capture); gpt-4.1-mini is the same cheap/low-latency tier but materially more reliable at
 // function-calling + instruction-following. Set at the hub so every agent inherits it — override
 // per-agent via config.llmModel only for a deliberate exception.
