@@ -33,15 +33,24 @@ function useWidgetStyles() {
 
 function VoiceWidgetInner(props: VoiceWidgetProps) {
   useWidgetStyles();
-  const [open, setOpen] = useState(false);
+  // Embedded placements (inline/fullpage) live in the page flow — avatar on top, optional
+  // scrolling transcript, Begin button — never the floating bottom-right launcher. They open
+  // on mount and have no launcher/close chrome (the page owns that).
+  const embedded = props.placement === 'inline' || props.placement === 'fullpage';
+  const [open, setOpen] = useState(embedded);
   const [text, setText] = useState('');
+  const [messages, setMessages] = useState<{ source: 'user' | 'ai'; text: string }[]>([]);
   const startedRef = useRef(false);
+  const transcriptRef = useRef<HTMLDivElement>(null);
 
   const convo = useConversation({
     onConnect: (p: { conversationId: string }) => props.onConnect?.(p.conversationId),
     onDisconnect: () => props.onDisconnect?.(),
     onError: (message: string) => props.onError?.(message),
-    onMessage: (p: { source: 'user' | 'ai'; message: string }) => props.onMessage?.(p.source, p.message),
+    onMessage: (p: { source: 'user' | 'ai'; message: string }) => {
+      setMessages((m) => [...m, { source: p.source, text: p.message }]);
+      props.onMessage?.(p.source, p.message);
+    },
     onStatusChange: (p: { status: string }) => props.onStatusChange?.(p.status as VoiceConnectionStatus),
   });
 
@@ -63,6 +72,12 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
     if (!connected) readyFiredRef.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected]);
+
+  // Keep the embedded transcript pinned to the newest message.
+  useEffect(() => {
+    const el = transcriptRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages]);
 
   function connect() {
     if (fallback || startedRef.current || status === 'connected') return;
@@ -111,6 +126,94 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
 
   // Panel is open but the user hasn't started a session yet (the autoOpen greeter state).
   const preConnect = !connected && status !== 'connecting' && !startedRef.current;
+
+  // Embedded coach: avatar on top → optional scrolling transcript → Begin button, in the page
+  // flow. The portfolio's standard intake/landing voice shape (not a corner launcher).
+  if (embedded) {
+    return (
+      <div className="convai-launch convai-launch--inline">
+        <div
+          className={`convai-panel convai-panel--embedded ${props.className ?? ''}`}
+          role="region"
+          aria-label={props.coachName ? `${props.coachName}, voice coach` : 'Voice coach'}
+        >
+          {props.avatarUrl && (
+            <div className="convai-coach convai-coach--lg">
+              <img
+                className={`convai-avatar${connected ? ' convai-avatar--live' : ''}`}
+                src={props.avatarUrl}
+                alt={props.coachName ? `${props.coachName}, your coach` : 'Voice coach'}
+              />
+              <span className="convai-coach-name">
+                {props.coachName ?? 'Coach'}{connected ? ' — listening' : ''}
+              </span>
+            </div>
+          )}
+          <p className="convai-header">{panelHeader(props)}</p>
+
+          {props.transcript && (connected || messages.length > 0) && (
+            <div className="convai-transcript" ref={transcriptRef} aria-live="polite">
+              {messages.length === 0 ? (
+                <p className="convai-transcript-empty">{statusLabel(status, convo.isSpeaking)}</p>
+              ) : (
+                messages.map((m, i) => (
+                  <div key={i} className={`convai-msg convai-msg--${m.source}`}>{m.text}</div>
+                ))
+              )}
+            </div>
+          )}
+
+          {fallback ? (
+            <form className="convai-fallback convai-row" onSubmit={submitText}>
+              <input
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Type your question"
+                aria-label="Type your question"
+              />
+              <button className="convai-btn" type="submit">Send</button>
+            </form>
+          ) : preConnect ? (
+            <button className="convai-btn" onClick={connect} aria-label={launcherLabel(props.mode)}>
+              <span aria-hidden>🎙️</span>
+              {launcherLabel(props.mode)}
+            </button>
+          ) : (
+            <>
+              {!props.transcript && (
+                <div className="convai-status" aria-live="polite">
+                  {statusLabel(status, convo.isSpeaking)}
+                </div>
+              )}
+              <div className="convai-row">
+                <button
+                  className="convai-btn"
+                  onClick={() => convo.setMuted(!convo.isMuted)}
+                  aria-label={convo.isMuted ? 'Unmute microphone' : 'Mute microphone'}
+                >
+                  {convo.isMuted ? 'Unmute' : 'Mute'}
+                </button>
+                <button className="convai-btn" onClick={close} aria-label="End the conversation">
+                  End
+                </button>
+              </div>
+              {props.textInput && (
+                <form className="convai-fallback convai-row" onSubmit={submitText} style={{ marginTop: 8 }}>
+                  <input
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    placeholder="Type or paste to the assistant"
+                    aria-label="Type or paste to the assistant"
+                  />
+                  <button className="convai-btn" type="submit">Send</button>
+                </form>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={placementClass(props.placement)}>
