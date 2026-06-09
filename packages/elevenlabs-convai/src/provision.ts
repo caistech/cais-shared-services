@@ -107,11 +107,19 @@ export async function setAgentTools(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const agent = (await getAgent(apiKey, agentId)) as any;
   const currentPrompt = (agent?.conversation_config?.agent?.prompt as Record<string, unknown>) || {};
+  // Drop any inline `tools` (and stale `tool_ids`) already on the prompt before we write the new
+  // tool_ids. ElevenLabs rejects a PATCH that carries BOTH inline `tools` and `tool_ids`
+  // ("Cannot specify both tools and tool IDs"), which is exactly what happens when re-provisioning
+  // an agent that already had tool_ids — `...currentPrompt` would re-send the vestigial inline
+  // `tools`. Tools are workspace entities referenced solely by tool_ids; the inline shape is dropped.
+  const { tools: _inlineTools, tool_ids: _staleToolIds, ...promptRest } = currentPrompt;
+  void _inlineTools;
+  void _staleToolIds;
   const res = await fetch(`${ELEVENLABS_API}/agents/${agentId}`, {
     method: 'PATCH',
     headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      conversation_config: { agent: { prompt: { ...currentPrompt, tool_ids: toolIds } } },
+      conversation_config: { agent: { prompt: { ...promptRest, tool_ids: toolIds } } },
     }),
   });
   if (!res.ok) {
