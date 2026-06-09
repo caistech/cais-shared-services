@@ -280,6 +280,13 @@ export interface VoiceWidgetProps extends VoiceConfigBase {
   // UI
   /** Explanatory header shown at the top of the open panel. Has a sensible default. */
   title?: string;
+  /**
+   * Open the panel on mount WITHOUT connecting — shows the greeting/header + a one-tap "start"
+   * button (the proactive "greets-then-connects" pattern, mic only on the tap). Distinct from
+   * `autoConnect`, which connects (and requests mic) on load. Use for a proactive greeter on a
+   * public page where mic-on-load would be too aggressive.
+   */
+  autoOpen?: boolean;
   autoConnect?: boolean;
   className?: string;
 

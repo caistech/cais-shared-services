@@ -1,5 +1,17 @@
 # @caistech/elevenlabs-convai — Changelog
 
+## 0.4.6 — 2026-06-09
+
+Proactive greeter for the React widget.
+
+### Added
+- **`autoOpen` prop on `VoiceWidget`.** Opens the panel on mount showing the greeting/header
+  with a one-tap "start" button — connects (and requests mic) only on that tap. The
+  "greets-then-connects" pattern for a proactive greeter on a public page, where `autoConnect`
+  (mic-on-load) is too aggressive. Backward-compatible: default behaviour (launcher → open+connect)
+  is unchanged; the new pre-connect panel state only appears when the panel is open but no session
+  has started yet.
+
 ## 0.4.5 — 2026-06-09
 
 Re-provisioning fix: an agent that already had tools could not be re-provisioned.
