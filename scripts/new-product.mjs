@@ -360,20 +360,35 @@ async function stepVercel() {
 // reported `executorai.vercel.app` (a stranger's app) instead of its real alias.
 // Prefer: the bare slug domain IF we actually own it → the canonical team alias →
 // the first non-preview alias → the bare domain as a last resort.
-async function resolveProdUrl(prjId) {
-  const bare = `${SLUG}.vercel.app`;
-  if (DRY || !prjId) return `https://${bare}`;
+async function resolveProdUrl(prjId, { poll = true } = {}) {
+  if (DRY || !prjId) return null;
   const teamQ = `?teamId=${CONFIG.vercelTeam}`;
-  const proj = await (await api(`https://api.vercel.com/v9/projects/${prjId}${teamQ}`, { token: VERCEL_TOKEN })).json().catch(() => ({}));
-  const aliases = (proj?.targets?.production?.alias || []).filter(
-    (a) => typeof a === "string" && a.endsWith(".vercel.app") && !a.includes("-git-"),
-  );
+  const fetchAliases = async () => {
+    const proj = await (await api(`https://api.vercel.com/v9/projects/${prjId}${teamQ}`, { token: VERCEL_TOKEN })).json().catch(() => ({}));
+    return (proj?.targets?.production?.alias || []).filter(
+      (a) => typeof a === "string" && a.endsWith(".vercel.app") && !a.includes("-git-"),
+    );
+  };
+  // Production aliases only populate once a production deploy EXISTS + settles, so this MUST run AFTER
+  // stepDeploy (with a short poll). Calling it pre-deploy returns nothing — and we must NOT then fall
+  // back to `${SLUG}.vercel.app`: that bare domain can belong to ANOTHER project (the ExecutorAI
+  // collision, 2026-06-09 — the bare domain served a stranger's E&W app and the card was pointed at the
+  // wrong site, so validation tested the wrong product). Return null and skip the write-back rather than
+  // record a wrong URL — a missing mvp_url is honest; a stranger's URL is a silent landmine.
+  let aliases = await fetchAliases();
+  for (let i = 0; poll && aliases.length === 0 && i < 6; i++) {
+    await new Promise((r) => setTimeout(r, 5000));
+    aliases = await fetchAliases();
+  }
+  if (aliases.length === 0) return null;
+  const bare = `${SLUG}.vercel.app`;
+  // Prefer: the bare slug ONLY if THIS project actually owns it → a clean public alias (the team-named
+  // `<slug>-<teamslug>` alias often carries Vercel deployment-protection/SSO → 401 for testers, so
+  // avoid it when a cleaner one exists) → any remaining alias. NEVER construct the bare domain.
   const pick =
     aliases.find((a) => a === bare) ||
-    aliases.find((a) => a.startsWith(`${SLUG}-`) && a.includes("corporate-ai-solutions")) ||
-    aliases[0] ||
-    bare;
-  if (pick !== bare) warn(`'${bare}' is taken by another project — using the assigned domain ${pick}`);
+    aliases.find((a) => a.startsWith(`${SLUG}-`) && !a.includes("corporate-ai-solutions")) ||
+    aliases[0];
   return `https://${pick}`;
 }
 
@@ -386,7 +401,7 @@ async function resolveProdUrl(prjId) {
 // the working branch to production explicitly so env changes take effect and a
 // working prod URL exists for the validation outreach link.
 
-async function stepDeploy(prjId, prodUrl) {
+async function stepDeploy(prjId) {
   step("Production deploy (promote the working branch)");
   if (DRY) { info(`DRY: POST /v13/deployments target=production ref=${CONFIG.branch}`); return; }
   if (!prjId) { warn("no Vercel project id â€” skipping deploy"); return; }
@@ -400,7 +415,7 @@ async function stepDeploy(prjId, prodUrl) {
   });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) { warn(`deploy trigger failed: ${d.error?.message || JSON.stringify(d).slice(0, 120)}`); return null; }
-  ok(`production deploy triggered: ${d.id || "(queued)"} â€” env now live at ${prodUrl || `https://${SLUG}.vercel.app`}`);
+  ok(`production deploy triggered: ${d.id || "(queued)"} â€” the live URL is resolved next`);
   return d.id || null;
 }
 
@@ -627,12 +642,16 @@ function stepRegisterAndGit(ref) {
   stepHarvestLocal();
   await stepResend();             // mint per-product sending key BEFORE Vercel + onboard use it
   const prjId = await stepVercel();
-  const prodUrl = await resolveProdUrl(prjId);   // the REAL assigned URL (handles a slug collision)
   stepOnboard(ref);
   stepTestAccountsConfig();
-  await stepVoice(prodUrl);
+  // Voice baseUrl only feeds the agent's allowedOrigins, which already carries the
+  // `https://*.vercel.app` wildcard — so a provisional guess pre-deploy is fine here.
+  await stepVoice(`https://${SLUG}.vercel.app`);
   stepRegisterAndGit(ref);
-  const deployId = await stepDeploy(prjId, prodUrl);  // promote the working branch to production (env now live)
+  const deployId = await stepDeploy(prjId);  // promote the working branch to production
+  // Resolve the REAL production URL only AFTER the deploy (aliases populate then), and NEVER the bare
+  // slug domain — null if it can't be determined (we then skip mvp_url rather than record a wrong one).
+  const prodUrl = await resolveProdUrl(prjId);
 
   // Record the provisioning on the cockpit ledger â€” visible on the card, and the
   // ledger entry the gate reads. (Informational; the URL-share gate keys on a
@@ -649,13 +668,17 @@ function stepRegisterAndGit(ref) {
     try {
       const rows = await recordProvision({
         slug: SLUG,
-        mvpUrl: prodUrl,
+        mvpUrl: prodUrl, // null → recordProvision skips mvp_url; repo/vercel/supabase still land
         githubRepo: `${CONFIG.githubOwner}/${SLUG}`,
         vercelProject: prjId,
         supabaseRef: ref,
       });
-      if (Array.isArray(rows) && rows.length) ok(`wrote provisioned identifiers back to the cockpit card (mvp_url=${prodUrl})`);
-      else warn(`no cockpit card for '${SLUG}' to write identifiers onto — standalone run, or create the card first`);
+      if (Array.isArray(rows) && rows.length) {
+        ok(`wrote provisioned identifiers back to the cockpit card${prodUrl ? ` (mvp_url=${prodUrl})` : ""}`);
+        if (!prodUrl) warn(`could NOT resolve a production URL for ${SLUG} — mvp_url left UNSET (better than a wrong one); set it once the prod deploy settles, then re-run validation`);
+      } else {
+        warn(`no cockpit card for '${SLUG}' to write identifiers onto — standalone run, or create the card first`);
+      }
     } catch (e) { warn(`could not write provisioned identifiers to the cockpit (non-fatal): ${e.message}`); }
   }
 
