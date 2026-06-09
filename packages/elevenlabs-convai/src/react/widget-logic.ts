@@ -108,6 +108,21 @@ export const WIDGET_CSS = `
   padding: 16px; z-index: 2147483000;
 }
 .convai-panel--fullpage { position: static; width: 100%; max-width: 640px; margin: 0 auto; }
+/* Embedded coach (placement inline/fullpage): sits in the page flow, full width of its parent,
+   no floating card/shadow — the consumer's container owns the chrome. Avatar on top, optional
+   scrolling transcript, Begin button. Never the bottom-right corner. */
+.convai-panel--embedded { position: static; width: 100%; max-width: 100%; margin: 0;
+  background: transparent; box-shadow: none; padding: 0; }
+.convai-transcript {
+  max-height: 320px; overflow-y: auto; margin: 4px 0 14px;
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 14px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 14px;
+}
+.convai-transcript-empty { color: #6b7280; font-size: 14px; margin: auto; text-align: center; }
+.convai-msg { font-size: 15px; line-height: 1.45; padding: 8px 12px; border-radius: 12px; max-width: 85%; }
+.convai-msg--ai { background: #fff; border: 1px solid #e5e7eb; align-self: flex-start; color: #111827; }
+.convai-msg--user { background: #0f766e; color: #fff; align-self: flex-end; }
+.convai-coach--lg .convai-avatar { width: 112px; height: 112px; }
 .convai-header { font-size: 14px; line-height: 1.4; color: #374151; margin: 0 0 12px; }
 .convai-coach { display: flex; flex-direction: column; align-items: center; margin: 4px 0 10px; }
 .convai-avatar {

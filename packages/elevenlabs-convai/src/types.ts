@@ -305,6 +305,14 @@ export interface VoiceWidgetProps extends VoiceConfigBase {
   textInput?: boolean;
 
   /**
+   * Embedded placements (`inline` / `fullpage`) only. Render a scrolling conversation transcript
+   * (the message history) between the avatar and the controls — the avatar-on-top → scrolling-box →
+   * Begin-button shape used on landing/intake surfaces. Leave OFF when the consumer already provides
+   * its own conversation box below the coach (then the embedded coach is just avatar + Begin).
+   */
+  transcript?: boolean;
+
+  /**
    * Called once the live session is connected, with imperative controls into THIS conversation.
    * Lets the consumer push messages the user didn't type — e.g. a timed "wrap up, ~2 min left"
    * contextual update the agent speaks, or a programmatic user message. No-op before connect.

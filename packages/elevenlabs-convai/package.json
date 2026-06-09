@@ -1,6 +1,6 @@
 {
   "name": "@caistech/elevenlabs-convai",
-  "version": "0.4.7",
+  "version": "0.4.8",
   "description": "ElevenLabs Conversational AI — agent provisioning, webhook routes, persistent memory, anonymous sessions, and a React VoiceWidget",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
