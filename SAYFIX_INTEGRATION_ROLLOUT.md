@@ -43,16 +43,30 @@ website's visitors; a product with no visitors has no one to press it.
 - The portfolio session makes the final per-product call using `portfolio-manifest.yaml`
   (`ownership` / product type). When unsure: has a human visitor who could hit a bug? → IN.
 
-## 0.6 Current live state (snapshot 2026-06-09)
+## 0.6 Current state — WIDGET WIRED ACROSS THE IN-SCOPE SET (updated 2026-06-10)
 
-A scan of the deployed product sites found the embed is **essentially un-rolled-out**:
-- ✅ **Only `f2k-projects`** currently shows the button — and on the **OLD `/new` pattern**, which
-  bounced anonymous visitors to the login wall. (SayFix middleware now redirects unauth `/new` →
-  `/welcome` as a safety net, but the button itself should be updated to point at `/welcome`.)
-- — Live with **no button**: deal-findrs, singify, investor-pilot, platform-trust, kira,
-  disaster-support, easy-claude-code, corporate-ai-solutions, raiseready-template, mmcbuild.
-- · Not resolved at `<repo>.vercel.app` (custom domain — recheck): property-services, connexions,
-  partner-pilot, tenderwatch, f2k-checkpoint, storefront-mcp.
+> The 2026-06-09 "essentially un-rolled-out / only f2k-projects" snapshot is **superseded.** A ripgrep
+> audit + a wiring pass on 2026-06-10 put `<SayFixWidget>` into the root layout of every in-scope
+> product. Latest package: **`@caistech/sayfix-embed@0.4.0`** (consumers pin `^0.4.0`).
+
+- ✅ **Already wired before this pass (8, live):** deal-findrs, f2k-projects, f2k-checkpoint, kira,
+  lingopureai, partner-pilot, investorpilot, platform-trust.
+- ✅ **Wired + committed 2026-06-10 (13 repos, branch `feat/sayfix-widget`, NOT yet pushed/deployed):**
+  singify-platform, RehearsalsAI, Connexions, RaiseReadyTemplate, DisasterSupport, property-services,
+  universal-interviews, R-and-D-Tax-Eligibility-Work-Recording, Corporate-AI-Solutions, plus the three
+  turbo-monorepos — **TourLingo** (apps/web+operator), **UniversalLingo** (apps/admin+guest+host+marketing),
+  **NDISSDAAutomate** (apps/portal+web), and **Tenderwatch** (apps/web; repo nested at `Tenderwatch/tenderwatch`).
+  Monorepos got the widget in **every app's top-level root layout** (not nested route-group layouts), the
+  dep in **each app's own package.json**, and the registry line in the **workspace-root `.npmrc`**.
+- ⏸️ **Deferred (regulated client):** `MMCBuild` (legacy `mmcbuild`) and `mmc-market` (prod, `mmcbuild-prod`)
+  were wired then **reverted** pending the MMC client conversation (which repo is canonical + mmc-market had
+  deliberately internalized `@caistech/*` off the registry on 2026-05-24).
+- ⚠️ **`repo=` keys to verify against `repos.github_repo`:** `investorpilot` (this doc elsewhere says
+  `investor-pilot`), `deal-findrs`, the monorepo keys (`TourLingo`/`UniversalLingo`/`NDISSDAAutomate`/
+  `tenderwatch`). A mismatch = unusable ticket.
+- 🔜 **Remaining to go live:** push the `feat/sayfix-widget` branches + deploy; and the **real gate** —
+  §3 `repos`-table hygiene (`vercel_project_id` NULL on every row, dedup, `singify` needs a row). The
+  button renders but tickets won't route until the table is populated.
 
 **Correction for the rollout:** use the current `@caistech/sayfix-embed` `SayFixWidget` (it links to
 `/welcome?product=<repo>`). Do **not** wire the old `/new` link, and **update f2k-projects' existing
