@@ -167,6 +167,11 @@ jobs:
           # design phase targets the real distributor/end-user, not whatever the old site said.
           curl -sSL "$COCKPIT_BASE/api/admin/pipeline/$SLUG" -o "$GITHUB_WORKSPACE/target/_spec.json" || true
           echo "--- spec fetched ---"; head -c 400 "$GITHUB_WORKSPACE/target/_spec.json" || true; echo
+          # Capture the product's Supabase ref NOW (the typecheck gate scrubs _spec.json later) so the
+          # migration-apply step can reach the right DB.
+          SREF=$(node -e "try{process.stdout.write((JSON.parse(require('fs').readFileSync(process.env.GITHUB_WORKSPACE+'/target/_spec.json','utf8')).supabase_ref)||'')}catch{process.stdout.write('')}")
+          echo "PRODUCT_SUPABASE_REF=$SREF" >> "$GITHUB_ENV"
+          echo "captured PRODUCT_SUPABASE_REF=${SREF:-<none>}"
 
           # Extract the survey's RECORDED FINDINGS into a binding teardown brief. The agent's job is
           # to make THESE specific failures pass — not to re-judge whether they're valid. (Run #2
@@ -454,6 +459,35 @@ jobs:
           done
           echo "::error::typecheck still failing after $MAX attempts — refusing to open a PR over non-compiling code"
           exit 1
+
+      - name: Apply product migrations to its Supabase (the wire the builder couldn't reach)
+        working-directory: target
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          # The builder WRITES migrations (supabase/migrations/*.sql) but nothing ever APPLIED them, so
+          # builder-added tables 404 at runtime (ExecutorAI estate_* tables, 2026-06-09: the data layer
+          # was dead until applied by hand). Apply them to THIS product's Supabase via the Management API.
+          # Migrations must be idempotent (CREATE ... IF NOT EXISTS per the standard); already-applied DDL
+          # errors are logged + tolerated so the NEW migration still lands. Skips cleanly (never blocks the
+          # PR) if the token or ref is absent.
+          node -e '
+            const fs=require("fs");
+            const tok=process.env.SUPABASE_ACCESS_TOKEN, ref=process.env.PRODUCT_SUPABASE_REF;
+            if(!tok){ console.log("::warning::SUPABASE_ACCESS_TOKEN not set on this repo — skipping (add it so builder migrations get applied)"); process.exit(0); }
+            if(!ref){ console.log("::warning::no PRODUCT_SUPABASE_REF — skipping migration apply"); process.exit(0); }
+            let files=[]; try{ files=fs.readdirSync("supabase/migrations").filter(f=>f.endsWith(".sql")).sort(); }catch{}
+            if(!files.length){ console.log("no supabase/migrations/*.sql — nothing to apply"); process.exit(0); }
+            (async()=>{
+              for(const f of files){
+                const sql=fs.readFileSync("supabase/migrations/"+f,"utf8");
+                let r; try{ r=await fetch("https://api.supabase.com/v1/projects/"+ref+"/database/query",{method:"POST",headers:{Authorization:"Bearer "+tok,"Content-Type":"application/json"},body:JSON.stringify({query:sql})}); }catch(e){ console.log(". "+f+" -> network error"); continue; }
+                const ok=r.status>=200&&r.status<300;
+                console.log((ok?"OK ":".  ")+f+" -> "+r.status+(ok?"":" (tolerated: "+(await r.text()).replace(/\s+/g," ").slice(0,120)+")"));
+              }
+              console.log("migration apply pass complete");
+            })();
+          '
 
       - name: Commit + push branch, open PR
         id: pr
