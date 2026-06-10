@@ -24,6 +24,7 @@ ENTRIES=(
   "community-question-responder|package.json"
   "sayfix|package.json"
   "executorai|package.json"
+  "pipeline|package.json"
 )
 
 for entry in "${ENTRIES[@]}"; do

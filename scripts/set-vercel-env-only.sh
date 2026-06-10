@@ -37,6 +37,7 @@ SLUGS=(
   community-question-responder
   sayfix
   executorai
+  pipeline
 )
 
 echo "== Setting GITHUB_PACKAGES_TOKEN in each Vercel project =="

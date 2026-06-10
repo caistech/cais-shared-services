@@ -24,6 +24,7 @@ ENTRIES=(
   "community-question-responder|."
   "sayfix|."
   "executorai|."
+  "pipeline|."
 )
 
 COMMIT_MSG='chore(deps): bump @caistech/* to compiled-dist versions

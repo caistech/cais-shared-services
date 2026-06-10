@@ -52,6 +52,7 @@ REPOS=(
   community-question-responder
   sayfix
   executorai
+  pipeline
 )
 
 # Map GitHub repo folder → Vercel project slug (they differ in several cases)
@@ -78,6 +79,7 @@ declare -A VERCEL_SLUG=(
   [community-question-responder]=community-question-responder
   [sayfix]=sayfix
   [executorai]=executorai
+  [pipeline]=pipeline
 )
 
 # --- Step 1: write .env.local per repo ----------------------------------------

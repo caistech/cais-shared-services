@@ -353,6 +353,22 @@ projects:
         from_supabase: anon_key
       SUPABASE_SERVICE_ROLE_KEY:
         from_supabase: service_role_key
+  - name: pipeline
+    vercel_project_id: prj_F8PSE5D6wjiCtKbsTCxEThg6S4c1
+    supabase_project_ref: fslkzhmqcrjsswyrgwnc
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
+    envs:
+      PLATFORM_TRUST_PROJECT_ID:
+        ref: $secret:platform_trust_project_id_pipeline
+      NEXT_PUBLIC_SUPABASE_URL:
+        from_supabase: url
+      NEXT_PUBLIC_SUPABASE_ANON_KEY:
+        from_supabase: anon_key
+      SUPABASE_SERVICE_ROLE_KEY:
+        from_supabase: service_role_key
 
 # -----------------------------------------------------------------------------
 # Vercel projects in the Corporate AI Solutions team that are NOT in the
