@@ -23,6 +23,7 @@ ENTRIES=(
   "mmcbuild|."
   "community-question-responder|."
   "sayfix|."
+  "executorai|."
 )
 
 COMMIT_MSG='chore(deps): bump @caistech/* to compiled-dist versions

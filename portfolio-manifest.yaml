@@ -53,11 +53,11 @@ shared:
   # check VT_B2). qa-admin@ is a dedicated agent identity, separate from the operators,
   # so no agent run ever drives a real operator account.
   admin_users:
-    - email: dennis@corporateaisolutions.com         # operator (by hand)
-    - email: mcmdennis@gmail.com                      # operator (by hand)
-    - email: qa-admin@qa.corporateaisolutions.com     # admin-AGENT (QA_OWNER_EMAIL)
+    - email: dennis@corporateaisolutions.com # operator (by hand)
+    - email: mcmdennis@gmail.com # operator (by hand)
+    - email: qa-admin@qa.corporateaisolutions.com # admin-AGENT (QA_OWNER_EMAIL)
   test_user:
-    email: qa-user@qa.corporateaisolutions.com        # user-agent (QA_USER_EMAIL)
+    email: qa-user@qa.corporateaisolutions.com # user-agent (QA_USER_EMAIL)
 
   # Property-services shared infra (one Supabase project + edge functions
   # for property intelligence across F2K, mmcbuild, deal-findrs).
@@ -337,6 +337,22 @@ projects:
         from_supabase: anon_key
       SUPABASE_SERVICE_ROLE_KEY:
         from_supabase: service_role_key
+  - name: executorai
+    vercel_project_id: prj_aOjgln9gmfAeoMYlPvq3MOGSn2CC
+    supabase_project_ref: pqzdvbhkekixoctoopcj
+    inherit_shared:
+      - PLATFORM_TRUST_SUPABASE_URL
+      - PLATFORM_TRUST_SERVICE_KEY
+      - GITHUB_PACKAGES_TOKEN
+    envs:
+      PLATFORM_TRUST_PROJECT_ID:
+        ref: $secret:platform_trust_project_id_executorai
+      NEXT_PUBLIC_SUPABASE_URL:
+        from_supabase: url
+      NEXT_PUBLIC_SUPABASE_ANON_KEY:
+        from_supabase: anon_key
+      SUPABASE_SERVICE_ROLE_KEY:
+        from_supabase: service_role_key
 
 # -----------------------------------------------------------------------------
 # Vercel projects in the Corporate AI Solutions team that are NOT in the
@@ -581,15 +597,16 @@ product_registry:
     description: "Pipeline runs a 5-stage validation loop for new products: idea →
       feasibility → dual-stream demand validation → go/no-go → MVP tested by the
       same audience → ship. Designed for distributors (sales agencies, marketing
-      agencies, dev shops, accountants, consultants) to validate and manage their
-      own product pipelines."
+      agencies, dev shops, accountants, consultants) to validate and manage
+      their own product pipelines."
     canonical_url: "https://corporate-ai-solutions.vercel.app/admin/pipeline"
     voice_agent_status: absent # Phase 2 read-only; voice clarifier wired in Phase 5+
     team_admin_status: n/a-single-operator # /admin/pipeline is operator-only (auth-gated + ADMIN_EMAILS allowlist)
     metadata_status: customized
     distributor_gate_status: validating # Phase 2 validation in progress
     lane: 1 # Paid Distributor SaaS (primary revenue)
-    icp: "Sales agencies, marketing agencies, dev shops, accountants, consultants, product teams"
+    icp: "Sales agencies, marketing agencies, dev shops, accountants, consultants,
+      product teams"
     pricing: "Paid SaaS (post-validation)"
 
   preflight:

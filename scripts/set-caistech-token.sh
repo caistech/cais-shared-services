@@ -51,6 +51,7 @@ REPOS=(
   mmcbuild
   community-question-responder
   sayfix
+  executorai
 )
 
 # Map GitHub repo folder → Vercel project slug (they differ in several cases)
@@ -76,6 +77,7 @@ declare -A VERCEL_SLUG=(
   [mmcbuild]=mmcbuild
   [community-question-responder]=community-question-responder
   [sayfix]=sayfix
+  [executorai]=executorai
 )
 
 # --- Step 1: write .env.local per repo ----------------------------------------

@@ -23,6 +23,7 @@ ENTRIES=(
   "mmcbuild|package.json"
   "community-question-responder|package.json"
   "sayfix|package.json"
+  "executorai|package.json"
 )
 
 for entry in "${ENTRIES[@]}"; do
