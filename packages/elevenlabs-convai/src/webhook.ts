@@ -131,6 +131,12 @@ export function extractConversationData(
 /**
  * Extract individual messages from a post-call transcript.
  * Normalizes 'agent' role to 'assistant'.
+ *
+ * Skips the agent's TOOL-CALL turns — when an agent calls a tool (save_message, update_topic, a
+ * product webhook, …) the transcript records a turn with `message: null`. Those carry no spoken
+ * content, so they are NOT conversational messages; persisting them also breaks any consumer whose
+ * messages.content is NOT NULL (the SayFix post-call 500 → "no transcript" → no ticket, 2026-06-10).
+ * Filtering them yields a clean transcript and a content value that's always a real string.
  */
 export function extractMessages(
   payload: ElevenLabsPostCallPayload,
@@ -143,13 +149,15 @@ export function extractMessages(
 
   const baseTime = metadata?.start_time_unix_secs || (Date.now() / 1000);
 
-  return transcript.map(t => ({
-    userId,
-    role: t.role === 'agent' ? 'assistant' as const : t.role as 'user',
-    content: t.message,
-    timeInCallSecs: t.time_in_call_secs,
-    timestamp: new Date((baseTime + t.time_in_call_secs) * 1000).toISOString(),
-  }));
+  return transcript
+    .filter(t => t.message != null && String(t.message).trim() !== '')
+    .map(t => ({
+      userId,
+      role: t.role === 'agent' ? 'assistant' as const : t.role as 'user',
+      content: t.message as string,
+      timeInCallSecs: t.time_in_call_secs,
+      timestamp: new Date((baseTime + t.time_in_call_secs) * 1000).toISOString(),
+    }));
 }
 
 // =============================================================================
