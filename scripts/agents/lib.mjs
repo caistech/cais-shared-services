@@ -35,8 +35,11 @@ export async function launch({ bypass } = {}) {
 }
 
 export async function goto(page, url, timeout = 45000) {
-  try { await page.goto(url, { waitUntil: 'networkidle', timeout }); return true }
-  catch { try { await page.goto(url, { waitUntil: 'domcontentloaded', timeout }); return true } catch { return false } }
+  // Cockpit mvp_url is often a bare host (e.g. "deal-findrs.vercel.app"); page.goto needs a scheme
+  // or Playwright treats it as an invalid URL and throws — the "could not load any page" no-op.
+  const target = /^https?:\/\//i.test(url) ? url : `https://${url}`
+  try { await page.goto(target, { waitUntil: 'networkidle', timeout }); return true }
+  catch { try { await page.goto(target, { waitUntil: 'domcontentloaded', timeout }); return true } catch { return false } }
 }
 
 // Anthropic vision rejects any image dimension > 8000px. A full-page screenshot of a long page
