@@ -243,12 +243,17 @@ projects:
       NEXT_PUBLIC_SUPABASE_URL: { from_supabase: "url" }
       NEXT_PUBLIC_SUPABASE_ANON_KEY: { from_supabase: "anon_key" }
       SUPABASE_SERVICE_ROLE_KEY: { from_supabase: "service_role_key" }
-      NEXT_PUBLIC_APP_URL: "https://hair-stylist-ai-corporate-ai-solutions.vercel.app"
+      NEXT_PUBLIC_APP_URL: "https://hair-stylist-ai.vercel.app"
     auth_config:
-      site_url: "https://hair-stylist-ai-corporate-ai-solutions.vercel.app"
+      # site_url MUST be the PUBLIC production domain, never the
+      # <slug>-corporate-ai-solutions.vercel.app team alias (that alias is
+      # SSO-protected → auth emails land on a 401 wall). See the executorai
+      # 2026-06-12 incident. The live Supabase value was already public; this
+      # corrects the manifest so portfolio-env-sync --apply can't regress it.
+      site_url: "https://hair-stylist-ai.vercel.app"
       redirect_urls:
-        - "https://hair-stylist-ai-corporate-ai-solutions.vercel.app/api/auth/c\
-          allback"
+        - "https://hair-stylist-ai.vercel.app/api/auth/callback"
+        - "https://hair-stylist-ai-*.vercel.app/api/auth/callback"
         - "https://*-corporate-ai-solutions.vercel.app/api/auth/callback"
         - "http://localhost:3000/api/auth/callback"
       # Default of 2/hour was burning users on a 3rd magic-link retry.
