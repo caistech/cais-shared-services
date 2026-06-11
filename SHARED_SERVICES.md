@@ -83,7 +83,7 @@
 ## UI, reporting & embeds
 | Package | Capability |
 |---|---|
-| `@caistech/corporate-components` | Shared React: auth, header, footer, explanatory page header (R3), trust scaffolding (R15), ABN lookup, address autocomplete, brand Tailwind palette + global CSS. |
+| `@caistech/corporate-components` | Shared React: the canonical **auth surface** (`AuthForm` — 5 modes, **theme-able** `light`/`dark` + `accent`, password visibility toggle, magic-link, **SSR-safe recovery routed through `/auth/callback`**; v0.4.1+), header, footer, explanatory page header (R3), trust scaffolding (R15), ABN lookup, address autocomplete, brand Tailwind palette + global CSS. **The R1 auth foundation every product adopts — never hand-roll login/signup/forgot/reset.** Tailwind v4 consumers must `@source` the package dist. Pairs with the canonical `/auth/callback` route (`verifyOtp` for `?token_hash=&type=`, `exchangeCodeForSession` for `?code=`) + setup flow (`@caistech/portfolio-env-sync` `auth_config` + `configure-email-templates.sh`). Reference migration: executorai; reference scaffold: `templates/cais-build-template-v2`. |
 | `@caistech/next-auth` | Standard auth utilities for Next.js + Supabase. |
 | `@caistech/report-generator` | Markdown → branded PDF (brand + disclaimer + watermark + page numbers). |
 | `@caistech/sayfix-embed` | SayFix bug-reporting widget — GBTA-controlled service layer. Wire `<SayFixWidget repo="…" />` (root layout; `repo` MUST equal the SayFix `repos.github_repo`) per the PRODUCT_STANDARDS SayFix gate. **v0.3.0+ ships a compiled `dist/` + zero runtime deps (inlined SVG icons) → no `transpilePackages` needed; ≤0.2.0 shipped raw `src/index.ts` JSX and broke Next builds.** Rollout runbook: `SAYFIX_INTEGRATION_ROLLOUT.md`. |
