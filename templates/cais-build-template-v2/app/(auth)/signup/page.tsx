@@ -1,17 +1,21 @@
 'use client';
 
+import { useMemo } from 'react';
 import { AuthForm } from '@caistech/corporate-components/auth';
-import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase-client';
 
 export default function SignupPage() {
-  const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
   return (
     <main className="mx-auto max-w-md px-6 py-16">
-      <h1 className="mb-6 text-2xl font-semibold">Create your account</h1>
       <AuthForm
         mode="signup"
-        loginHref="/login"
-        onSuccess={() => router.push('/dashboard')}
+        theme="light"
+        supabaseClient={supabase}
+        redirectTo="/dashboard"
+        loginPath="/login"
+        termsPath="/terms"
+        privacyPath="/privacy"
       />
     </main>
   );
