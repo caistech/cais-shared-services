@@ -223,7 +223,7 @@ const LIGHT: ThemeTokens = {
   desc: 'text-zinc-600',
   label: 'text-zinc-700',
   input:
-    'w-full bg-white border border-zinc-300 rounded-lg pl-10 pr-3 py-2.5 text-base text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[var(--cais-auth-accent,#22c55e)]/30 focus:border-[var(--cais-auth-accent,#22c55e)] min-h-[44px]',
+    'w-full bg-white border border-zinc-300 rounded-lg pl-10 pr-3 py-2.5 text-base text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-zinc-400 min-h-[44px]',
   inputIcon: 'text-zinc-400',
   secondaryBtn:
     'bg-white hover:bg-zinc-50 disabled:bg-white disabled:cursor-not-allowed border border-zinc-300 text-zinc-700',
@@ -248,7 +248,7 @@ const DARK: ThemeTokens = {
   desc: 'text-slate-400',
   label: 'text-slate-300',
   input:
-    'w-full bg-slate-950/60 border border-slate-700 rounded-lg pl-10 pr-3 py-2.5 text-base text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[var(--cais-auth-accent,#22c55e)]/30 focus:border-[var(--cais-auth-accent,#22c55e)] min-h-[44px]',
+    'w-full bg-slate-950/60 border border-slate-700 rounded-lg pl-10 pr-3 py-2.5 text-base text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-600 focus:border-slate-500 min-h-[44px]',
   inputIcon: 'text-slate-500',
   secondaryBtn:
     'bg-slate-800 hover:bg-slate-700 disabled:bg-slate-800 disabled:cursor-not-allowed border border-slate-700 text-slate-200',
@@ -270,6 +270,14 @@ const ThemeContext = createContext<ThemeTokens>(LIGHT);
 function useT(): ThemeTokens {
   return useContext(ThemeContext);
 }
+
+// Accent-coloured surfaces read the brand CSS variable through inline style
+// (see the note in AuthForm) — these reference the variable, not its value, so
+// they are constant and theme-overridable via the wrapper's `--cais-auth-accent`.
+const ACCENT_BG: React.CSSProperties = {
+  backgroundColor: 'var(--cais-auth-accent)',
+};
+const ACCENT_TEXT: React.CSSProperties = { color: 'var(--cais-auth-accent)' };
 
 // --- Component ----------------------------------------------------------
 
@@ -313,13 +321,16 @@ export function AuthForm(props: AuthFormProps) {
 
   const tokens = theme === 'dark' ? DARK : LIGHT;
 
-  // Override the brand-accent CSS variable when an explicit accent is given.
-  const style = accent
-    ? ({
-        ['--cais-auth-accent']: accent,
-        ['--cais-auth-accent-hover']: accent,
-      } as React.CSSProperties)
-    : undefined;
+  // The brand accent is delivered as a CSS variable that is ALWAYS defined on
+  // the wrapper (default brand green, overridable via `accent`). Accent-coloured
+  // surfaces (primary button, links) read it through inline `style`, NOT a
+  // Tailwind arbitrary class — Tailwind v4 silently drops `bg-[var(--x,#hex)]`
+  // tokens (comma+hash) when scanning a node_modules package, which would leave
+  // the primary buttons background-less in consumer builds. Inline style needs
+  // no class generation, so it is robust regardless of the consumer's Tailwind.
+  const style = {
+    ['--cais-auth-accent']: accent ?? '#22c55e',
+  } as React.CSSProperties;
 
   return (
     <ThemeContext.Provider value={tokens}>
@@ -532,7 +543,8 @@ function PrimaryButton({
       type={type}
       onClick={onClick}
       disabled={loading}
-      className="w-full inline-flex items-center justify-center gap-2 bg-[var(--cais-auth-accent,#22c55e)] hover:bg-[var(--cais-auth-accent-hover,#16a34a)] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition min-h-[44px]"
+      style={ACCENT_BG}
+      className="w-full inline-flex items-center justify-center gap-2 hover:brightness-95 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition min-h-[44px]"
     >
       {loading ? (
         <>
@@ -609,7 +621,8 @@ function FooterLink({
   return (
     <a
       href={href}
-      className="text-[var(--cais-auth-accent,#22c55e)] hover:opacity-80 transition font-medium"
+      style={ACCENT_TEXT}
+      className="hover:opacity-80 transition font-medium"
     >
       {children}
     </a>
@@ -1149,7 +1162,8 @@ function ResetPasswordPanel({
         </p>
         <a
           href={loginPath}
-          className="inline-flex items-center justify-center gap-2 bg-[var(--cais-auth-accent,#22c55e)] hover:bg-[var(--cais-auth-accent-hover,#16a34a)] text-white font-semibold py-3 px-6 rounded-lg min-h-[44px]"
+          style={ACCENT_BG}
+          className="inline-flex items-center justify-center gap-2 hover:brightness-95 text-white font-semibold py-3 px-6 rounded-lg min-h-[44px]"
         >
           Continue to sign in
           <ArrowRight className="w-4 h-4" aria-hidden />

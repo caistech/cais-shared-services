@@ -53,9 +53,13 @@ export function PasswordInput({
   const [show, setShow] = useState(false);
   const isDark = theme === 'dark';
 
+  // Focus colours are fixed per theme (not the accent CSS var): PasswordInput is
+  // used standalone (outside <AuthForm/>, where the var is undefined), and
+  // Tailwind v4 drops `[var(--x,#hex)]` arbitrary classes scanned from a package
+  // anyway. A neutral focus ring is robust everywhere with zero consumer wiring.
   const inputBase = isDark
-    ? 'bg-slate-950/60 border-slate-700 text-white placeholder:text-slate-500 focus:border-[var(--cais-auth-accent,#22c55e)] focus:ring-[var(--cais-auth-accent,#22c55e)]/30'
-    : 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-[var(--cais-auth-accent,#22c55e)] focus:ring-[var(--cais-auth-accent,#22c55e)]/30';
+    ? 'bg-slate-950/60 border-slate-700 text-white placeholder:text-slate-500 focus:border-slate-500 focus:ring-slate-600'
+    : 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-zinc-400 focus:ring-zinc-300';
 
   const toggleBase = isDark
     ? 'text-slate-400 hover:text-white'
