@@ -20,12 +20,41 @@
  *   - Vendor-neutral defaults — `brandName` prop, no hardcoded identity (R11)
  *   - Explanatory header on each mode (R3)
  *
+ * THEME (canonical, 2026-06-12): the component is the ONE auth shape across the
+ * whole portfolio, but the portfolio carries differently-branded (incl. white-label)
+ * products. The STRUCTURE / FLOW / modes / error mapping are identical everywhere;
+ * only the skin is branded, via:
+ *   - `theme="light" | "dark"` (default "light" — the neutral most products use;
+ *     dark suits operator/admin portals)
+ *   - `accent` — a hex that overrides the `--cais-auth-accent` brand colour
+ * This is what makes "one shape" compatible with the white-label / lane-aware
+ * "whose brand travels" rule (a distributor product must carry the distributor's
+ * brand, never a hardcoded CAS look).
+ *
+ * CANONICAL FLOW (2026-06-12): every email (confirm / magic-link / recovery)
+ * routes through the product's `/auth/callback` route, which verifies the token
+ * server-side (`exchangeCodeForSession` for ?code= PKCE, or `verifyOtp` for
+ * ?token_hash=&type=) BEFORE the user lands on a page — so the session cookie is
+ * in place under SSR. In particular forgot-password points the reset email at
+ * `${callbackPath}?next=${resetPasswordPath}` (NOT straight at the reset page,
+ * which would arrive session-less under SSR/PKCE). Ship the canonical
+ * `/auth/callback` route alongside this component (see the template's
+ * app/auth/callback/route.ts) and configure Supabase site/redirect URLs + Resend
+ * SMTP via the canonical setup flow (`@caistech/portfolio-env-sync` auth_config +
+ * configure-email-templates.sh) — adopt, do not re-invent.
+ *
  * Supabase client is constructed lazily via `@supabase/ssr`'s
  * `createBrowserClient` — a peer dep. The component never bundles
  * `@supabase/*` into its own build.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {
   ArrowRight,
   Loader2,
@@ -48,6 +77,8 @@ export type AuthMode =
   | 'magic-link'
   | 'forgot-password'
   | 'reset-password';
+
+export type AuthTheme = 'light' | 'dark';
 
 export interface AuthUser {
   id: string;
@@ -101,23 +132,30 @@ export interface AuthFormProps {
   mode: AuthMode;
 
   /** Supabase project URL (`NEXT_PUBLIC_SUPABASE_URL`). */
-  supabaseUrl: string;
+  supabaseUrl?: string;
   /** Supabase anon key (`NEXT_PUBLIC_SUPABASE_ANON_KEY`). */
-  supabaseAnonKey: string;
+  supabaseAnonKey?: string;
 
   /** Where to send the user after a successful password sign-in. */
   redirectTo?: string;
 
-  /** Path to the forgot-password page (link from login). Default `/auth/forgot-password`. */
+  /** Path to the forgot-password page (link from login). Default `/forgot-password`. */
   forgotPasswordPath?: string;
   /** Path to the signup page (link from login). Default `/signup`. */
   signupPath?: string;
   /** Path to the login page (link from signup / reset). Default `/login`. */
   loginPath?: string;
-  /** Path to the auth callback (magic-link landing). Default `/auth/callback`. */
+  /** Path to the auth callback (email-flow landing). Default `/auth/callback`. */
   callbackPath?: string;
+  /** Path to the set-new-password page (recovery lands here AFTER the callback). Default `/reset-password`. */
+  resetPasswordPath?: string;
 
-  /** Brand name for the header. Defaults to "Sign in" / mode-appropriate copy. */
+  /** Visual skin. "light" (default) for most products; "dark" for operator/admin portals. */
+  theme?: AuthTheme;
+  /** Brand accent colour (hex). Overrides the `--cais-auth-accent` CSS variable. */
+  accent?: string;
+
+  /** Brand name for the header. Defaults to mode-appropriate copy. */
   brandName?: string;
 
   /** Optional links shown on signup mode (renders consent line). */
@@ -153,12 +191,93 @@ export interface AuthFormProps {
   createBrowserClient?: (url: string, key: string) => SupabaseClientLike;
 }
 
+// --- Theme tokens -------------------------------------------------------
+
+interface ThemeTokens {
+  pw: AuthTheme;
+  card: string;
+  title: string;
+  desc: string;
+  label: string;
+  input: string;
+  inputIcon: string;
+  secondaryBtn: string;
+  dividerBorder: string;
+  dividerBg: string;
+  dividerText: string;
+  footerMuted: string;
+  errorBox: string;
+  successBox: string;
+  confirmCircle: string;
+  confirmIcon: string;
+  confirmHeading: string;
+  confirmBody: string;
+  confirmMuted: string;
+  mutedBtn: string;
+}
+
+const LIGHT: ThemeTokens = {
+  pw: 'light',
+  card: 'bg-white border border-zinc-200 shadow-sm rounded-xl p-5 sm:p-7 text-zinc-900',
+  title: 'text-zinc-900',
+  desc: 'text-zinc-600',
+  label: 'text-zinc-700',
+  input:
+    'w-full bg-white border border-zinc-300 rounded-lg pl-10 pr-3 py-2.5 text-base text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[var(--cais-auth-accent,#22c55e)]/30 focus:border-[var(--cais-auth-accent,#22c55e)] min-h-[44px]',
+  inputIcon: 'text-zinc-400',
+  secondaryBtn:
+    'bg-white hover:bg-zinc-50 disabled:bg-white disabled:cursor-not-allowed border border-zinc-300 text-zinc-700',
+  dividerBorder: 'border-zinc-200',
+  dividerBg: 'bg-white',
+  dividerText: 'text-zinc-400',
+  footerMuted: 'text-zinc-500',
+  errorBox: 'text-red-700 bg-red-50 border border-red-200',
+  successBox: 'text-green-700 bg-green-50 border border-green-200',
+  confirmCircle: 'bg-green-100',
+  confirmIcon: 'text-green-600',
+  confirmHeading: 'text-zinc-900',
+  confirmBody: 'text-zinc-600',
+  confirmMuted: 'text-zinc-500',
+  mutedBtn: 'text-zinc-500 hover:text-zinc-900',
+};
+
+const DARK: ThemeTokens = {
+  pw: 'dark',
+  card: 'bg-slate-900/60 border border-slate-700/50 rounded-xl p-5 sm:p-7 text-white',
+  title: 'text-white',
+  desc: 'text-slate-400',
+  label: 'text-slate-300',
+  input:
+    'w-full bg-slate-950/60 border border-slate-700 rounded-lg pl-10 pr-3 py-2.5 text-base text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[var(--cais-auth-accent,#22c55e)]/30 focus:border-[var(--cais-auth-accent,#22c55e)] min-h-[44px]',
+  inputIcon: 'text-slate-500',
+  secondaryBtn:
+    'bg-slate-800 hover:bg-slate-700 disabled:bg-slate-800 disabled:cursor-not-allowed border border-slate-700 text-slate-200',
+  dividerBorder: 'border-slate-700',
+  dividerBg: 'bg-slate-900/60',
+  dividerText: 'text-slate-500',
+  footerMuted: 'text-slate-400',
+  errorBox: 'text-red-300 bg-red-500/10 border border-red-500/20',
+  successBox: 'text-green-300 bg-green-500/10 border border-green-500/20',
+  confirmCircle: 'bg-green-500/15',
+  confirmIcon: 'text-green-400',
+  confirmHeading: 'text-white',
+  confirmBody: 'text-slate-400',
+  confirmMuted: 'text-slate-500',
+  mutedBtn: 'text-slate-400 hover:text-white',
+};
+
+const ThemeContext = createContext<ThemeTokens>(LIGHT);
+function useT(): ThemeTokens {
+  return useContext(ThemeContext);
+}
+
 // --- Component ----------------------------------------------------------
 
-const DEFAULT_FORGOT = '/auth/forgot-password';
+const DEFAULT_FORGOT = '/forgot-password';
 const DEFAULT_SIGNUP = '/signup';
 const DEFAULT_LOGIN = '/login';
 const DEFAULT_CALLBACK = '/auth/callback';
+const DEFAULT_RESET = '/reset-password';
 
 export function AuthForm(props: AuthFormProps) {
   const {
@@ -170,6 +289,9 @@ export function AuthForm(props: AuthFormProps) {
     signupPath = DEFAULT_SIGNUP,
     loginPath = DEFAULT_LOGIN,
     callbackPath = DEFAULT_CALLBACK,
+    resetPasswordPath = DEFAULT_RESET,
+    theme = 'light',
+    accent,
     brandName,
     termsPath,
     privacyPath,
@@ -183,65 +305,81 @@ export function AuthForm(props: AuthFormProps) {
   // Build the Supabase client once.
   const client = useMemo<SupabaseClientLike | null>(() => {
     if (supabaseClient) return supabaseClient;
-    if (createBrowserClient) {
+    if (createBrowserClient && supabaseUrl && supabaseAnonKey) {
       return createBrowserClient(supabaseUrl, supabaseAnonKey);
     }
     return null;
   }, [supabaseClient, createBrowserClient, supabaseUrl, supabaseAnonKey]);
 
-  return (
-    <div
-      className={`w-full max-w-md mx-auto ${className}`}
-      data-cais-auth-mode={mode}
-    >
-      <ModeHeader mode={mode} brandName={brandName} />
+  const tokens = theme === 'dark' ? DARK : LIGHT;
 
-      <div className="bg-slate-900/60 border border-slate-700/50 rounded-xl p-5 sm:p-7 text-white">
-        {mode === 'login' && (
-          <LoginPanel
-            client={client}
-            redirectTo={redirectTo ?? '/'}
-            forgotPasswordPath={forgotPasswordPath}
-            signupPath={signupPath}
-            callbackPath={callbackPath}
-            onSuccess={onSuccess}
-          />
-        )}
-        {mode === 'signup' && (
-          <SignupPanel
-            client={client}
-            callbackPath={callbackPath}
-            loginPath={loginPath}
-            termsPath={termsPath}
-            privacyPath={privacyPath}
-            consentSlot={consentSlot}
-            onSuccess={onSuccess}
-          />
-        )}
-        {mode === 'magic-link' && (
-          <MagicLinkPanel
-            client={client}
-            callbackPath={callbackPath}
-            loginPath={loginPath}
-            redirectTo={redirectTo}
-          />
-        )}
-        {mode === 'forgot-password' && (
-          <ForgotPasswordPanel
-            client={client}
-            loginPath={loginPath}
-            resetRedirectPath={'/auth/reset-password'}
-          />
-        )}
-        {mode === 'reset-password' && (
-          <ResetPasswordPanel
-            client={client}
-            loginPath={loginPath}
-            onSuccess={onSuccess}
-          />
-        )}
+  // Override the brand-accent CSS variable when an explicit accent is given.
+  const style = accent
+    ? ({
+        ['--cais-auth-accent']: accent,
+        ['--cais-auth-accent-hover']: accent,
+      } as React.CSSProperties)
+    : undefined;
+
+  return (
+    <ThemeContext.Provider value={tokens}>
+      <div
+        className={`w-full max-w-md mx-auto ${className}`}
+        data-cais-auth-mode={mode}
+        data-cais-auth-theme={theme}
+        style={style}
+      >
+        <ModeHeader mode={mode} brandName={brandName} />
+
+        <div className={tokens.card}>
+          {mode === 'login' && (
+            <LoginPanel
+              client={client}
+              redirectTo={redirectTo ?? '/'}
+              forgotPasswordPath={forgotPasswordPath}
+              signupPath={signupPath}
+              callbackPath={callbackPath}
+              onSuccess={onSuccess}
+            />
+          )}
+          {mode === 'signup' && (
+            <SignupPanel
+              client={client}
+              redirectTo={redirectTo ?? '/'}
+              callbackPath={callbackPath}
+              loginPath={loginPath}
+              termsPath={termsPath}
+              privacyPath={privacyPath}
+              consentSlot={consentSlot}
+              onSuccess={onSuccess}
+            />
+          )}
+          {mode === 'magic-link' && (
+            <MagicLinkPanel
+              client={client}
+              callbackPath={callbackPath}
+              loginPath={loginPath}
+              redirectTo={redirectTo ?? '/'}
+            />
+          )}
+          {mode === 'forgot-password' && (
+            <ForgotPasswordPanel
+              client={client}
+              loginPath={loginPath}
+              callbackPath={callbackPath}
+              resetPasswordPath={resetPasswordPath}
+            />
+          )}
+          {mode === 'reset-password' && (
+            <ResetPasswordPanel
+              client={client}
+              loginPath={loginPath}
+              onSuccess={onSuccess}
+            />
+          )}
+        </div>
       </div>
-    </div>
+    </ThemeContext.Provider>
   );
 }
 
@@ -254,12 +392,13 @@ function ModeHeader({
   mode: AuthMode;
   brandName?: string;
 }) {
+  const t = useT();
   const title = brandName ?? defaultTitleFor(mode);
   const description = descriptionFor(mode);
   return (
     <div className="mb-6 text-center px-2">
-      <h1 className="text-2xl font-bold text-white mb-2">{title}</h1>
-      <p className="text-sm text-slate-400">{description}</p>
+      <h1 className={`text-2xl font-bold mb-2 ${t.title}`}>{title}</h1>
+      <p className={`text-sm ${t.desc}`}>{description}</p>
     </div>
   );
 }
@@ -310,11 +449,12 @@ function useSlowFlag(active: boolean, delayMs = 5000) {
 }
 
 function ErrorBox({ code }: { code: AuthErrorCode | null }) {
+  const t = useT();
   if (!code) return null;
   return (
     <p
       role="alert"
-      className="text-sm text-red-300 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 flex gap-2 items-start"
+      className={`text-sm rounded-lg px-3 py-2 flex gap-2 items-start ${t.errorBox}`}
     >
       <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden />
       <span>{resolveAuthErrorMessage(code)}</span>
@@ -322,27 +462,13 @@ function ErrorBox({ code }: { code: AuthErrorCode | null }) {
   );
 }
 
-function SuccessBox({ code }: { code: AuthErrorCode | null }) {
-  if (!code) return null;
-  return (
-    <p
-      role="status"
-      className="text-sm text-green-300 bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2 flex gap-2 items-start"
-    >
-      <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden />
-      <span>{resolveAuthErrorMessage(code)}</span>
-    </p>
-  );
-}
-
 function MissingClientBox() {
+  const t = useT();
   return (
-    <p
-      role="alert"
-      className="text-sm text-red-300 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"
-    >
+    <p role="alert" className={`text-sm rounded-lg px-3 py-2 ${t.errorBox}`}>
       AuthForm is missing a Supabase client. Pass <code>createBrowserClient</code>{' '}
-      from <code>@supabase/ssr</code> or a pre-built <code>supabaseClient</code>{' '}
+      from <code>@supabase/ssr</code> (with <code>supabaseUrl</code> +{' '}
+      <code>supabaseAnonKey</code>) or a pre-built <code>supabaseClient</code>{' '}
       prop.
     </p>
   );
@@ -357,17 +483,18 @@ function EmailField({
   onChange: (v: string) => void;
   autoComplete?: string;
 }) {
+  const t = useT();
   return (
     <div>
       <label
         htmlFor="cais-auth-email"
-        className="block text-sm font-medium text-slate-300 mb-1.5"
+        className={`block text-sm font-medium mb-1.5 ${t.label}`}
       >
         Email
       </label>
       <div className="relative">
         <Mail
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500"
+          className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${t.inputIcon}`}
           aria-hidden
         />
         <input
@@ -378,7 +505,7 @@ function EmailField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="you@example.com"
-          className="w-full bg-slate-950/60 border border-slate-700 rounded-lg pl-10 pr-3 py-2.5 text-base text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[var(--cais-auth-accent,#22c55e)]/30 focus:border-[var(--cais-auth-accent,#22c55e)] min-h-[44px]"
+          className={t.input}
         />
       </div>
     </div>
@@ -405,7 +532,7 @@ function PrimaryButton({
       type={type}
       onClick={onClick}
       disabled={loading}
-      className="w-full inline-flex items-center justify-center gap-2 bg-[var(--cais-auth-accent,#22c55e)] hover:bg-[var(--cais-auth-accent-hover,#16a34a)] disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition min-h-[44px]"
+      className="w-full inline-flex items-center justify-center gap-2 bg-[var(--cais-auth-accent,#22c55e)] hover:bg-[var(--cais-auth-accent-hover,#16a34a)] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition min-h-[44px]"
     >
       {loading ? (
         <>
@@ -435,12 +562,13 @@ function SecondaryButton({
   onClick: () => void;
   children: React.ReactNode;
 }) {
+  const t = useT();
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={loading}
-      className="w-full inline-flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 disabled:bg-slate-800 disabled:cursor-not-allowed border border-slate-700 text-slate-200 font-medium py-3 rounded-lg transition min-h-[44px]"
+      className={`w-full inline-flex items-center justify-center gap-2 font-medium py-3 rounded-lg transition min-h-[44px] ${t.secondaryBtn}`}
     >
       {loading ? (
         <>
@@ -458,13 +586,14 @@ function SecondaryButton({
 }
 
 function Divider() {
+  const t = useT();
   return (
     <div className="relative my-4">
       <div className="absolute inset-0 flex items-center">
-        <div className="w-full border-t border-slate-700" />
+        <div className={`w-full border-t ${t.dividerBorder}`} />
       </div>
       <div className="relative flex justify-center text-xs">
-        <span className="bg-slate-900/60 px-3 text-slate-500">or</span>
+        <span className={`px-3 ${t.dividerBg} ${t.dividerText}`}>or</span>
       </div>
     </div>
   );
@@ -480,17 +609,24 @@ function FooterLink({
   return (
     <a
       href={href}
-      className="text-[var(--cais-auth-accent,#22c55e)] hover:opacity-80 transition"
+      className="text-[var(--cais-auth-accent,#22c55e)] hover:opacity-80 transition font-medium"
     >
       {children}
     </a>
   );
 }
 
-function buildRedirectUrl(callbackPath: string, next?: string): string {
-  if (typeof window === 'undefined') return callbackPath;
+/**
+ * Build the email-redirect URL. ALWAYS includes a `?next=` so the canonical
+ * `/auth/callback` route lands the user on the right page after it verifies the
+ * token server-side. Under SSR this is what keeps the session cookie in place.
+ */
+function buildRedirectUrl(callbackPath: string, next: string): string {
+  if (typeof window === 'undefined') {
+    return `${callbackPath}?next=${encodeURIComponent(next)}`;
+  }
   const url = new URL(callbackPath, window.location.origin);
-  if (next) url.searchParams.set('next', next);
+  url.searchParams.set('next', next);
   return url.toString();
 }
 
@@ -511,6 +647,7 @@ function LoginPanel({
   callbackPath: string;
   onSuccess?: (user: AuthUser) => void;
 }) {
+  const t = useT();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -591,6 +728,7 @@ function LoginPanel({
       <EmailField value={email} onChange={setEmail} />
 
       <PasswordInput
+        theme={t.pw}
         label="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
@@ -623,7 +761,7 @@ function LoginPanel({
         Email me a magic link
       </SecondaryButton>
 
-      <p className="mt-4 text-center text-xs text-slate-400">
+      <p className={`mt-4 text-center text-xs ${t.footerMuted}`}>
         Need an account? <FooterLink href={signupPath}>Sign up</FooterLink>
       </p>
     </form>
@@ -634,6 +772,7 @@ function LoginPanel({
 
 function SignupPanel({
   client,
+  redirectTo,
   callbackPath,
   loginPath,
   termsPath,
@@ -642,6 +781,7 @@ function SignupPanel({
   onSuccess,
 }: {
   client: SupabaseClientLike | null;
+  redirectTo: string;
   callbackPath: string;
   loginPath: string;
   termsPath?: string;
@@ -649,6 +789,7 @@ function SignupPanel({
   consentSlot?: React.ReactNode;
   onSuccess?: (user: AuthUser) => void;
 }) {
+  const t = useT();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -671,7 +812,7 @@ function SignupPanel({
     }
     setSubmitting(true);
     try {
-      const emailRedirectTo = buildRedirectUrl(callbackPath);
+      const emailRedirectTo = buildRedirectUrl(callbackPath, redirectTo);
       const { data, error } = await client.auth.signUp({
         email,
         password,
@@ -699,7 +840,7 @@ function SignupPanel({
     setErrorCode(null);
     setMagicSubmitting(true);
     try {
-      const emailRedirectTo = buildRedirectUrl(callbackPath);
+      const emailRedirectTo = buildRedirectUrl(callbackPath, redirectTo);
       const { error } = await client.auth.signInWithOtp({
         email,
         options: { emailRedirectTo },
@@ -745,6 +886,7 @@ function SignupPanel({
     <form onSubmit={onSignupSubmit} className="space-y-4">
       <EmailField value={email} onChange={setEmail} autoComplete="email" />
       <PasswordInput
+        theme={t.pw}
         label="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
@@ -775,9 +917,9 @@ function SignupPanel({
       </SecondaryButton>
 
       {consentSlot ? (
-        <div className="text-xs text-slate-400 mt-3">{consentSlot}</div>
+        <div className={`text-xs mt-3 ${t.footerMuted}`}>{consentSlot}</div>
       ) : termsPath || privacyPath ? (
-        <p className="text-xs text-slate-400 mt-3 text-center">
+        <p className={`text-xs mt-3 text-center ${t.footerMuted}`}>
           By creating an account you agree to our{' '}
           {termsPath ? <FooterLink href={termsPath}>Terms</FooterLink> : null}
           {termsPath && privacyPath ? ' and ' : null}
@@ -788,7 +930,7 @@ function SignupPanel({
         </p>
       ) : null}
 
-      <p className="mt-4 text-center text-xs text-slate-400">
+      <p className={`mt-4 text-center text-xs ${t.footerMuted}`}>
         Already have an account?{' '}
         <FooterLink href={loginPath}>Sign in</FooterLink>
       </p>
@@ -807,8 +949,9 @@ function MagicLinkPanel({
   client: SupabaseClientLike | null;
   callbackPath: string;
   loginPath: string;
-  redirectTo?: string;
+  redirectTo: string;
 }) {
+  const t = useT();
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
@@ -856,14 +999,10 @@ function MagicLinkPanel({
     <form onSubmit={onSubmit} className="space-y-4">
       <EmailField value={email} onChange={setEmail} />
       <ErrorBox code={errorCode} />
-      <PrimaryButton
-        loading={submitting}
-        loadingLabel="Sending…"
-        slow={slow}
-      >
+      <PrimaryButton loading={submitting} loadingLabel="Sending…" slow={slow}>
         Email me a magic link
       </PrimaryButton>
-      <p className="mt-2 text-center text-xs text-slate-400">
+      <p className={`mt-2 text-center text-xs ${t.footerMuted}`}>
         Prefer a password? <FooterLink href={loginPath}>Sign in</FooterLink>
       </p>
     </form>
@@ -875,12 +1014,15 @@ function MagicLinkPanel({
 function ForgotPasswordPanel({
   client,
   loginPath,
-  resetRedirectPath,
+  callbackPath,
+  resetPasswordPath,
 }: {
   client: SupabaseClientLike | null;
   loginPath: string;
-  resetRedirectPath: string;
+  callbackPath: string;
+  resetPasswordPath: string;
 }) {
+  const t = useT();
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
@@ -895,7 +1037,11 @@ function ForgotPasswordPanel({
     setErrorCode(null);
     setSubmitting(true);
     try {
-      const redirectTo = buildRedirectUrl(resetRedirectPath);
+      // Canonical recovery flow: route the reset email through /auth/callback
+      // (which verifies the token server-side and sets the session cookie)
+      // BEFORE landing on the set-new-password page. Pointing straight at the
+      // reset page would arrive session-less under SSR/PKCE.
+      const redirectTo = buildRedirectUrl(callbackPath, resetPasswordPath);
       const { error } = await client.auth.resetPasswordForEmail(email, {
         redirectTo,
       });
@@ -928,14 +1074,10 @@ function ForgotPasswordPanel({
     <form onSubmit={onSubmit} className="space-y-4">
       <EmailField value={email} onChange={setEmail} />
       <ErrorBox code={errorCode} />
-      <PrimaryButton
-        loading={submitting}
-        loadingLabel="Sending…"
-        slow={slow}
-      >
+      <PrimaryButton loading={submitting} loadingLabel="Sending…" slow={slow}>
         Send reset link
       </PrimaryButton>
-      <p className="mt-2 text-center text-xs text-slate-400">
+      <p className={`mt-2 text-center text-xs ${t.footerMuted}`}>
         Remembered it? <FooterLink href={loginPath}>Sign in</FooterLink>
       </p>
     </form>
@@ -953,6 +1095,7 @@ function ResetPasswordPanel({
   loginPath: string;
   onSuccess?: (user: AuthUser) => void;
 }) {
+  const t = useT();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -993,13 +1136,15 @@ function ResetPasswordPanel({
   if (done) {
     return (
       <div className="text-center">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-500/15 mb-4">
-          <CheckCircle2 className="w-6 h-6 text-green-400" aria-hidden />
+        <div
+          className={`inline-flex items-center justify-center w-12 h-12 rounded-full mb-4 ${t.confirmCircle}`}
+        >
+          <CheckCircle2 className={`w-6 h-6 ${t.confirmIcon}`} aria-hidden />
         </div>
-        <h2 className="text-lg font-semibold mb-2 text-white">
+        <h2 className={`text-lg font-semibold mb-2 ${t.confirmHeading}`}>
           Password updated
         </h2>
-        <p className="text-sm text-slate-400 mb-6">
+        <p className={`text-sm mb-6 ${t.confirmBody}`}>
           You can now sign in with your new password.
         </p>
         <a
@@ -1016,6 +1161,7 @@ function ResetPasswordPanel({
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <PasswordInput
+        theme={t.pw}
         label="New password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
@@ -1025,6 +1171,7 @@ function ResetPasswordPanel({
         placeholder="At least 8 characters"
       />
       <PasswordInput
+        theme={t.pw}
         label="Confirm new password"
         value={confirm}
         onChange={(e) => setConfirm(e.target.value)}
@@ -1034,11 +1181,7 @@ function ResetPasswordPanel({
         placeholder="Repeat your new password"
       />
       <ErrorBox code={errorCode} />
-      <PrimaryButton
-        loading={submitting}
-        loadingLabel="Updating…"
-        slow={slow}
-      >
+      <PrimaryButton loading={submitting} loadingLabel="Updating…" slow={slow}>
         Update password
       </PrimaryButton>
     </form>
@@ -1054,25 +1197,29 @@ function MagicSentPanel({
   email: string;
   onReset: () => void;
 }) {
+  const t = useT();
   return (
     <div className="text-center">
-      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-500/15 mb-4">
-        <Mail className="w-6 h-6 text-green-400" aria-hidden />
+      <div
+        className={`inline-flex items-center justify-center w-12 h-12 rounded-full mb-4 ${t.confirmCircle}`}
+      >
+        <Mail className={`w-6 h-6 ${t.confirmIcon}`} aria-hidden />
       </div>
-      <h2 className="text-lg font-semibold mb-2 text-white">
+      <h2 className={`text-lg font-semibold mb-2 ${t.confirmHeading}`}>
         Check your inbox
       </h2>
-      <p className="text-sm text-slate-400">
+      <p className={`text-sm ${t.confirmBody}`}>
         We sent a magic link to{' '}
-        <strong className="text-white">{email}</strong>. Click it to sign in.
+        <strong className={t.confirmHeading}>{email}</strong>. Click it to sign
+        in.
       </p>
-      <p className="mt-3 text-xs text-slate-500">
+      <p className={`mt-3 text-xs ${t.confirmMuted}`}>
         It may take a minute to arrive. Check your spam folder if you don't see
         it.
       </p>
       <button
         onClick={onReset}
-        className="mt-6 text-sm text-slate-400 hover:text-white transition min-h-[44px] px-3"
+        className={`mt-6 text-sm transition min-h-[44px] px-3 ${t.mutedBtn}`}
       >
         Use a different email
       </button>
@@ -1089,36 +1236,40 @@ function ConfirmEmailPanel({
   kind: 'confirm' | 'reset';
   onReset: () => void;
 }) {
-  const heading =
-    kind === 'reset' ? 'Reset link sent' : 'Confirm your email';
+  const t = useT();
+  const heading = kind === 'reset' ? 'Reset link sent' : 'Confirm your email';
   const body =
     kind === 'reset' ? (
       <>
         We sent a password-reset link to{' '}
-        <strong className="text-white">{email}</strong>. Click it to choose a
-        new password.
+        <strong className={t.confirmHeading}>{email}</strong>. Click it to
+        choose a new password.
       </>
     ) : (
       <>
         We sent a confirmation link to{' '}
-        <strong className="text-white">{email}</strong>. Click it to activate
-        your account.
+        <strong className={t.confirmHeading}>{email}</strong>. Click it to
+        activate your account.
       </>
     );
   return (
     <div className="text-center">
-      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-500/15 mb-4">
-        <Mail className="w-6 h-6 text-green-400" aria-hidden />
+      <div
+        className={`inline-flex items-center justify-center w-12 h-12 rounded-full mb-4 ${t.confirmCircle}`}
+      >
+        <Mail className={`w-6 h-6 ${t.confirmIcon}`} aria-hidden />
       </div>
-      <h2 className="text-lg font-semibold mb-2 text-white">{heading}</h2>
-      <p className="text-sm text-slate-400">{body}</p>
-      <p className="mt-3 text-xs text-slate-500">
+      <h2 className={`text-lg font-semibold mb-2 ${t.confirmHeading}`}>
+        {heading}
+      </h2>
+      <p className={`text-sm ${t.confirmBody}`}>{body}</p>
+      <p className={`mt-3 text-xs ${t.confirmMuted}`}>
         It may take a minute to arrive. Check your spam folder if you don't see
         it.
       </p>
       <button
         onClick={onReset}
-        className="mt-6 text-sm text-slate-400 hover:text-white transition min-h-[44px] px-3"
+        className={`mt-6 text-sm transition min-h-[44px] px-3 ${t.mutedBtn}`}
       >
         Use a different email
       </button>

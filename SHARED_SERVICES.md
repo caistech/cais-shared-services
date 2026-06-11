@@ -18,7 +18,7 @@
 >
 > **Install:** registry is GitHub Packages (`@caistech:registry=https://npm.pkg.github.com`, token
 > `NODE_AUTH_TOKEN`/`GITHUB_PACKAGES_TOKEN`). `npm install @caistech/<name>`. Consumers import the
-> compiled `dist/`, never source. **Last updated:** 2026-06-09 (40 packages).
+> compiled `dist/`, never source. **Last updated:** 2026-06-11 (41 packages).
 
 ---
 
@@ -38,8 +38,9 @@
 ## AI, models & extraction
 | Package | Capability |
 |---|---|
-| `@caistech/ai-client` | Anthropic SDK + OpenRouter routing helper — the **consistent Claude client** init across the portfolio. Use instead of raw SDK setup. |
-| `@caistech/openrouter-client` | OpenRouter LLM client with retry + streaming. |
+| `@caistech/ai-client` | Anthropic SDK + OpenRouter routing helper — the **consistent Claude client** init across the portfolio. Use instead of raw SDK setup. Config-only (you construct the SDK), so meter the Anthropic path yourself via `@caistech/usage-meter` `meterAnthropic(resp.usage, {model})`. |
+| `@caistech/openrouter-client` | OpenRouter LLM client with retry + streaming. **Non-streaming `chatCompletion` auto-reports token usage** via `@caistech/usage-meter` (no-op unless `USAGE_INGEST_*` env is set). |
+| `@caistech/usage-meter` | Per-product/per-API usage meter — fire-and-forget reporter to the cockpit `POST /api/ingest/usage` + Anthropic/OpenRouter usage adapters (`usageFromAnthropic`/`usageFromOpenRouter`, `meterAnthropic`/`meterOpenRouter`). Never throws, never blocks the LLM call; **NO-OP until `USAGE_INGEST_URL`/`USAGE_INGEST_TOKEN`/`USAGE_PRODUCT_SLUG` are set**. Feeds the Cost Dashboard's per-product analytics. |
 | `@caistech/agents` | Legacy JS: agent provisioning, prompt templates, secure gateway. |
 | `@caistech/extractors` | LLM content extractors — business profile from a website; business signals from LinkedIn/Facebook/Instagram. Inject any LLM. |
 | `@caistech/cert-extractor` | OCR + structured entity extraction for certs/licences (ISO 9001, CodeMark, JAS-ANZ, mill certs). Bilingual; inject any vision LLM. |

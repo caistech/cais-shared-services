@@ -8,6 +8,7 @@ export { AuthForm } from './AuthForm';
 export type {
   AuthFormProps,
   AuthMode,
+  AuthTheme,
   AuthUser,
 } from './AuthForm';
 export { PasswordInput } from './PasswordInput';

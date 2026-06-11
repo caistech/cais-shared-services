@@ -5,7 +5,13 @@
  * Usage:
  *   import { chatCompletion, chatCompletionStream } from '@caistech/openrouter-client';
  *   const reply = await chatCompletion(messages, process.env.OPENROUTER_API_KEY!);
+ *
+ * Usage metering: non-streaming completions auto-report token usage to the cockpit via
+ * @caistech/usage-meter — a NO-OP unless USAGE_INGEST_URL/TOKEN/PRODUCT_SLUG are set, so this is
+ * zero-risk to adopt. Streaming metering is deferred (the caller consumes the raw stream, so the
+ * trailing usage chunk isn't available here without teeing it).
  */
+import { meterOpenRouter } from '@caistech/usage-meter';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -74,7 +80,10 @@ export async function chatCompletion(
       }
 
       const data = await response.json();
-      return data.choices[0]?.message?.content?.trim() || '';
+      const content = data.choices[0]?.message?.content?.trim() || '';
+      // Report token usage (no-op unless the consuming product set USAGE_INGEST_* env). Never throws.
+      await meterOpenRouter(data.usage, { model });
+      return content;
     } catch (err) {
       lastError = err as Error;
       if (attempt < MAX_RETRIES) {

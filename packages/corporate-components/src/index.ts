@@ -10,6 +10,7 @@ export { AuthForm, PasswordInput } from './auth';
 export type {
   AuthFormProps,
   AuthMode,
+  AuthTheme,
   AuthUser,
   AuthErrorCode,
   PasswordInputProps,

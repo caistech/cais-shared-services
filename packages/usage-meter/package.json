@@ -1,16 +1,13 @@
 {
-  "name": "@caistech/openrouter-client",
+  "name": "@caistech/usage-meter",
   "version": "0.1.0",
   "private": true,
-  "description": "OpenRouter LLM client with retry logic and streaming support",
+  "description": "Per-product / per-API usage meter — fire-and-forget reporter to the cockpit usage-ingestion endpoint, plus Anthropic/OpenRouter usage adapters. No-op until env-configured.",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
     "build": "tsc",
     "lint": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@caistech/usage-meter": "^0.1.0"
   },
   "peerDependencies": {
     "typescript": ">=5.0.0"
@@ -22,7 +19,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/caistech/cais-shared-services.git",
-    "directory": "packages/openrouter-client"
+    "directory": "packages/usage-meter"
   },
   "license": "PRIVATE"
 }
