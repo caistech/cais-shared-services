@@ -22,6 +22,22 @@
 #   "Follow this link" message that confuses end users. Setting them
 #   per-project by hand is exactly the kind of recurring setup tax the
 #   bootstrap-automation rule in global CLAUDE.md was meant to eliminate.
+#
+# CANONICAL AUTH-EMAIL RULES (learned from the executorai 2026-06-12 incident):
+#   1. site_url MUST be the PUBLIC production domain — never an SSO-protected
+#      team-slug alias (e.g. <slug>-corporate-ai-solutions.vercel.app). These
+#      templates use {{ .ConfirmationURL }}, which Supabase builds off site_url;
+#      a protected/wrong site_url sends every auth email to a 401 wall. This
+#      script PRE-FLIGHT CHECKS site_url and warns if it looks SSO-walled.
+#   2. {{ .ConfirmationURL }} is correct under the PKCE flow (@supabase/ssr): it
+#      yields a ?code= link the product's callback exchanges. The canonical
+#      /auth/callback handles BOTH ?code= (exchangeCodeForSession) AND
+#      ?token_hash=&type= (verifyOtp), so either email shape works.
+#   3. NEVER hand-roll `{{ .RedirectTo }}&token_hash={{ .TokenHash }}`. When the
+#      client's emailRedirectTo isn't allow-listed, RedirectTo falls back to the
+#      bare site_url and the link becomes `<domain>&token_hash=...` (malformed,
+#      no /auth/callback path). That was the executorai bug — use ConfirmationURL
+#      (here) or the self-contained {{ .SiteURL }}/auth/callback?token_hash=... form.
 
 set -euo pipefail
 
@@ -51,6 +67,25 @@ fi
 if [ -z "$TOKEN" ]; then
   echo "ERROR: no Supabase token found (set SUPABASE_MANAGEMENT_TOKEN or ~/.supabase-token)" >&2
   exit 1
+fi
+
+# --- Pre-flight: site_url sanity (the executorai 401-wall failure mode) -----
+# {{ .ConfirmationURL }} is built off the project's site_url. If site_url is empty
+# or points at an SSO-protected team-slug alias, every auth email lands on a 401
+# wall. Read it and WARN loudly before patching (non-blocking — the operator may
+# be about to fix it, but must not configure templates blind to a broken site_url).
+SITE_URL=$(curl -sS "https://api.supabase.com/v1/projects/$SUPABASE_REF/config/auth" \
+  -H "Authorization: Bearer $TOKEN" \
+  | python -c "import sys,json; print((json.load(sys.stdin).get('site_url') or '').strip())" 2>/dev/null || echo "")
+if [ -z "$SITE_URL" ]; then
+  echo "  ⚠ site_url is EMPTY on $SUPABASE_REF — ConfirmationURL links will be malformed." >&2
+  echo "    Set it to the PUBLIC production domain first (Management API or @caistech/portfolio-env-sync auth_config)." >&2
+elif echo "$SITE_URL" | grep -qE '\-(corporate-ai-solutions|mmc-build)\.vercel\.app'; then
+  echo "  ⚠ site_url is a TEAM-SLUG alias ($SITE_URL) — these are commonly SSO-protected (401 wall)." >&2
+  echo "    Auth emails build off site_url; point it at the PUBLIC production domain (the <slug>-<hash>.vercel.app" >&2
+  echo "    public alias or a real custom domain) before relying on these templates. See the executorai 2026-06-12 incident." >&2
+else
+  echo "  site_url: $SITE_URL (looks public — ok)"
 fi
 
 # Build payload via Python so HTML escaping is sane
