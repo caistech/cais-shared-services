@@ -104,7 +104,10 @@ interface SupabaseAuthLike {
     password: string;
     options?: { emailRedirectTo?: string };
   }): Promise<{
-    data: { user: AuthUser | null } | null;
+    // `session` is non-null only when email confirmation is DISABLED on the
+    // project (signUp returns a live session immediately). We use it to decide
+    // whether to send the user straight in vs show "check your inbox".
+    data: { user: AuthUser | null; session?: unknown } | null;
     error: { message: string } | null;
   }>;
   resetPasswordForEmail(
@@ -836,6 +839,14 @@ function SignupPanel({
         return;
       }
       if (data?.user && onSuccess) onSuccess(data.user);
+      // Email confirmation DISABLED → signUp returned a live session, so the
+      // account is already active. Send them straight in rather than telling
+      // them to check an inbox that will never receive a mail. (Hard nav so the
+      // freshly-set @supabase/ssr cookies are attached on the next request.)
+      if (data?.session) {
+        if (typeof window !== 'undefined') window.location.href = redirectTo;
+        return;
+      }
       setConfirmSent(true);
     } catch (err) {
       setErrorCode(mapSupabaseAuthError(err));
