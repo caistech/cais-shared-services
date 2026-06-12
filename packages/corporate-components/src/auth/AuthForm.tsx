@@ -201,6 +201,20 @@ export interface AuthFormProps {
   /** Brand name for the header. Defaults to mode-appropriate copy. */
   brandName?: string;
 
+  /**
+   * Login mode: suppress the default "Need an account? Sign up" footer. Set on
+   * admin/operator portals where there is no self-service signup — the one
+   * AuthForm still renders the portal, it just doesn't invite registration.
+   */
+  hideSignupLink?: boolean;
+
+  /**
+   * Login mode: a custom footer rendered at the bottom of the form (e.g. an
+   * admin portal's "Not an operator? Sign in as a user" link). Replaces the
+   * default signup line when provided.
+   */
+  footerSlot?: React.ReactNode;
+
   /** Optional links shown on signup mode (renders consent line). */
   termsPath?: string;
   /** Optional links shown on signup mode (renders consent line). */
@@ -353,6 +367,8 @@ export function AuthForm(props: AuthFormProps) {
     theme = 'light',
     accent,
     brandName,
+    hideSignupLink,
+    footerSlot,
     termsPath,
     privacyPath,
     consentSlot,
@@ -403,6 +419,8 @@ export function AuthForm(props: AuthFormProps) {
               forgotPasswordPath={forgotPasswordPath}
               signupPath={signupPath}
               callbackPath={callbackPath}
+              hideSignupLink={hideSignupLink}
+              footerSlot={footerSlot}
               onSuccess={onSuccess}
             />
           )}
@@ -790,6 +808,8 @@ function LoginPanel({
   forgotPasswordPath,
   signupPath,
   callbackPath,
+  hideSignupLink,
+  footerSlot,
   onSuccess,
 }: {
   client: SupabaseClientLike | null;
@@ -797,6 +817,8 @@ function LoginPanel({
   forgotPasswordPath: string;
   signupPath: string;
   callbackPath: string;
+  hideSignupLink?: boolean;
+  footerSlot?: React.ReactNode;
   onSuccess?: (user: AuthUser) => void;
 }) {
   const t = useT();
@@ -913,9 +935,15 @@ function LoginPanel({
         Email me a magic link
       </SecondaryButton>
 
-      <p className={`mt-4 text-center text-xs ${t.footerMuted}`}>
-        Need an account? <FooterLink href={signupPath}>Sign up</FooterLink>
-      </p>
+      {footerSlot ? (
+        <div className={`mt-4 text-center text-xs ${t.footerMuted}`}>
+          {footerSlot}
+        </div>
+      ) : hideSignupLink ? null : (
+        <p className={`mt-4 text-center text-xs ${t.footerMuted}`}>
+          Need an account? <FooterLink href={signupPath}>Sign up</FooterLink>
+        </p>
+      )}
     </form>
   );
 }
