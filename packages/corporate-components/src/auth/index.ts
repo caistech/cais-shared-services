@@ -10,6 +10,8 @@ export type {
   AuthMode,
   AuthTheme,
   AuthUser,
+  AuthExtraField,
+  ExtraFieldRenderProps,
 } from './AuthForm';
 export { PasswordInput } from './PasswordInput';
 export type { PasswordInputProps } from './PasswordInput';

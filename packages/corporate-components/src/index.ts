@@ -12,6 +12,8 @@ export type {
   AuthMode,
   AuthTheme,
   AuthUser,
+  AuthExtraField,
+  ExtraFieldRenderProps,
   AuthErrorCode,
   PasswordInputProps,
 } from './auth';

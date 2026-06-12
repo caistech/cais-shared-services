@@ -85,6 +85,46 @@ export interface AuthUser {
   email?: string | null;
 }
 
+/** Props handed to a custom `render` extra-field (e.g. an ABN-lookup or address widget). */
+export interface ExtraFieldRenderProps {
+  id: string;
+  name: string;
+  value: string;
+  onChange: (v: string) => void;
+  required: boolean;
+}
+
+/**
+ * A product-specific field added to the SIGNUP form on top of the canonical
+ * email + password. This is how the ONE AuthForm absorbs signups that used to
+ * be bespoke purely because they collected an extra field (a name, a company,
+ * a required ToS checkbox) — without forking the component.
+ *
+ *  - default (no `type`/`render`)   → a labelled text input
+ *  - `type: 'checkbox'`             → a consent checkbox; `required` makes it a
+ *                                     hard gate (the form won't submit unchecked).
+ *                                     `label` may contain links (Terms etc.).
+ *  - `render`                       → a fully custom control (ABN lookup, address
+ *                                     autocomplete, phone) — AuthForm owns the
+ *                                     value and hands it back via metadata.
+ *
+ * Collected values are passed to `signUp` as `options.data` (Supabase
+ * user_metadata), keyed by `name` (checkbox → "true"/"false").
+ */
+export interface AuthExtraField {
+  /** Field key — also the user_metadata key the value is stored under. */
+  name: string;
+  /** Visible label. For checkboxes this is the consent text (may include links). */
+  label?: React.ReactNode;
+  /** Input type. Omit for text; 'checkbox' for a consent gate. */
+  type?: 'text' | 'tel' | 'email' | 'checkbox';
+  required?: boolean;
+  placeholder?: string;
+  autoComplete?: string;
+  /** Custom control. When provided, overrides the default input for this field. */
+  render?: (props: ExtraFieldRenderProps) => React.ReactNode;
+}
+
 /**
  * Minimal duck-typed surface of the Supabase auth client the component uses.
  * Avoids a hard type-dep on `@supabase/supabase-js` (which is a peer dep) so
@@ -102,7 +142,7 @@ interface SupabaseAuthLike {
   signUp(args: {
     email: string;
     password: string;
-    options?: { emailRedirectTo?: string };
+    options?: { emailRedirectTo?: string; data?: Record<string, unknown> };
   }): Promise<{
     // `session` is non-null only when email confirmation is DISABLED on the
     // project (signUp returns a live session immediately). We use it to decide
@@ -168,6 +208,15 @@ export interface AuthFormProps {
 
   /** Slot for a custom consent line on signup (overrides default if provided). */
   consentSlot?: React.ReactNode;
+
+  /**
+   * Product-specific fields added to the SIGNUP form (a name, company, a required
+   * ToS checkbox, an ABN-lookup widget). Lets the ONE AuthForm cover signups that
+   * were previously bespoke just to collect an extra field. Ignored in non-signup
+   * modes. Values flow to `signUp` as `options.data` (user_metadata). See
+   * {@link AuthExtraField}.
+   */
+  extraFields?: AuthExtraField[];
 
   /** Called with the user after a successful sign-in / sign-up. */
   onSuccess?: (user: AuthUser) => void;
@@ -307,6 +356,7 @@ export function AuthForm(props: AuthFormProps) {
     termsPath,
     privacyPath,
     consentSlot,
+    extraFields,
     onSuccess,
     className = '',
     supabaseClient,
@@ -365,6 +415,7 @@ export function AuthForm(props: AuthFormProps) {
               termsPath={termsPath}
               privacyPath={privacyPath}
               consentSlot={consentSlot}
+              extraFields={extraFields}
               onSuccess={onSuccess}
             />
           )}
@@ -522,6 +573,91 @@ function EmailField({
           className={t.input}
         />
       </div>
+    </div>
+  );
+}
+
+/**
+ * A single product-specific signup field. Renders a labelled text/tel input, a
+ * consent checkbox, or a fully custom control (`field.render`). Controlled by
+ * SignupPanel — value lives in its `fieldValues` map, flows to user_metadata.
+ */
+function ExtraField({
+  field,
+  value,
+  onChange,
+}: {
+  field: AuthExtraField;
+  value: string | boolean | undefined;
+  onChange: (v: string | boolean) => void;
+}) {
+  const t = useT();
+  const id = `cais-auth-xf-${field.name}`;
+
+  if (field.render) {
+    return (
+      <div>
+        {field.label ? (
+          <label
+            htmlFor={id}
+            className={`block text-sm font-medium mb-1.5 ${t.label}`}
+          >
+            {field.label}
+          </label>
+        ) : null}
+        {field.render({
+          id,
+          name: field.name,
+          value: typeof value === 'string' ? value : '',
+          onChange: (v) => onChange(v),
+          required: !!field.required,
+        })}
+      </div>
+    );
+  }
+
+  if (field.type === 'checkbox') {
+    return (
+      <label
+        htmlFor={id}
+        className={`flex items-start gap-2 text-xs cursor-pointer ${t.footerMuted}`}
+      >
+        <input
+          id={id}
+          name={field.name}
+          type="checkbox"
+          required={field.required}
+          checked={value === true}
+          onChange={(e) => onChange(e.target.checked)}
+          style={{ accentColor: 'var(--cais-auth-accent)' }}
+          className="mt-0.5 h-4 w-4 flex-shrink-0"
+        />
+        <span>{field.label}</span>
+      </label>
+    );
+  }
+
+  return (
+    <div>
+      {field.label ? (
+        <label
+          htmlFor={id}
+          className={`block text-sm font-medium mb-1.5 ${t.label}`}
+        >
+          {field.label}
+        </label>
+      ) : null}
+      <input
+        id={id}
+        name={field.name}
+        type={field.type ?? 'text'}
+        required={field.required}
+        autoComplete={field.autoComplete}
+        value={typeof value === 'string' ? value : ''}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={field.placeholder}
+        className={t.input.replace('pl-10', 'pl-3')}
+      />
     </div>
   );
 }
@@ -794,6 +930,7 @@ function SignupPanel({
   termsPath,
   privacyPath,
   consentSlot,
+  extraFields,
   onSuccess,
 }: {
   client: SupabaseClientLike | null;
@@ -803,11 +940,23 @@ function SignupPanel({
   termsPath?: string;
   privacyPath?: string;
   consentSlot?: React.ReactNode;
+  extraFields?: AuthExtraField[];
   onSuccess?: (user: AuthUser) => void;
 }) {
   const t = useT();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fieldValues, setFieldValues] = useState<
+    Record<string, string | boolean>
+  >({});
+  const setField = (name: string, v: string | boolean) =>
+    setFieldValues((prev) => ({ ...prev, [name]: v }));
+  const leadingFields = (extraFields ?? []).filter(
+    (f) => f.type !== 'checkbox'
+  );
+  const checkboxFields = (extraFields ?? []).filter(
+    (f) => f.type === 'checkbox'
+  );
   const [submitting, setSubmitting] = useState(false);
   const [magicSubmitting, setMagicSubmitting] = useState(false);
   const [magicSent, setMagicSent] = useState(false);
@@ -826,13 +975,32 @@ function SignupPanel({
       setErrorCode('password_too_short');
       return;
     }
+    // Hard gate on any required consent checkbox (native `required` also blocks
+    // submit, but guard here too so a programmatic submit can't bypass it).
+    const missingConsent = checkboxFields.find(
+      (f) => f.required && fieldValues[f.name] !== true
+    );
+    if (missingConsent) {
+      setErrorCode('consent_required');
+      return;
+    }
     setSubmitting(true);
     try {
       const emailRedirectTo = buildRedirectUrl(callbackPath, redirectTo);
+      // Collect extra-field values into user_metadata (checkbox → "true"/"false").
+      const metadata: Record<string, unknown> = {};
+      for (const f of extraFields ?? []) {
+        const v = fieldValues[f.name];
+        if (v === undefined) continue;
+        metadata[f.name] = typeof v === 'boolean' ? (v ? 'true' : 'false') : v;
+      }
       const { data, error } = await client.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo },
+        options: {
+          emailRedirectTo,
+          ...(Object.keys(metadata).length ? { data: metadata } : {}),
+        },
       });
       if (error) {
         setErrorCode(mapSupabaseAuthError(error));
@@ -908,6 +1076,14 @@ function SignupPanel({
 
   return (
     <form onSubmit={onSignupSubmit} className="space-y-4">
+      {leadingFields.map((f) => (
+        <ExtraField
+          key={f.name}
+          field={f}
+          value={fieldValues[f.name]}
+          onChange={(v) => setField(f.name, v)}
+        />
+      ))}
       <EmailField value={email} onChange={setEmail} autoComplete="email" />
       <PasswordInput
         theme={t.pw}
@@ -919,6 +1095,14 @@ function SignupPanel({
         autoComplete="new-password"
         placeholder="At least 8 characters"
       />
+      {checkboxFields.map((f) => (
+        <ExtraField
+          key={f.name}
+          field={f}
+          value={fieldValues[f.name]}
+          onChange={(v) => setField(f.name, v)}
+        />
+      ))}
       <ErrorBox code={errorCode} />
 
       <PrimaryButton

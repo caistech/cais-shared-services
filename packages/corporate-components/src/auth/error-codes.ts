@@ -20,6 +20,7 @@ export const AUTH_ERROR_CODES = [
   'password_updated',
   'password_mismatch',
   'password_too_short',
+  'consent_required',
   'rate_limited',
   'provider_error',
   'network_error',
@@ -42,6 +43,8 @@ const COPY: Record<AuthErrorCode, string> = {
   password_mismatch: "The two passwords don't match. Please re-enter them.",
   password_too_short:
     'Your password is too short. Use at least 8 characters.',
+  consent_required:
+    'Please tick the box to accept the terms before creating your account.',
   rate_limited:
     "We've sent too many emails to this address recently. Wait a few minutes, then try again.",
   provider_error:
