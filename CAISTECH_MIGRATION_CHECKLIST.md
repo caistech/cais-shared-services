@@ -61,12 +61,17 @@ Legend — Suggested: ✅ migrate · ⏸️ keep in dennissolver · 🚫 client-
 
 ## Infrastructure & hub (migrate — these are the substrate/cockpit)
 
-- [ ] `corporate-ai-solutions` — ✅ the methodology cockpit + cost dashboard (PUBLIC)
-- [ ] `platform-trust` — ✅ trust middleware service
-- [ ] `property-services` — ✅ property-engine substrate SDK backend
-- [ ] `storefront-mcp` — ✅ becomes `@caistech/webmcp-kit`
+- [x] `corporate-ai-solutions` — ✅ **TRANSFERRED 2026-06-13 (Phase 3)** cockpit + cost dashboard (PUBLIC); Vercel auto-follow verified
+- [x] `platform-trust` — ✅ **TRANSFERRED 2026-06-13 (Phase 3)** trust middleware service
+- [ ] `property-services` — ⏸️ **HELD for careful pass** — substrate SDK backend; feeds app.mmcbuild.com.au
+  via client repo `mmcbuild-application`. Transfer + re-point the consumer (SDK install source / submodule /
+  build dep) → `caistech/property-services` + verify the mmcbuild deploy before & after (REGULATED-tier care).
+- [x] `storefront-mcp` — ✅ **TRANSFERRED 2026-06-13 (Phase 3)** (→ `@caistech/webmcp-kit`; no npm-publish workflow, so no package-publish concern)
 - [x] `preflight` — ✅ **TRANSFERRED 2026-06-13** (pilot #2 — see Pilot section for the Vercel-relink proof)
-- [ ] `sayfix` — ❓ SayFix bug-reporting service (GBTA-controlled layer) — confirm ownership before moving
+- [x] `sayfix` — ✅ **TRANSFERRED 2026-06-13 (Phase 3)** (ownership confirmed YES OWNED). ⚠️ FOLLOW-UP (runbook
+  step 6): SayFix's own DB `repos.github_repo` rows reference `dennissolver/<repo>` for every product it serves
+  + its `GITHUB_TOKEN` creates issues against those paths — update the migrated repos' `github_repo` values to
+  `caistech/<repo>` in the SayFix admin so issue-creation hits the canonical path, not the redirect.
 
 ## REGULATED / contracted products (migrate — but move LAST, after pilot proven)
 
