@@ -78,38 +78,38 @@ Legend — Suggested: ✅ migrate · ⏸️ keep in dennissolver · 🚫 client-
 
 ## Voice / coaching engine (Engine 1) products
 
-- [ ] `singify-platform` — ✅ lane-1 flagship
-- [ ] `LingoPureAI` — ✅
-- [ ] `UniversalLingo` — ✅
-- [ ] `TourLingo` — ✅
-- [ ] `ConferenceLingo` — ✅
-- [ ] `RehearsalsAI` — ✅
-- [ ] `universal-interviews` — ✅
-- [ ] `connexions` — ✅ (also pipeline stage-3 machinery)
-- [ ] `raiseready-core` — ✅
-- [ ] `raiseready-template` — ✅
-- [ ] `raiseready-impact` — ❓ variant — confirm still live
-- [ ] `LaunchReady` — ✅
-- [ ] `Kira` — ❓ passion/override lane — your call
-- [ ] `mova` — ❓ confirm still live
-- [ ] `StoryVerse` — ❓ passion/experimental — your call
+- [x] `singify-platform` — ✅ **TRANSFERRED 2026-06-13 (Phase 2)** lane-1 flagship
+- [x] `LingoPureAI` — ✅ **TRANSFERRED 2026-06-13 (Phase 2)**
+- [x] `UniversalLingo` — ✅ **TRANSFERRED 2026-06-13 (Phase 2)**
+- [x] `TourLingo` — ✅ **TRANSFERRED 2026-06-13 (Phase 2)**
+- [x] `ConferenceLingo` — ✅ **TRANSFERRED 2026-06-13 (Phase 2)**
+- [x] `RehearsalsAI` — ✅ **TRANSFERRED 2026-06-13 (Phase 2)**
+- [x] `universal-interviews` — ✅ **TRANSFERRED 2026-06-13 (Phase 2)**
+- [x] `connexions` — ✅ **TRANSFERRED 2026-06-13 (Phase 2)** (also pipeline stage-3 machinery)
+- [x] `raiseready-core` — ✅ **TRANSFERRED 2026-06-13 (Phase 2)**
+- [x] `raiseready-template` — ✅ **TRANSFERRED 2026-06-13 (Phase 2)**
+- [ ] `raiseready-impact` — ⏸️ PARKED in dennissolver (Phase 0)
+- [x] `LaunchReady` — ✅ **TRANSFERRED 2026-06-13 (Phase 2)**
+- [x] `Kira` — ✅ **TRANSFERRED 2026-06-13 (Phase 2)** (passion-lane keeper)
+- [ ] `mova` — ⏸️ PARKED in dennissolver (Phase 0)
+- [ ] `StoryVerse` — ⏸️ PARKED in dennissolver (Phase 0)
 
 ## Property engine (Engine 2) products
 
-- [ ] `deal-findrs` — ✅ (PUBLIC)
-- [ ] `f2k-projects` — ✅
+- [x] `deal-findrs` — ✅ **TRANSFERRED 2026-06-13 (Phase 2)** (PUBLIC)
+- [x] `f2k-projects` — ✅ **TRANSFERRED 2026-06-13 (Phase 2)**
 
 ## Outreach / contact-discovery engine (Engine 3) products
 
-- [ ] `investor-pilot` — ✅ (PUBLIC) also pipeline machinery
-- [ ] `partner-pilot` — ✅
-- [ ] `OutreachReady` — ✅
-- [ ] `tenderwatch` — ✅
+- [x] `investor-pilot` — ✅ **TRANSFERRED 2026-06-13 (Phase 2)** (PUBLIC) also pipeline machinery
+- [x] `partner-pilot` — ✅ **TRANSFERRED 2026-06-13 (Phase 2)**
+- [x] `OutreachReady` — ✅ **TRANSFERRED 2026-06-13 (Phase 2)**
+- [x] `tenderwatch` — ✅ **TRANSFERRED 2026-06-13 (Phase 2)**
 
 ## BYOK / marketing-tier products
 
-- [ ] `easy-claude-code` — ✅
-- [ ] `community-question-responder` — ✅ (CQR, PUBLIC)
+- [x] `easy-claude-code` — ✅ **TRANSFERRED 2026-06-13 (Phase 2)**
+- [x] `community-question-responder` — ✅ **TRANSFERRED 2026-06-13 (Phase 2)** (CQR, PUBLIC)
 
 ## PHASE 0 TRIAGE — DECIDED 2026-06-13 (kill/keep/migrate calls before any further transfers)
 
@@ -121,21 +121,21 @@ Legend — Suggested: ✅ migrate · ⏸️ keep in dennissolver · 🚫 client-
   not migrating — leave under dennissolver for now).
 - [ ] `AIFTIS-Demo` — ⏸️ **MINE, parked in dennissolver** (same — yours, not migrating).
 
-### Kill / archive — CONFIRMED 2026-06-13 (archive on GitHub; reversible)
-- [ ] `SmartBoard` — 🗑️ **KILL-confirmed**
-- [ ] `HairStylistAI` — 🗑️ **KILL-confirmed**
-- [ ] `omq-outreach` — 🗑️ **KILL-confirmed**
-- [ ] `proposal-filter-ai` — 🗑️ **KILL-confirmed** (stale since Apr 14)
-- [ ] `factory2key-agentic-qc` — 🗑️ **KILL-confirmed** (stale since Apr 14)
+### Kill / archive — DONE 2026-06-13 (archived on GitHub; reversible, repos retained read-only)
+- [x] `SmartBoard` — 🗑️ **ARCHIVED** (verified isArchived=true)
+- [x] `HairStylistAI` — 🗑️ **ARCHIVED**
+- [x] `omq-outreach` — 🗑️ **ARCHIVED**
+- [x] `proposal-filter-ai` — 🗑️ **ARCHIVED** (stale since Apr 14)
+- [x] `factory2key-agentic-qc` — 🗑️ **ARCHIVED** (stale since Apr 14)
 
-### Phase-0 keepers — MIGRATE (fold into the Phase 2/3 batches)
-- [ ] `Kira` — ✅ **MIGRATE** (passion-lane, active)
-- [ ] `PartReady` — ✅ **MIGRATE** (active, was unlabeled)
-- [ ] `prelabzAI` — ✅ **MIGRATE**
-- [ ] `F2K-OffshoreModular` — ✅ **MIGRATE** (was on kill list; active + 28MB → kept)
-- [ ] `pipeline` — ✅ **MIGRATE** (pipeline machinery; pushed today; bridge test-run repo)
-- [ ] `executorai` — ✅ **MIGRATE** (reference auth-migration repo per SHARED_SERVICES)
-- [ ] `sayfix` — ✅ **MIGRATE** (ownership confirmed YES OWNED; infra phase)
+### Phase-0 keepers — MIGRATED 2026-06-13 (Phase 2 batch) except sayfix (infra phase)
+- [x] `Kira` — ✅ **TRANSFERRED** (passion-lane keeper)
+- [x] `PartReady` — ✅ **TRANSFERRED** (active, was unlabeled)
+- [x] `prelabzAI` — ✅ **TRANSFERRED**
+- [x] `F2K-OffshoreModular` — ✅ **TRANSFERRED** (was on kill list; active + 28MB → kept)
+- [x] `pipeline` — ✅ **TRANSFERRED** (pipeline machinery; bridge test-run repo)
+- [x] `executorai` — ✅ **TRANSFERRED** (reference auth-migration repo per SHARED_SERVICES)
+- [ ] `sayfix` — ✅ MIGRATE (ownership confirmed YES OWNED; **infra phase / Phase 3**)
 
 ### Parked under dennissolver — NOT migrated, NOT killed (revisit later)
 - [ ] `mova` · `StoryVerse` · `landscape-genius-ai` · `disabilityconnect` · `LessonsLearned`

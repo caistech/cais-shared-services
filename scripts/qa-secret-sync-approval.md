@@ -4,6 +4,15 @@
 > Leave `[ ]` to skip. Hand this back and I parse the ticked lines into `sync-qa-secrets.mjs`.
 > Recommendation key: ✅ sync · ❓ your call · 🗑️ kill-candidate (decide first) · 🚫 excluded (not listed).
 > Live list captured 2026-06-13 — 56 repos under dennissolver. `pipeline` already done (test run).
+>
+> **⚠️ 2026-06-13 — MIGRATED to caistech (now inherit ORG secrets — SKIP in any future bridge run):**
+> cais-smoketest, preflight, cais-starter (pilots) + Phase 2 batch: singify-platform, LingoPureAI,
+> UniversalLingo, TourLingo, ConferenceLingo, RehearsalsAI, universal-interviews, connexions,
+> raiseready-core, raiseready-template, LaunchReady, Kira, f2k-projects, deal-findrs, investor-pilot,
+> partner-pilot, OutreachReady, tenderwatch, easy-claude-code, community-question-responder,
+> PartReady, prelabzAI, F2K-OffshoreModular, pipeline, executorai. (Their repo-level QA secrets are
+> now redundant — optional cleanup: delete repo-level copies so they run purely on org secrets.)
+> STILL bridge-dependent until moved: infra (Phase 3) + REGULATED (Phase 4) repos.
 
 ## Infrastructure & hub
 - [ x] corporate-ai-solutions — ✅ methodology cockpit + cost dashboard (PUBLIC)
