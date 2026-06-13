@@ -10,9 +10,14 @@
 > infra throwaways first, prove the Vercel re-link procedure, then batch the rest; **REGULATED
 > repos move LAST.**
 >
-> **The real cost per repo is Vercel, not GitHub.** GitHub transfer auto-redirects old URLs and
-> keeps issues/PRs/stars. But each repo's **Vercel project is Git-connected to `dennissolver/<repo>`**
-> and must be re-pointed to `caistech/<repo>` after transfer. That re-link is the bulk of the work.
+> **~~The real cost per repo is Vercel, not GitHub.~~ DISPROVEN by pilot #2 (preflight, 2026-06-13):
+> the Vercel re-link is ZERO-TOUCH.** GitHub transfer auto-redirects old URLs and keeps
+> issues/PRs/stars, AND preserves the repo's numeric ID. Vercel stores its git connection by
+> `repoId` (not `owner/name`), so the connection auto-follows the transfer — no re-point needed.
+> The ONE prerequisite: the **Vercel GitHub App must have access on the `caistech` org** — it's
+> installed there with `repo_selection: all` already, so every transferred repo is covered. Just
+> `git remote set-url origin` the local clone and you're done. Verify the App stays `all`-access
+> before batch transfers.
 >
 > Snapshot: **56 repos under dennissolver, 1 under caistech.** Captured 2026-06-13.
 
@@ -22,8 +27,37 @@ Legend — Suggested: ✅ migrate · ⏸️ keep in dennissolver · 🚫 client-
 
 ## Pilot — do these FIRST to prove the procedure (infra throwaways, low blast radius)
 
-- [ ] `cais-smoketest` — ✅ test repo; ideal first transfer + Vercel re-link dry-run
-- [ ] `cais-starter` — ✅ scaffold template; second pilot
+- [x] `cais-smoketest` — ✅ **TRANSFERRED 2026-06-13.** GitHub-only (no Vercel project). Proved:
+  transfer via `gh api -X POST repos/dennissolver/cais-smoketest/transfer -f new_owner=caistech`;
+  old URL redirects; **repo-level secrets RETAINED on transfer** (not wiped as feared) AND org
+  secrets (visibility=ALL) apply; deleted the redundant repo-level copies → repo now runs purely
+  on inherited org secrets. **Org-level QA secrets are LIVE on caistech (visibility=ALL).**
+- [x] `preflight` — ✅ **TRANSFERRED 2026-06-13 (pilot #2 — the Vercel-relink proof).** Has a live
+  Vercel project (`prj_09p4jLZy9LouVOWIOmyKYNNKmg63`, Next.js, prod READY). **Key finding: the
+  Vercel re-link is ZERO-TOUCH, not the bulk of the work we feared.** Why:
+  1. **GitHub transfer preserves the repo's numeric ID**, and **Vercel stores its git connection by
+     `repoId`, not by `owner/name`** — so the connection auto-followed the repo across the org move.
+     `vercel git connect` reported *"caistech/preflight is already connected to your project"* with
+     no change needed (after `git remote set-url origin https://github.com/caistech/preflight.git`).
+  2. **The Vercel GitHub App is installed on the `caistech` org with `repo_selection: all`**
+     (`gh api orgs/caistech/installations`) → it already has access to every transferred repo, so
+     push-to-deploy webhooks keep firing. This is the ONE prerequisite, and it's a one-time org
+     setup that is already done.
+  3. `git fetch` from the new `caistech` remote succeeds → git auth/access end-to-end OK.
+  **Revised cost model: per-repo Vercel re-link ≈ 0 work as long as the caistech Vercel GitHub App
+  keeps `all`-repo access.** Verify the install stays `all` (or add each repo) before batch transfers.
+  *Note: Vercel CLI on Windows throws a post-op `spawn UNKNOWN` telemetry error AFTER the connect
+  succeeds — cosmetic, ignore it.*
+  4. **GOLD-STANDARD TEST PASSED:** empty-commit push to `caistech/preflight main` (sha `0409d9d`)
+     auto-triggered a Vercel production deploy (`dpl_CN8pCdywxAG9n4Zjn61y1oXmujks`, `githubOrg:
+     caistech`, `githubRepoOwnerType: Organization`). The full webhook→build chain works from the
+     new org with zero reconfiguration. **Vercel re-link is conclusively zero-touch.**
+- [x] `cais-starter` — ✅ **TRANSFERRED 2026-06-13 (Phase 1).** GitHub-only (no Vercel project).
+  Local remote re-pointed; `git fetch` from caistech OK; redundant repo-level QA secrets deleted →
+  inherits org secrets. **Runbook step 7 DONE in the same change:** `scripts/new-product.mjs`
+  `githubOwner` default + template flipped `dennissolver` → `caistech` (lines 77–78 + 2 doc-comment
+  lines; no operational `dennissolver` reference remains) → every NEW scaffolded product is now born
+  in the org.
 
 ## Infrastructure & hub (migrate — these are the substrate/cockpit)
 
@@ -31,7 +65,7 @@ Legend — Suggested: ✅ migrate · ⏸️ keep in dennissolver · 🚫 client-
 - [ ] `platform-trust` — ✅ trust middleware service
 - [ ] `property-services` — ✅ property-engine substrate SDK backend
 - [ ] `storefront-mcp` — ✅ becomes `@caistech/webmcp-kit`
-- [ ] `preflight` — ✅ preflight tooling
+- [x] `preflight` — ✅ **TRANSFERRED 2026-06-13** (pilot #2 — see Pilot section for the Vercel-relink proof)
 - [ ] `sayfix` — ❓ SayFix bug-reporting service (GBTA-controlled layer) — confirm ownership before moving
 
 ## REGULATED / contracted products (migrate — but move LAST, after pilot proven)
@@ -120,7 +154,25 @@ Legend — Suggested: ✅ migrate · ⏸️ keep in dennissolver · 🚫 client-
    these, but verify on REGULATED repos).
 6. **Other Git connections:** SayFix repo registration, any `repo:` references in manifests/configs
    that hard-code `dennissolver/<repo>`.
+7. **Flip cais-shared-services references** (so all sessions resolve the new `caistech/<repo>` path):
+   for the moved repo, update any `dennissolver/<repo>` occurrence in the hub. **Inventory (2026-06-13):**
+   the ONLY operational hardcode was `scripts/new-product.mjs` (`githubOwner` default `dennissolver` +
+   template `dennissolver/cais-starter`). ✅ **DONE 2026-06-13 (Phase 1):** flipped to `caistech` +
+   `caistech/cais-starter` (lines 77–78 + 2 doc-comment lines) — every NEW repo is now born in the org.
+   The other 26 `dennissolver/...` hits are historical docs/`.bak`/`.fix` files — leave them. The
+   `portfolio-manifest.yaml` keys projects by **slug** (owner-agnostic) → no change needed.
+
+## Cross-org consumer dependencies (re-point AFTER the source repo moves)
+- **`property-services`** currently serves **app.mmcbuild.com.au** (https://app.mmcbuild.com.au/) via the
+  client repo **`mmcbuildai/mmcbuild-application`**. When property-services transfers to `caistech`,
+  re-point whatever `mmcbuild-application` consumes from it — git submodule / `@caistech/property-services-sdk`
+  install source / Vercel build dep — to the new `caistech/property-services` path, and re-verify the
+  app.mmcbuild deploy still builds. This is a CLIENT-facing production surface — treat as REGULATED-tier
+  care (verify before + after).
 
 ## Notes
 - Migration count after you tick: ____ of 56.
 - Order: pilot (cais-smoketest, cais-starter) → infra → engine products → REGULATED last.
+- **QA-secret bridge applied (2026-06-13):** 37 approved repos synced with the 4 `QA_TEST_*` secrets
+  (`pipeline` test run + 36 from `scripts/qa-secret-sync-approval.md`). As each repo lands in the org,
+  do runbook step 4 (drop it from the bridge; it inherits org secrets).

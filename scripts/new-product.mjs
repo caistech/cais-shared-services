@@ -10,7 +10,7 @@
  * Decisions baked in (see NEW_PRODUCT_CREATOR_SPEC.md Â§1):
  *   - Codebase: clone a --template repo (default: the CAIS starter) via
  *     `gh repo create --template`; bespoke empty repo if --no-template.
- *   - GitHub: private, owner dennissolver, name = slug, main + working branch.
+ *   - GitHub: private, owner caistech, name = slug, main + working branch.
  *   - Supabase: ap-southeast-2, free, CAIS org; migrate via the IPv4 session
  *     pooler (home networks lack IPv6).
  *   - Vercel: CAIS team, git-linked; env pushed (NEXT_PUBLIC plain, secrets
@@ -28,7 +28,7 @@
  *
  * Usage:
  *   node scripts/new-product.mjs <slug> \
- *     [--template dennissolver/cais-starter | --no-template] \
+ *     [--template caistech/cais-starter | --no-template] \
  *     [--display-name "Name"] [--description "..."] \
  *     [--region ap-southeast-2] [--plan free] [--org-id <supabase-org>] \
  *     [--team <vercel-team-id>] [--branch stage-0-foundation] \
@@ -74,8 +74,8 @@ const HUB_ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), "..");
 const PORTFOLIO_BASE = process.env.PORTFOLIO_BASE ?? resolvePath(HUB_ROOT, "..");
 
 const CONFIG = {
-  githubOwner: flags.owner ?? "dennissolver",
-  template: flags["no-template"] ? null : (flags.template ?? "dennissolver/cais-starter"),
+  githubOwner: flags.owner ?? "caistech",
+  template: flags["no-template"] ? null : (flags.template ?? "caistech/cais-starter"),
   displayName: flags["display-name"] ?? null, // derived from slug if absent
   description: flags.description ?? null,
   region: flags.region ?? "ap-southeast-2",
