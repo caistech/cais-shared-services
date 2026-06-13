@@ -74,10 +74,18 @@ Legend — Suggested: ✅ migrate · ⏸️ keep in dennissolver · 🚫 client-
   URL unchanged → **mmcbuild needs NO change.** Supabase edge functions untouched.
 - [x] `storefront-mcp` — ✅ **TRANSFERRED 2026-06-13 (Phase 3)** (→ `@caistech/webmcp-kit`; no npm-publish workflow, so no package-publish concern)
 - [x] `preflight` — ✅ **TRANSFERRED 2026-06-13** (pilot #2 — see Pilot section for the Vercel-relink proof)
-- [x] `sayfix` — ✅ **TRANSFERRED 2026-06-13 (Phase 3)** (ownership confirmed YES OWNED). ⚠️ FOLLOW-UP (runbook
-  step 6): SayFix's own DB `repos.github_repo` rows reference `dennissolver/<repo>` for every product it serves
-  + its `GITHUB_TOKEN` creates issues against those paths — update the migrated repos' `github_repo` values to
-  `caistech/<repo>` in the SayFix admin so issue-creation hits the canonical path, not the redirect.
+- [x] `sayfix` — ✅ **TRANSFERRED 2026-06-13 (Phase 3)** (ownership confirmed YES OWNED).
+  ✅ **STEP 6 DONE 2026-06-13:** SayFix Supabase (`vwvfmsuquohlgxcpzdjo` — a 4th distinct instance) `public.repos`
+  has SEPARATE `github_owner` + `github_repo` columns. Flipped `github_owner` `dennissolver`→`caistech` for the
+  28 migrated rows via PostgREST PATCH (service-role key), excluding the 5 that stayed under dennissolver
+  (`mova`, `lessonslearned`, `smartboard`, `hairstylist-ai`, `mmcbuild`). Verified: 28 now caistech, 5 still
+  dennissolver. (The `mmcbuild-ai/mmcbuild-application` row was already non-dennissolver.)
+  ⚠️ **SEPARATE pre-existing sub-issue (NOT fixed — needs per-app care):** several `github_repo` *names* don't
+  match the real repo (`investorpilot`→`investor-pilot`, `singify`→`singify-platform`, `universalinterviews`→
+  `universal-interviews`, `outreach-ready`→`OutreachReady`, `r-and-d-tax`→`R-and-D-Tax-Eligibility-Work-Recording`,
+  `ndissda-automate`→`NDISSDAAutomate`). Issue-creation 404s for these regardless of owner. NOT changed because
+  `github_repo` must equal each app's `<SayFixWidget repo="…"/>` prop — fix the DB name + the widget prop together,
+  per app. Case-only diffs (lingopureai/tourlingo/etc.) are fine — GitHub resolves them.
 
 ## REGULATED / contracted products (migrate — but move LAST, after pilot proven)
 
