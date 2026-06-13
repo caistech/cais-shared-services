@@ -63,9 +63,15 @@ Legend — Suggested: ✅ migrate · ⏸️ keep in dennissolver · 🚫 client-
 
 - [x] `corporate-ai-solutions` — ✅ **TRANSFERRED 2026-06-13 (Phase 3)** cockpit + cost dashboard (PUBLIC); Vercel auto-follow verified
 - [x] `platform-trust` — ✅ **TRANSFERRED 2026-06-13 (Phase 3)** trust middleware service
-- [ ] `property-services` — ⏸️ **HELD for careful pass** — substrate SDK backend; feeds app.mmcbuild.com.au
-  via client repo `mmcbuild-application`. Transfer + re-point the consumer (SDK install source / submodule /
-  build dep) → `caistech/property-services` + verify the mmcbuild deploy before & after (REGULATED-tier care).
+- [x] `property-services` — ✅ **TRANSFERRED 2026-06-13 (Phase 3, careful pass).** Investigation showed the
+  feared coupling does NOT exist: `mmcbuild-application` consumes it purely over **runtime HTTP**
+  (`NEXT_PUBLIC_PROPERTY_SERVICES_URL` + `_API_KEY` via `X-API-Key`, `src/lib/site-intel/index.ts`) using a
+  **vendored internal SDK copy** (`src/lib/services/property-services-sdk/*`, "NOT published packages" per its
+  DECISIONS.md) — **no submodule, no git-dep, no package dep** on the repo. The `@caistech/property-services-sdk`
+  package is published from the HUB monorepo (already in caistech), unaffected. Prod Vercel domains
+  (`property-services-kappa.vercel.app` etc.) are team/project-scoped, NOT owner-scoped → unchanged by transfer.
+  **After-check:** Vercel auto-followed (`already connected`), both prod domains return HTTP 307 (alive),
+  URL unchanged → **mmcbuild needs NO change.** Supabase edge functions untouched.
 - [x] `storefront-mcp` — ✅ **TRANSFERRED 2026-06-13 (Phase 3)** (→ `@caistech/webmcp-kit`; no npm-publish workflow, so no package-publish concern)
 - [x] `preflight` — ✅ **TRANSFERRED 2026-06-13** (pilot #2 — see Pilot section for the Vercel-relink proof)
 - [x] `sayfix` — ✅ **TRANSFERRED 2026-06-13 (Phase 3)** (ownership confirmed YES OWNED). ⚠️ FOLLOW-UP (runbook
