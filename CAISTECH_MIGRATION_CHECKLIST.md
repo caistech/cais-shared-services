@@ -86,9 +86,8 @@ Legend — Suggested: ✅ migrate · ⏸️ keep in dennissolver · 🚫 client-
   `investorpilot`→`investor-pilot`). Per-app widget reconciliation:
   - **4 were DB-only** — the `<SayFixWidget repo>` prop ALREADY had the real name (singify-platform, universal-interviews,
     NDISSDAAutomate) or no widget yet (OutreachReady); fixing the DB repaired the lookup.
-  - **2 needed a widget edit (PRs open — MERGE to complete + restore widget-match):** R-and-D-Tax (PR
-    caistech/R-and-D-Tax-Eligibility-Work-Recording#5) + investor-pilot (PR caistech/investor-pilot#2). Until merged,
-    those 2 apps' widget prop (`r-and-d-tax`/`investorpilot`) no longer matches the new DB name — merge promptly.
+  - **2 needed a widget edit — PRs MERGED 2026-06-13:** R-and-D-Tax (#5) + investor-pilot (#2). `main` on both now
+    has the real repo name in the widget, matching the DB. Widget-match + issue-creation fully consistent end-to-end.
   Case-only diffs (lingopureai/tourlingo/etc.) left as-is — GitHub resolves them.
 
 ## REGULATED / contracted products (migrate — but move LAST, after pilot proven)
