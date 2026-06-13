@@ -80,12 +80,16 @@ Legend — Suggested: ✅ migrate · ⏸️ keep in dennissolver · 🚫 client-
   28 migrated rows via PostgREST PATCH (service-role key), excluding the 5 that stayed under dennissolver
   (`mova`, `lessonslearned`, `smartboard`, `hairstylist-ai`, `mmcbuild`). Verified: 28 now caistech, 5 still
   dennissolver. (The `mmcbuild-ai/mmcbuild-application` row was already non-dennissolver.)
-  ⚠️ **SEPARATE pre-existing sub-issue (NOT fixed — needs per-app care):** several `github_repo` *names* don't
-  match the real repo (`investorpilot`→`investor-pilot`, `singify`→`singify-platform`, `universalinterviews`→
-  `universal-interviews`, `outreach-ready`→`OutreachReady`, `r-and-d-tax`→`R-and-D-Tax-Eligibility-Work-Recording`,
-  `ndissda-automate`→`NDISSDAAutomate`). Issue-creation 404s for these regardless of owner. NOT changed because
-  `github_repo` must equal each app's `<SayFixWidget repo="…"/>` prop — fix the DB name + the widget prop together,
-  per app. Case-only diffs (lingopureai/tourlingo/etc.) are fine — GitHub resolves them.
+  ✅ **NAME-MISMATCH SUB-ISSUE RESOLVED 2026-06-13:** the 6 `github_repo` names that didn't match the real repo
+  were all corrected in the SayFix DB (`singify`→`singify-platform`, `universalinterviews`→`universal-interviews`,
+  `ndissda-automate`→`NDISSDAAutomate`, `outreach-ready`→`OutreachReady`, `r-and-d-tax`→`R-and-D-Tax-Eligibility-Work-Recording`,
+  `investorpilot`→`investor-pilot`). Per-app widget reconciliation:
+  - **4 were DB-only** — the `<SayFixWidget repo>` prop ALREADY had the real name (singify-platform, universal-interviews,
+    NDISSDAAutomate) or no widget yet (OutreachReady); fixing the DB repaired the lookup.
+  - **2 needed a widget edit (PRs open — MERGE to complete + restore widget-match):** R-and-D-Tax (PR
+    caistech/R-and-D-Tax-Eligibility-Work-Recording#5) + investor-pilot (PR caistech/investor-pilot#2). Until merged,
+    those 2 apps' widget prop (`r-and-d-tax`/`investorpilot`) no longer matches the new DB name — merge promptly.
+  Case-only diffs (lingopureai/tourlingo/etc.) left as-is — GitHub resolves them.
 
 ## REGULATED / contracted products (migrate — but move LAST, after pilot proven)
 
