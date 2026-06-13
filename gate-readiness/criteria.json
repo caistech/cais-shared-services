@@ -2,13 +2,13 @@
   "source": "GATE_READINESS_REVIEW_V4.xlsx — Criteria Classification (List 4)",
   "ratified": true,
   "all_confirmed": true,
-  "count": 46,
+  "count": 47,
   "tier_tally": {
     "HARD": 7,
     "TOO-MUCH": 1,
     "WEIGHTED": 13,
     "DEFER": 5,
-    "CONDITIONAL-HARD": 14,
+    "CONDITIONAL-HARD": 15,
     "CONDITIONAL-WEIGHTED": 6
   },
   "criteria": [
@@ -609,6 +609,19 @@
       "weight": "Med",
       "notes": "CONDITIONAL-WEIGHTED (public-web) - agent-era discoverability after Google I/O 2026 (WebMCP + Information Agents auto-browse). Applies where a public web surface exists: llms.txt + schema.org/JSON-LD + /.well-known agent manifest so AI search/agents find + correctly describe the product. Operability (key actions as WebMCP tools) defers to Tier-1 (post-Gate-2); cross-agent integration feeds the BizModel §5 D3 distribution-leverage score.",
       "applies_when": "public-web"
+    },
+    {
+      "code": "43",
+      "check": "Dual-portal separation: a non-admin signup/login reaches a real user home, not the /admin gate",
+      "source": "PS §8.5",
+      "method": "LIVE",
+      "relevance": "COND",
+      "proposed_tier": "CONDITIONAL-HARD",
+      "confirmed": true,
+      "tier": "CONDITIONAL-HARD",
+      "weight": null,
+      "notes": "CONDITIONAL-HARD (dual-auth) - applies when the product exposes BOTH a user signup/login AND an /admin area. FAILS (blocks Launch) if a non-admin signup/login lands in /admin (operator-gated) and dead-ends, or if there is no authenticated user home distinct from /admin (the 'facade' pattern - user marketing over an operator cockpit). MUST be walked with the NON-admin QA identity (QA_TEST_USER_EMAIL, not the admin-allowlisted account) so the admin-bounce is felt. Detection: present when both a user login/signup route and an /admin login exist. Added 2026-06-14 after pipeline shipped user signup -> /admin dead-end and passed validation (the gap this closes).",
+      "applies_when": "dual-auth"
     }
   ]
 }

@@ -147,6 +147,7 @@ Every product with an auth gate ships **two separate auth flows and UIs from day
 
 **Testing (naive-tester):**
 - One naive-tester run covering both portals in a single report (not two separate reports), with sections for Landing → User Path → Admin Path → Cross-path Issues (if a user can somehow reach admin, or vice versa). *(Codified 2026-05-25.)*
+- **The User Path MUST be walked with the NON-admin identity** (`QA_TEST_USER_EMAIL`, never the admin-allowlisted account) and MUST assert the user flow reaches a **real user home distinct from `/admin`** — a signup/login that bounces into the `/admin` gate, dead-ends on an admin login the user can't pass, or a landing that markets a "Start as User" product with no authenticated user area behind it is a **release-blocking FAIL** (the "facade"). This is enforced as **readiness check #43 (CONDITIONAL-HARD, `applies_when: dual-auth`)** — it blocks Launch when a dual-auth product's user flow dead-ends. *(Codified 2026-06-14 after pipeline shipped a user-signup→`/admin` dead-end that passed validation because the tester ran as an admin-allowlisted account and no check asserted user-dest ≠ admin-dest.)*
 
 ---
 

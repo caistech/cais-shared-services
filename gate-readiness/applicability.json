@@ -30,6 +30,7 @@
     "34": "address-or-abn-fields",
     "35": "email",
     "38": "supabase",
-    "42": "public-web"
+    "42": "public-web",
+    "43": "dual-auth"
   }
 }
