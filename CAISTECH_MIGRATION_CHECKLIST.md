@@ -111,34 +111,36 @@ Legend — Suggested: ✅ migrate · ⏸️ keep in dennissolver · 🚫 client-
 - [ ] `easy-claude-code` — ✅
 - [ ] `community-question-responder` — ✅ (CQR, PUBLIC)
 
-## Client-owned — do NOT migrate (excluded by default)
+## PHASE 0 TRIAGE — DECIDED 2026-06-13 (kill/keep/migrate calls before any further transfers)
 
+### Client-owned — do NOT migrate (excluded by default)
 - [ ] `mmcbuild` — 🚫 client (already migrated CAS→MMC org)
 - [ ] `mmcbuild-webapp` — 🚫 client
 - [ ] `mmc-market` — 🚫 client
-- [ ] `gbta-openclaw` — 🚫 GBTA client — confirm
-- [ ] `AIFTIS-Demo` — ❓ demo/client — confirm ownership
+- [ ] `gbta-openclaw` — ⏸️ **MINE, parked in dennissolver** (Dennis 2026-06-13: not client-owned, but
+  not migrating — leave under dennissolver for now).
+- [ ] `AIFTIS-Demo` — ⏸️ **MINE, parked in dennissolver** (same — yours, not migrating).
 
-## Kill candidates — decide kill vs migrate (per BUSINESS_MODEL §8 consolidation map)
+### Kill / archive — CONFIRMED 2026-06-13 (archive on GitHub; reversible)
+- [ ] `SmartBoard` — 🗑️ **KILL-confirmed**
+- [ ] `HairStylistAI` — 🗑️ **KILL-confirmed**
+- [ ] `omq-outreach` — 🗑️ **KILL-confirmed**
+- [ ] `proposal-filter-ai` — 🗑️ **KILL-confirmed** (stale since Apr 14)
+- [ ] `factory2key-agentic-qc` — 🗑️ **KILL-confirmed** (stale since Apr 14)
 
-- [ ] `SmartBoard` — 🗑️ likely-kill
-- [ ] `HairStylistAI` — 🗑️ likely-kill
-- [ ] `omq-outreach` — 🗑️ likely-kill
-- [ ] `F2K-OffshoreModular` — 🗑️ likely-kill
+### Phase-0 keepers — MIGRATE (fold into the Phase 2/3 batches)
+- [ ] `Kira` — ✅ **MIGRATE** (passion-lane, active)
+- [ ] `PartReady` — ✅ **MIGRATE** (active, was unlabeled)
+- [ ] `prelabzAI` — ✅ **MIGRATE**
+- [ ] `F2K-OffshoreModular` — ✅ **MIGRATE** (was on kill list; active + 28MB → kept)
+- [ ] `pipeline` — ✅ **MIGRATE** (pipeline machinery; pushed today; bridge test-run repo)
+- [ ] `executorai` — ✅ **MIGRATE** (reference auth-migration repo per SHARED_SERVICES)
+- [ ] `sayfix` — ✅ **MIGRATE** (ownership confirmed YES OWNED; infra phase)
 
-## Uncertain / experimental — your call
-
-- [ ] `pipeline` — ❓ confirm what this is
-- [ ] `executorai` — ❓ (reference auth-migration repo per SHARED_SERVICES)
-- [ ] `LessonsLearned` — ❓ paused per project memory — kill or archive?
-- [ ] `PartReady` — ❓
-- [ ] `prelabzAI` — ❓ experimental
-- [ ] `agentic-os` — ❓ infra or experiment?
-- [ ] `proposal-filter-ai` — ❓ experimental
-- [ ] `factory2key-agentic-qc` — ❓ F2K experiment
-- [ ] `landscape-genius-ai` — ❓ experimental
-- [ ] `Longtail-AI-Venture-Studio` — ❓ experimental
-- [ ] `disabilityconnect` — ❓ experimental
+### Parked under dennissolver — NOT migrated, NOT killed (revisit later)
+- [ ] `mova` · `StoryVerse` · `landscape-genius-ai` · `disabilityconnect` · `LessonsLearned`
+  (note: pushed yesterday despite memory saying "paused" — reconcile before any kill) ·
+  `agentic-os` (29MB, ~7wk stale) · `raiseready-impact` · `Longtail-AI-Venture-Studio`
 
 ---
 
