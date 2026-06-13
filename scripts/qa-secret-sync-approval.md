@@ -13,8 +13,10 @@
 > PartReady, prelabzAI, F2K-OffshoreModular, pipeline, executorai. (Their repo-level QA secrets are
 > now redundant — optional cleanup: delete repo-level copies so they run purely on org secrets.)
 > Phase 3 infra ALSO migrated 2026-06-13 (skip in bridge): platform-trust, storefront-mcp, sayfix,
-> corporate-ai-solutions. STILL bridge-dependent until moved: property-services (held for careful pass)
-> + REGULATED (Phase 4): f2k-checkpoint, F2K-Fund-Tokenisation, NDISSDAAutomate, R-and-D-Tax, disaster-support.
+> corporate-ai-solutions, property-services. Phase 4 REGULATED ALSO migrated 2026-06-13: f2k-checkpoint,
+> F2K-Fund-Tokenisation, NDISSDAAutomate, R-and-D-Tax, disaster-support.
+> **BRIDGE NOW FULLY DRAINED** — every approved repo is in caistech and inherits org secrets. The bridge
+> (sync-qa-secrets.mjs) is effectively retired; only intentionally-parked repos remain under dennissolver.
 
 ## Infrastructure & hub
 - [ x] corporate-ai-solutions — ✅ methodology cockpit + cost dashboard (PUBLIC)

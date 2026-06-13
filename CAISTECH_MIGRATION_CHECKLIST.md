@@ -81,11 +81,15 @@ Legend — Suggested: ✅ migrate · ⏸️ keep in dennissolver · 🚫 client-
 
 ## REGULATED / contracted products (migrate — but move LAST, after pilot proven)
 
-- [ ] `f2k-checkpoint` — ✅ (last) regulated
-- [ ] `F2K-Fund-Tokenisation` — ✅ (last) regulated
-- [ ] `NDISSDAAutomate` — ✅ (last) regulated
-- [ ] `R-and-D-Tax-Eligibility-Work-Recording` — ✅ (last) regulated
-- [ ] `disaster-support` — ✅ (last) regulated
+All transferred 2026-06-13 (Phase 4). Before/after verified: only `dennissolver` was a direct
+collaborator (no external party loses access); webhooks preserved (1→1 each); branch protection
+was unavailable under the personal plan (none to lose, may now be enabled in-org); secrets cleaned;
+Vercel auto-followed; git fetch from caistech OK.
+- [x] `F2K-Fund-Tokenisation` — ✅ **TRANSFERRED (Phase 4)** regulated
+- [x] `NDISSDAAutomate` — ✅ **TRANSFERRED (Phase 4)** regulated
+- [x] `R-and-D-Tax-Eligibility-Work-Recording` — ✅ **TRANSFERRED (Phase 4)** regulated (also the target of the shared `/api/github/webhook` the 4 regulated repos post to — webhook preserved on transfer)
+- [x] `disaster-support` — ✅ **TRANSFERRED (Phase 4)** regulated
+- [x] `f2k-checkpoint` — ✅ **TRANSFERRED (Phase 4, last)** regulated — moved while working in it (tree clean; open work was all in cais-shared-services); local remote re-pointed + fetch verified
 
 ## Voice / coaching engine (Engine 1) products
 
