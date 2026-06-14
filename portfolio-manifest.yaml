@@ -18,7 +18,7 @@ team_id: "team_hwN7IFtd2Fo3DCj9C67ZwI1t" # Corporate AI Solutions
 
 # -----------------------------------------------------------------------------
 # Secret resolution — maps $secret:NAME refs in shared/projects to their
-# real source. Currently supports `from_supabase`. Future: from_env, from_op
+# real source. Supports `from_supabase` + `from_env`. Future: from_op
 # (1Password). Apply mode looks up these entries when it encounters a ref.
 # -----------------------------------------------------------------------------
 secrets:
@@ -26,6 +26,16 @@ secrets:
     from_supabase:
       project_ref: "ggwveltavnvvscgqekhy"
       field: "service_role_key"
+
+  # Stripe — CAIS platform account. from_env: the operator exports STRIPE_SECRET_KEY /
+  # STRIPE_WEBHOOK_SECRET in their shell, then `--apply` pushes them to each declared project's
+  # Vercel as a SENSITIVE var. The value is never committed.
+  stripe_secret_key:
+    from_env:
+      var: STRIPE_SECRET_KEY
+  stripe_webhook_secret:
+    from_env:
+      var: STRIPE_WEBHOOK_SECRET
 
 # -----------------------------------------------------------------------------
 # Shared bindings — included via `inherit_shared:` in each project below.

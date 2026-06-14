@@ -111,8 +111,19 @@ function validateSecretSource(context: string, raw: unknown): SecretSource {
     };
   }
 
+  if (s.from_env !== undefined) {
+    if (!s.from_env || typeof s.from_env !== "object") {
+      throw new Error(`${context}.from_env: must be a mapping`);
+    }
+    const fe = s.from_env as Record<string, unknown>;
+    if (typeof fe.var !== "string" || !fe.var) {
+      throw new Error(`${context}.from_env.var: required string (the env var name to read at apply-time)`);
+    }
+    out.from_env = { var: fe.var };
+  }
+
   if (Object.keys(out).length === 0) {
-    throw new Error(`${context}: no recognised source field (need from_supabase)`);
+    throw new Error(`${context}: no recognised source field (need from_supabase or from_env)`);
   }
   return out;
 }

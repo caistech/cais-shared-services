@@ -79,13 +79,20 @@ export interface ProjectConfig {
  * up `secrets.platform_trust_service_key` and resolves via the shape
  * declared there.
  *
- * Currently supported: from_supabase. Future: from_env, from_op (1Password).
+ * Supported: from_supabase, from_env. Future: from_op (1Password).
  */
 export interface SecretSource {
   from_supabase?: {
     project_ref: string;
     field: "url" | "anon_key" | "service_role_key";
   };
+  /**
+   * Read the value from `process.env[var]` at apply-time (the operator's shell). The value is NEVER
+   * stored in the manifest — it's sourced from the environment when `--apply` runs and pushed to
+   * Vercel as a SENSITIVE var. Use for portfolio-wide secrets that don't live in Supabase (Stripe,
+   * third-party API keys). Unresolvable (skipped) if the env var isn't set.
+   */
+  from_env?: { var: string };
 }
 
 /** Top-level manifest schema. */
