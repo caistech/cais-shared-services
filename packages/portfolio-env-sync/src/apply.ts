@@ -21,7 +21,7 @@ import { SupabaseAuthError, type SupabaseManagementClient } from "./supabase.js"
  * Value resolution order:
  *   1. binding.value (literal)
  *   2. binding.from_supabase + project.supabase_project_ref → Supabase
- *   3. binding.ref ($secret:...) → unsupported in v0.5; SKIPPED
+ *   3. binding.ref ($secret:...) → secrets: block (from_supabase | from_env → sensitive Vercel var)
  *
  * Re-throws auth errors (Vercel/Supabase) so the CLI can exit 2 — those
  * are config problems, not per-project drift.
@@ -76,6 +76,9 @@ export async function applyProject(
           key: row.key,
           value: resolution.value,
           targets: row.expected_targets,
+          // Secrets (from_env / $secret refs) are written non-readable per the Vercel
+          // sensitive-env-var rule; non-secret values keep the default.
+          type: resolution.sensitive ? "sensitive" : undefined,
         });
         actions.push({
           kind: "created",
@@ -148,7 +151,7 @@ export async function applyProject(
 }
 
 type Resolution =
-  | { kind: "resolved"; value: string }
+  | { kind: "resolved"; value: string; sensitive?: boolean }
   | { kind: "unresolvable"; reason: string };
 
 async function resolveValue(
@@ -185,6 +188,9 @@ async function resolveValue(
         supabaseFactory
       );
     }
+    if (source?.from_env) {
+      return resolveFromEnv(source.from_env.var);
+    }
     return {
       kind: "unresolvable",
       reason: `ref: '${binding.ref}' — no matching entry in manifest 'secrets:' block`,
@@ -195,6 +201,23 @@ async function resolveValue(
     kind: "unresolvable",
     reason: "binding has no value, from_supabase, or ref",
   };
+}
+
+/**
+ * Resolve a `from_env` secret: read the value from the operator's shell at apply-time. The value is
+ * never stored in the manifest; it's marked `sensitive` so apply writes it to Vercel non-readable.
+ * Unresolvable (the row is skipped, not failed) when the env var is unset — so a partial apply on a
+ * machine missing one secret degrades gracefully instead of writing an empty value.
+ */
+function resolveFromEnv(varName: string): Resolution {
+  const value = process.env[varName];
+  if (value === undefined || value === "") {
+    return {
+      kind: "unresolvable",
+      reason: `from_env: process.env.${varName} is not set — export it before running --apply`,
+    };
+  }
+  return { kind: "resolved", value, sensitive: true };
 }
 
 async function resolveFromSupabase(
