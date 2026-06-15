@@ -124,6 +124,19 @@ results.push({ code: 'VT_D7', status: emailStatus, evidence: `email sender: ${em
 results.push({ code: 'VT_D2', status: 'na', evidence: 'test-user existence is runtime — verified by the user-tester login (VT_B), not the repo probe' })
 results.push({ code: 'VT_D3', status: 'na', evidence: 'non-admin /admin block is browser-verified (= VT_B2), not the repo probe' })
 
+// #39 — no secrets committed in src/ (a literal service-role JWT, Anthropic/Stripe key, or a
+// hardcoded SERVICE_ROLE_KEY). Conservative + low-false-positive: example/placeholder lines excluded.
+// (Was reverify-headless with no producer → permanently unknown; repo-grep is the right home.)
+const secretHits = grepSrc(/SUPABASE_SERVICE_ROLE_KEY\s*[:=]\s*["'`]?eyJ|sk-ant-[A-Za-z0-9-]{20,}|sk_live_[A-Za-z0-9]{20,}|eyJ[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{10,}/i, 8)
+  .filter((l) => !/example|placeholder|your[-_]?(key|token)|xxxx|\.env\.example|process\.env\./i.test(l))
+results.push({ code: '39', status: secretHits.length > 0 ? 'fail' : 'pass',
+  evidence: secretHits.length > 0 ? `possible committed secret in src/: ${secretHits[0].slice(0, 90)}` : 'no hardcoded service-role JWT / API key found in src/' })
+
+// #40 — Vercel env vars sensitive + prod/preview only. NOT repo-determinable (needs the Vercel API),
+// so na here with the reason; it's produced by the pipeline's headless rescore (which has Vercel
+// access), never faked.
+results.push({ code: '40', status: 'na', evidence: 'Vercel env-var sensitivity needs the Vercel API — produced by the cockpit headless rescore, not the repo probe' })
+
 // --- Voice integration code checks (#11/#16/#17), CONDITIONAL on the product actually using
 // ElevenLabs/convai. Only recorded when voice is present; otherwise left to the scorer's
 // applies_when (na). These are the repo-grep CI producer for the voice CODE checks the local
