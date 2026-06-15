@@ -69,8 +69,14 @@ results.push({ code: '36', status: consumesHub ? 'pass' : 'na', evidence: consum
 const hasManifests = exists('feature-manifests') && (() => { try { return fs.readdirSync(path.join(repo, 'feature-manifests')).some((f) => f.endsWith('.json')) } catch { return false } })()
 results.push({ code: '37', status: hasManifests ? 'pass' : 'fail', evidence: hasManifests ? 'feature-manifests/*.json present' : 'no feature-manifests/*.json found' })
 
-// #35 — email sender is the verified subdomain, never the bare apex.
-const apexHits = grepSrc(/(?<!updates\.)corporateaisolutions\.com/i, 8).filter((l) => /from|sender|noreply|email|resend/i.test(l))
+// #35 — email SENDER is the verified subdomain, never the bare apex. Match only genuine SENDER
+// contexts (a from:/"from": field, a noreply@ address, or a Resend send) and EXCLUDE the admin
+// allowlist — `dennis@corporateaisolutions.com` in ADMIN_EMAILS is a LOGIN IDENTITY, not a sender.
+// The old broad `email` keyword matched `ADMIN_EMAILS`, false-failing every product with an admin
+// allowlist (sayfix 2026-06-15).
+const senderCtx = (l) => /\bfrom\s*:|["'`]from["'`]\s*:|\bsender\b|noreply@|resend\.emails/i.test(l)
+const adminAllowlist = (l) => /admin_?emails|allowlist|operator|isadmin/i.test(l)
+const apexHits = grepSrc(/(?<!updates\.)corporateaisolutions\.com/i, 8).filter((l) => senderCtx(l) && !adminAllowlist(l))
 const verifiedHits = grepSrc(/updates\.corporateaisolutions\.com/i, 8)
 let emailStatus = 'na', emailEvidence = 'no hardcoded sender domain found in src/'
 if (apexHits.length > 0) { emailStatus = 'fail'; emailEvidence = `bare-apex sender ref(s): ${apexHits[0]}` }

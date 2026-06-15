@@ -165,6 +165,24 @@ jobs:
             --deployment "${{ github.event.inputs.deployment_id }}"
         continue-on-error: true
 
+      - name: user-tester (dual-portal user checks VT_B1-B5)
+        if: ${{ env.ANTHROPIC_API_KEY != '' && env.QA_USER_PASSWORD != '' }}
+        run: |
+          node scripts/agents/user-tester.mjs \
+            --slug "${{ github.event.inputs.slug }}" \
+            --url "${{ github.event.inputs.url }}" \
+            --deployment "${{ github.event.inputs.deployment_id }}"
+        continue-on-error: true
+
+      - name: auth-tester (auth-pattern checks VT_C1-C4)
+        if: ${{ env.ANTHROPIC_API_KEY != '' }}
+        run: |
+          node scripts/agents/auth-tester.mjs \
+            --slug "${{ github.event.inputs.slug }}" \
+            --url "${{ github.event.inputs.url }}" \
+            --deployment "${{ github.event.inputs.deployment_id }}"
+        continue-on-error: true
+
       - name: promise-judge (check #9 — promise attributes at quality bar)
         if: ${{ env.ANTHROPIC_API_KEY != '' }}
         run: |
