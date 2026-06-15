@@ -58,10 +58,26 @@ jobs:
         with:
           path: shared
 
+      - name: Resolve product repo owner
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+          SLUG: ${{ github.event.inputs.slug }}
+        run: |
+          # Repos moved to the caistech org (dennissolver/* now 301-redirects). Probe caistech first,
+          # then dennissolver, and hand the resolved owner/name to the checkout below.
+          for cand in caistech dennissolver; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' \
+              -H "Authorization: Bearer $GH_PAT" -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$cand/$SLUG")
+            if [ "$code" = "200" ]; then echo "TARGET_REPO=$cand/$SLUG" >> "$GITHUB_ENV"; break; fi
+          done
+          echo "resolved: ${TARGET_REPO:-<none — repo probe will be skipped>}"
+
       - name: Checkout the product repo
+        if: ${{ env.TARGET_REPO != '' }}
         uses: actions/checkout@v4
         with:
-          repository: dennissolver/${{ github.event.inputs.slug }}
+          repository: ${{ env.TARGET_REPO }}
           token: ${{ secrets.GH_PAT }}
           path: target
         continue-on-error: true
@@ -73,7 +89,7 @@ jobs:
       - name: Run the repo/URL probe (records #35/#36/#37)
         run: |
           if [ ! -d target ] || [ -z "$(ls -A target 2>/dev/null)" ]; then
-            echo "::warning::product repo dennissolver/${{ github.event.inputs.slug }} not checked out (token/visibility?) — skipping repo probe"
+            echo "::warning::product repo for ${{ github.event.inputs.slug }} not checked out (not found under caistech/ or dennissolver/, or token/visibility) — skipping repo probe"
             exit 0
           fi
           node shared/scripts/validation-probe.mjs \
