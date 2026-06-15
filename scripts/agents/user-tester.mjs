@@ -19,8 +19,8 @@ const slug = arg('slug')
 const origin = arg('url').replace(/\/$/, '')
 const deployment = arg('deployment')
 const apiKey = process.env.ANTHROPIC_API_KEY
-const userEmail = process.env.QA_USER_EMAIL || process.env.TEST_USER_EMAIL || 'dennis@factory2key.com.au'
-const userPw = process.env.QA_USER_PASSWORD
+const userEmail = process.env.QA_TEST_USER_EMAIL || process.env.QA_USER_EMAIL || process.env.TEST_USER_EMAIL || 'dennis@factory2key.com.au'
+const userPw = process.env.QA_TEST_USER_PASSWORD || process.env.QA_USER_PASSWORD
 
 const CHECKS = [
   { code: 'VT_B1', label: 'User portal access: after this user logs in, a REAL authenticated user home / functional product UI renders — NOT a login page, NOT a 404, and NOT the admin control panel. (§43: a user flow that dead-ends or bounces into /admin is a FAIL, never na.)' },

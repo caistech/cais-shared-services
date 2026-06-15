@@ -109,12 +109,16 @@ jobs:
       CAIS_GATES_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       # vision verdicts
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      # user-agent (a real QA account, never a backdoor — PRODUCT_STANDARDS §9.5). QA_USER_EMAIL is
-      # the canonical name (matches the products' .env.local); TEST_USER_EMAIL kept as a fallback.
+      # CANONICAL §9.5 QA accounts (source: .secrets/qa-secrets.json → these GitHub secrets). The
+      # user-agent (QA_TEST_USER_*) is a NON-admin; the admin-agent (QA_TEST_ADMIN_*) is in ADMIN_EMAILS.
+      QA_TEST_USER_EMAIL: ${{ secrets.QA_TEST_USER_EMAIL }}
+      QA_TEST_USER_PASSWORD: ${{ secrets.QA_TEST_USER_PASSWORD }}
+      QA_TEST_ADMIN_EMAIL: ${{ secrets.QA_TEST_ADMIN_EMAIL }}
+      QA_TEST_ADMIN_PASSWORD: ${{ secrets.QA_TEST_ADMIN_PASSWORD }}
+      # Legacy names — fallback only, kept until every repo migrates off them.
       QA_USER_EMAIL: ${{ secrets.QA_USER_EMAIL }}
       TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
       QA_USER_PASSWORD: ${{ secrets.QA_USER_PASSWORD }}
-      # admin-agent — a real admin account in ADMIN_EMAILS, NEVER an operator account.
       QA_OWNER_EMAIL: ${{ secrets.QA_OWNER_EMAIL }}
       QA_ADMIN_EMAIL: ${{ secrets.QA_ADMIN_EMAIL }}
       QA_OWNER_PASSWORD: ${{ secrets.QA_OWNER_PASSWORD }}
@@ -171,7 +175,7 @@ jobs:
         continue-on-error: true
 
       - name: admin-tester (dual-portal admin checks VT_A1-A4)
-        if: ${{ env.ANTHROPIC_API_KEY != '' && env.QA_OWNER_PASSWORD != '' }}
+        if: ${{ env.ANTHROPIC_API_KEY != '' && (env.QA_TEST_ADMIN_PASSWORD != '' || env.QA_OWNER_PASSWORD != '') }}
         run: |
           node scripts/agents/admin-tester.mjs \
             --slug "${{ github.event.inputs.slug }}" \
@@ -180,7 +184,7 @@ jobs:
         continue-on-error: true
 
       - name: user-tester (dual-portal user checks VT_B1-B5)
-        if: ${{ env.ANTHROPIC_API_KEY != '' && env.QA_USER_PASSWORD != '' }}
+        if: ${{ env.ANTHROPIC_API_KEY != '' && (env.QA_TEST_USER_PASSWORD != '' || env.QA_USER_PASSWORD != '') }}
         run: |
           node scripts/agents/user-tester.mjs \
             --slug "${{ github.event.inputs.slug }}" \
