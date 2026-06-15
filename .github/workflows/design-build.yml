@@ -81,15 +81,24 @@ jobs:
           # deploy), which then dispatches design-build with verdict=NEW to customize the generic
           # starter to spec. So the repo MUST already exist here; a 404 means provisioning didn't run.
           set -e
-          OWNER=dennissolver
           REPO="$SLUG"
-          code=$(curl -sS -o /tmp/repo.json -w '%{http_code}' \
-            -H "Authorization: Bearer $GH_PAT" -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/$OWNER/$REPO")
-          if [ "$code" != "200" ]; then
-            echo "::error::repo $OWNER/$REPO not found (HTTP $code). Provision the product first (new-product), then re-run design-build — design-build no longer creates repos."
+          # The portfolio repos moved to the caistech org — the old dennissolver/* paths now 301-redirect.
+          # Resolve the owner by probing caistech first, then dennissolver, so this works for migrated
+          # repos AND any not-yet-moved one. (A bare 301 from a hardcoded owner used to read as "not
+          # found" and killed the run in ~10s — sayfix, 2026-06-15.)
+          OWNER=""
+          for cand in caistech dennissolver; do
+            code=$(curl -sS -o /tmp/repo.json -w '%{http_code}' \
+              -H "Authorization: Bearer $GH_PAT" -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$cand/$REPO")
+            if [ "$code" = "200" ]; then OWNER="$cand"; break; fi
+          done
+          if [ -z "$OWNER" ]; then
+            echo "::error::repo {caistech,dennissolver}/$REPO not found (last HTTP $code). Provision the product first (new-product), then re-run design-build — design-build no longer creates repos."
             exit 1
           fi
+          echo "TARGET_REPO=$OWNER/$REPO" >> "$GITHUB_ENV"
+          echo "repo resolved: $OWNER/$REPO"
           # NET-NEW vs existing is the VERDICT, not repo existence: verdict=NEW = a freshly provisioned
           # cais-starter to customize to spec (no survey failures yet); TEARDOWN/RENOVATE = an existing
           # live product to fix against its recorded survey findings.
@@ -104,7 +113,7 @@ jobs:
       - name: Checkout target product repo
         uses: actions/checkout@v4
         with:
-          repository: dennissolver/${{ github.event.inputs.slug }}
+          repository: ${{ env.TARGET_REPO }}
           token: ${{ secrets.GH_PAT }}
           path: target
           fetch-depth: 0
@@ -540,7 +549,7 @@ jobs:
             -H "Authorization: Bearer $GH_PAT" \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/dennissolver/$SLUG/pulls" \
+            "https://api.github.com/repos/$TARGET_REPO/pulls" \
             --data-binary @pr.json)
           rm -f pr.json
           PR_URL=$(printf '%s' "$PR_JSON" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{process.stdout.write(JSON.parse(s).html_url||'')}catch{process.stdout.write('')}})")
