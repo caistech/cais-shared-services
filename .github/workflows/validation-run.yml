@@ -120,6 +120,9 @@ jobs:
       QA_OWNER_PASSWORD: ${{ secrets.QA_OWNER_PASSWORD }}
       # preview SSO bypass (if the URL is a protected preview)
       VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      # central, portfolio-wide Supabase Management PAT — auto-provisions the canonical QA accounts
+      # onto THIS product's Supabase before the testers run (no per-product manual step). §9.5.
+      SUPABASE_MANAGEMENT_TOKEN: ${{ secrets.SUPABASE_MANAGEMENT_TOKEN }}
     steps:
       - name: Checkout shared-services (agents + gate-check)
         uses: actions/checkout@v4
@@ -133,6 +136,17 @@ jobs:
           cd scripts/agents
           npm install
           npx playwright install --with-deps chromium
+
+      - name: Auto-provision QA accounts from the canonical shared-services set (idempotent)
+        if: ${{ env.SUPABASE_MANAGEMENT_TOKEN != '' }}
+        run: |
+          # The canonical QA accounts (manifest shared.admin_users + shared.test_user) are auto-created
+          # on THIS product's Supabase from the central Management token — no per-product manual step
+          # (§9.5). Idempotent. If the token is absent the testers degrade to na with instructions.
+          npm install yaml --no-save
+          node scripts/provision-qa-accounts.mjs --slug "${{ github.event.inputs.slug }}" \
+            || echo "::warning::QA auto-provision skipped/failed — VT_A/VT_B record na with provisioning instructions"
+        continue-on-error: true
 
       - name: Guard — no ANTHROPIC_API_KEY → record nothing (degrade-don't-fake)
         if: ${{ env.ANTHROPIC_API_KEY == '' }}
