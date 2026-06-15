@@ -163,6 +163,27 @@ function loadTestAccountsConfig(repoRoot) {
   catch (e) { console.log(`  âš  test-accounts.config.json unparseable: ${e.message}`); return null; }
 }
 
+// Canonical §9.5 QA agent identities — ONE portfolio-wide source. Prefer the QA_TEST_* env (set in CI
+// from GitHub secrets), else .secrets/qa-secrets.json (local). Returns {adminEmail,adminPw,userEmail,
+// userPw} or null. Used so EVERY product provisions the same agents with the same passwords as the
+// secrets the testers log in with — no per-product test-accounts.config.json needed.
+function loadCanonicalAgents() {
+  const e = process.env;
+  if (e.QA_TEST_ADMIN_EMAIL && e.QA_TEST_USER_EMAIL)
+    return { adminEmail: e.QA_TEST_ADMIN_EMAIL, adminPw: e.QA_TEST_ADMIN_PASSWORD,
+             userEmail: e.QA_TEST_USER_EMAIL, userPw: e.QA_TEST_USER_PASSWORD };
+  try {
+    const f = join(dirname(fileURLToPath(import.meta.url)), "..", ".secrets", "qa-secrets.json");
+    if (existsSync(f)) {
+      const d = JSON.parse(readFileSync(f, "utf-8"));
+      if (d.QA_TEST_ADMIN_EMAIL && d.QA_TEST_USER_EMAIL)
+        return { adminEmail: d.QA_TEST_ADMIN_EMAIL, adminPw: d.QA_TEST_ADMIN_PASSWORD,
+                 userEmail: d.QA_TEST_USER_EMAIL, userPw: d.QA_TEST_USER_PASSWORD };
+    }
+  } catch { /* fall through to null */ }
+  return null;
+}
+
 function readEnvFile(envPath) {
   if (!existsSync(envPath)) return {};
   const raw = readFileSync(envPath, "utf-8");
@@ -479,20 +500,23 @@ async function main() {
     }
 
 // QA agent identities from the product's OWN config (one source of truth per deployment).
+    const canon = loadCanonicalAgents();
     const taConfig = hasRepoRoot ? loadTestAccountsConfig(repoRoot) : null;
-    if (!taConfig?.adminAgentEmail || !taConfig?.userAgentEmail) {
+    const adminEmail = canon?.adminEmail || taConfig?.adminAgentEmail;
+    const userEmail = canon?.userEmail || taConfig?.userAgentEmail;
+    if (!adminEmail || !userEmail) {
       console.log(`  âš  ${slug}: test-accounts.config.json missing adminAgentEmail/userAgentEmail â€” run new-product.mjs scaffold (or generate it). Skipping agent provisioning (NOT falling back to a personal address).`);
       continue;
     }
     const agents = [
-      { label: "admin-agent", email: taConfig.adminAgentEmail, emailVar: "QA_OWNER_EMAIL", pwVar: "QA_OWNER_PASSWORD" },
-      { label: "user-agent",  email: taConfig.userAgentEmail,  emailVar: "QA_USER_EMAIL",  pwVar: "QA_USER_PASSWORD"  },
+      { label: "admin-agent", email: adminEmail, pw: canon?.adminPw, emailVar: "QA_TEST_ADMIN_EMAIL", pwVar: "QA_TEST_ADMIN_PASSWORD" },
+      { label: "user-agent",  email: userEmail,  pw: canon?.userPw,  emailVar: "QA_TEST_USER_EMAIL",  pwVar: "QA_TEST_USER_PASSWORD"  },
     ];
     for (const agent of agents) {
       console.log(`\n  ${agent.label}:`);
       if (args.dryRun) { console.log(`  â†’ would create ${agent.email}`); continue; }
       try {
-        const pw = generatePassword();
+        const pw = agent.pw || generatePassword();
         const result = await createUser(supabase.url, serviceKey, agent.email, pw);
         if (result.skipped) {
           console.log(`  âœ“ ${agent.email} â€” already exists (password unknown â€” reset with --reset-pw)`);
@@ -527,7 +551,7 @@ async function main() {
       if (proj?.vercel_project_id) {
         const adminEmails = [
           ...new Set(
-            [...adminUsers.map((a) => a.email), taConfig.adminAgentEmail]
+            [...adminUsers.map((a) => a.email), adminEmail]
               .filter(Boolean)
               .map((e) => e.toLowerCase()),
           ),
