@@ -18,7 +18,7 @@
 >
 > **Install:** registry is GitHub Packages (`@caistech:registry=https://npm.pkg.github.com`, token
 > `NODE_AUTH_TOKEN`/`GITHUB_PACKAGES_TOKEN`). `npm install @caistech/<name>`. Consumers import the
-> compiled `dist/`, never source. **Last updated:** 2026-06-11 (41 packages).
+> compiled `dist/`, never source. **Last updated:** 2026-06-16 (42 packages).
 
 ---
 
@@ -34,6 +34,7 @@
 | `@caistech/sanctions-screen` | Multi-list sanctions screening (OFAC SDN, UN, AU DFAT, UK HMT, EU) — provider pattern, caching, fuzzy match. |
 | `@caistech/business-registry` | Multi-country business-registry lookup (CN/VN/MY/AU formats + pluggable live providers). |
 | `@caistech/cais-au-compliance-mcp` | MCP server exposing AU compliance tools (ABN, registry, sanctions, cert extraction). Thin adapter over the `@caistech/*` packages. |
+| `@caistech/email-compliance` | **Australian Spam Act 2003 email compliance** — brand-configurable sender identity (name/ABN/postal/email/phone, `senderFromEnv`), consent-basis labelling (inferred vs express), and a prominent unsubscribe footer (HTML + text via `complianceFooterHtml`/`complianceFooterText`/`withComplianceFooter`), plus `assertCompliant()` — a guard that throws on a commercial send missing an ABN or unsubscribe link. **Consume in EVERY repo that sends email** (the PRODUCT_STANDARDS Spam Act gate); white-label products pass the DISTRIBUTOR's identity. |
 
 ## AI, models & extraction
 | Package | Capability |

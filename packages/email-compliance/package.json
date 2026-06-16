@@ -1,0 +1,28 @@
+{
+  "name": "@caistech/email-compliance",
+  "version": "0.1.0",
+  "description": "Australian Spam Act 2003 email compliance — brand-configurable sender identity, consent-basis labelling, and a prominent unsubscribe footer (HTML + text), plus a guard that blocks non-compliant commercial sends. Consume in every repo that sends email.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "files": [
+    "dist/"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/email-compliance"
+  },
+  "license": "PRIVATE",
+  "type": "module"
+}
