@@ -86,6 +86,8 @@ trivial in code may be dense/confusing live (→ upgrade to Required); a
 client-rendered surface the scan missed gets added; a voice surface that's
 present in code but broken/hidden live gets flagged. Screenshot each candidate.
 
+**Detection — what counts as "voice present" (do NOT false-negative an SDK widget).** Voice is present if ANY of these renders, not only the CDN element: a class CONTAINING `convai` (`.convai-launch`, `.convai-launch--inline`, `.convai-btn`, `.convai-panel`), a named-coach launcher (avatar + a "Begin"/"Start a conversation"/"Talk it through" button + a 🎙️/mic affordance — the `@caistech/elevenlabs-convai` React `VoiceWidget` shape, e.g. SayFix's "Morgan"), an "Ask about this"/"Talk to" control, OR the raw `<elevenlabs-convai>` element. Requiring the literal `<elevenlabs-convai>`/exact `.convai-launch` is the documented false-negative class (sayfix, 2026-05/06). **Also screenshot the surface where voice actually mounts** — if the coach is param-scoped (e.g. `/welcome?product=<slug>`) or behind a click, the bare landing shows no voice and reads as a false "absent." The CI probe takes `--voice-url <surface>` for exactly this; a human run must navigate there too before judging.
+
 **Behavioural memory check (not presence-only).** For any coaching/memory agent, verify the
 loop *works*, not just that routes/tables exist (the storage≠memory trap, one level up): start
 a session, end it, return, and confirm the **"welcome-back" recall actually fires** (the agent
