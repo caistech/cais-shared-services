@@ -147,13 +147,67 @@ export function withComplianceFooter(body: EmailBody, args: ComplianceFooterArgs
   };
 }
 
+// ── Jurisdiction guard ──────────────────────────────────────────────────────────────────────
+//
+// We are compliant for AUSTRALIA ONLY. Every other country has its own email-marketing law
+// (US CAN-SPAM, Canada CASL — express consent, EU/UK GDPR + PECR — opt-in, etc.). Sending a
+// commercial EMAIL to a non-AU contact before that country's compliance is set up is a legal
+// exposure, so this guard BLOCKS it portfolio-wide until the jurisdiction is explicitly cleared.
+//
+// SCOPE: email outreach only. LinkedIn outreach (via @caistech/unipile-channels) is already
+// within platform compliance and is NOT gated here.
+
+/** Jurisdictions whose email-marketing compliance is configured + cleared to send. AU only today. */
+export const SUPPORTED_OUTREACH_JURISDICTIONS = ["AU"] as const;
+
+/** An ISO-3166 alpha-2 country code, e.g. "AU", "US", "GB". */
+export type Jurisdiction = string;
+
+/**
+ * Block an EMAIL send to a recipient outside a cleared jurisdiction. Throws when the recipient's
+ * country isn't in the supported list (default: AU only). A repo that starts emailing
+ * international contacts MUST set that country's compliance up and add it to `supported` first —
+ * until then this hard-stops the send. LinkedIn/other-channel outreach is out of scope (email only).
+ */
+export function assertJurisdictionAllowed(
+  recipientCountry: Jurisdiction | undefined,
+  opts: { supported?: readonly string[] } = {},
+): void {
+  const supported = (opts.supported ?? SUPPORTED_OUTREACH_JURISDICTIONS).map((c) => c.toUpperCase());
+  const cc = (recipientCountry ?? "").trim().toUpperCase();
+  if (!cc) {
+    throw new Error(
+      "Jurisdiction guard: the recipient's country is unknown, so email-marketing compliance " +
+        "can't be verified. Tag each contact with an ISO country code before sending (AU contacts pass).",
+    );
+  }
+  if (!supported.includes(cc)) {
+    throw new Error(
+      `Jurisdiction guard: email outreach to ${cc} contacts is BLOCKED — ${cc} email-marketing ` +
+        `compliance is not set up. Only [${supported.join(", ")}] is cleared. Configure ${cc}'s ` +
+        `consent/identification/unsubscribe rules and add it to SUPPORTED_OUTREACH_JURISDICTIONS ` +
+        `before sending. (LinkedIn outreach is exempt — this guard applies to EMAIL only.)`,
+    );
+  }
+}
+
 /**
  * Guard a COMMERCIAL send. Throws if the message can't be Spam-Act-compliant — a missing
- * unsubscribe link or incomplete sender identity. Call this in the send path so a non-compliant
- * commercial email is impossible to ship (mark transactional, recipient-initiated messages with
+ * unsubscribe link or incomplete sender identity — OR if the recipient is outside a cleared
+ * jurisdiction (when `recipientCountry` is supplied; pass it whenever the contact's country is
+ * known so non-AU sends are blocked). Call this in the send path so a non-compliant commercial
+ * email is impossible to ship (mark transactional, recipient-initiated messages with
  * `commercial: false` to skip the unsubscribe requirement; identity is always required).
  */
-export function assertCompliant(args: ComplianceFooterArgs & { commercial?: boolean }): void {
+export function assertCompliant(
+  args: ComplianceFooterArgs & {
+    commercial?: boolean;
+    /** The recipient's ISO country. When set, a non-supported country hard-blocks the send. */
+    recipientCountry?: Jurisdiction;
+    /** Override the cleared jurisdictions (default: AU only). */
+    supportedJurisdictions?: readonly string[];
+  },
+): void {
   const { sender, unsubscribeUrl, commercial = true } = args;
   if (!sender?.name || !sender?.email) {
     throw new Error("Spam Act: sender identity must include at least a name and a contact email.");
@@ -168,5 +222,8 @@ export function assertCompliant(args: ComplianceFooterArgs & { commercial?: bool
       "Spam Act: a commercial email must carry a functional unsubscribe URL. Pass unsubscribeUrl, " +
         "or set commercial:false for a transactional, recipient-initiated message.",
     );
+  }
+  if (commercial && args.recipientCountry !== undefined) {
+    assertJurisdictionAllowed(args.recipientCountry, { supported: args.supportedJurisdictions });
   }
 }

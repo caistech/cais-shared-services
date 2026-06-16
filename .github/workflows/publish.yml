@@ -38,6 +38,12 @@ jobs:
           npm run build --workspace=@caistech/sanctions-screen
           # @caistech/email-finder imports from hunter-email
           npm run build --workspace=@caistech/hunter-email
+          # @caistech/corporate-components (0.5.1+) imports abn-lookup, mapbox and
+          # portfolio-env-sync (the AddressAutocomplete) — build those leaves FIRST,
+          # or corporate-components' tsc fails on "Cannot find module '@caistech/mapbox'".
+          npm run build --workspace=@caistech/abn-lookup
+          npm run build --workspace=@caistech/mapbox
+          npm run build --workspace=@caistech/portfolio-env-sync
           # @caistech/corporate-components consumers (most products) import from it.
           # Building it early prevents downstream type-resolution issues if/when
           # another @caistech package adds it as a dep.
