@@ -166,6 +166,12 @@ export async function recordReadiness({ slug, source, checks, deploymentId = nul
       evidence: c.evidence ?? null,
       deployment_id: deploymentId,
       recorded_by: recordedBy,
+      // Stamp scored_at on EVERY write. Without this, the merge-duplicates UPDATE below left
+      // scored_at frozen at the row's FIRST-ever insert — so a re-run silently changed status/
+      // evidence but the card's "Recorded …/watching for updates" freshness (and any newest-per-code
+      // ordering) showed the original date, making a current verdict look stale. (Diagnosed
+      // 2026-06-17 — the frozen timestamp also masked which DB the CI was writing to.)
+      scored_at: new Date().toISOString(),
     };
   });
   // Upsert on the (product_slug, check_code) unique constraint so a re-run UPDATES the latest
