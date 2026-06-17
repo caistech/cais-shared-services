@@ -40,6 +40,21 @@ on:
         description: 'Live product URL (context only)'
         required: false
         type: string
+      # The Validation Conductor dispatches this via the shared dispatchWorkflow helper, which ALWAYS
+      # sends slug + url + deployment_id (+ checks for the code lane). GitHub 422s on any input the
+      # workflow doesn't declare — so without these two, every conductor-driven code-lane dispatch
+      # silently failed and the weighted code fails never got a builder. We ACCEPT them here:
+      # deployment_id is context; `checks` is the conductor's failing-code list — but the build still
+      # reads the FULL punch-list from the cockpit (Fetch spec + survey findings step), so checks is
+      # advisory only, never the scope-limiter.
+      deployment_id:
+        description: 'Deployment the verdicts bind to (sent by the conductor dispatcher; context only)'
+        required: false
+        type: string
+      checks:
+        description: 'Comma-separated failing CODE-lane check codes from the conductor (advisory; the build reads the full punch-list from the cockpit). Optional.'
+        required: false
+        type: string
       model:
         description: 'OpenCode model id (blank = DESIGN_BUILD_MODEL var, else shared OPENCODE_MODEL, else Sonnet)'
         required: false
