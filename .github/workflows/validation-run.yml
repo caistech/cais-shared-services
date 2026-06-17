@@ -64,6 +64,9 @@ jobs:
       CAIS_GATES_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # #40 Vercel env-hygiene probe — the API token (auto-discovers the team scope). Without it the
+      # probe records `na` (degrade-don't-fake); with it, #40 is verified live instead of guessed.
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
       - name: Checkout shared-services (gate-check + validation-probe)
         uses: actions/checkout@v4

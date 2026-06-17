@@ -16,6 +16,7 @@
 import fs from 'fs'
 import path from 'path'
 import { execFileSync } from 'child_process'
+import { checkVercelEnv } from './vercel-env-check.mjs'
 
 function arg(name, def = '') {
   const i = process.argv.indexOf(`--${name}`)
@@ -132,10 +133,12 @@ const secretHits = grepSrc(/SUPABASE_SERVICE_ROLE_KEY\s*[:=]\s*["'`]?eyJ|sk-ant-
 results.push({ code: '39', status: secretHits.length > 0 ? 'fail' : 'pass',
   evidence: secretHits.length > 0 ? `possible committed secret in src/: ${secretHits[0].slice(0, 90)}` : 'no hardcoded service-role JWT / API key found in src/' })
 
-// #40 — Vercel env vars sensitive + prod/preview only. NOT repo-determinable (needs the Vercel API),
-// so na here with the reason; it's produced by the pipeline's headless rescore (which has Vercel
-// access), never faked.
-results.push({ code: '40', status: 'na', evidence: 'Vercel env-var sensitivity needs the Vercel API — produced by the cockpit headless rescore, not the repo probe' })
+// #40 — Vercel env vars sensitive + prod/preview only. Verified live via the Vercel API when a
+// VERCEL_TOKEN is on the runner (auto-discovers the team scope; resolves the project by deployment
+// id, else by name=slug). Degrade-don't-fake to `na` when the token is absent or the project can't
+// be resolved — never a guessed pass. This ends the permanent `na` that kept the HARD gate open.
+const vercel = await checkVercelEnv({ token: process.env.VERCEL_TOKEN, slug, deploymentId: deployment })
+results.push({ code: '40', status: vercel.status, evidence: vercel.evidence })
 
 // --- Voice integration code checks (#11/#16/#17), CONDITIONAL on the product actually using
 // ElevenLabs/convai. Only recorded when voice is present; otherwise left to the scorer's
