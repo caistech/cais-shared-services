@@ -801,6 +801,25 @@
       "solution": "Supabase Auth has its OWN hourly cap rate_limit_email_sent (default 2) that is SEPARATE from SMTP config. Switching to custom SMTP does NOT raise it. Fix: PATCH https://api.supabase.com/v1/projects/{ref}/config/auth {rate_limit_email_sent: 30} via the management token (~/.supabase-token). Also note smtp_max_frequency (default 60s) throttles per-address repeats. Cockpit ref tfgtfhwvrswjvkyeyvsp raised 2->30 on 2026-06-07.",
       "fixed_at": "2026-06-07",
       "fixed_by": "claude-opus-4-8"
+    },
+    {
+      "id": "outreach-opener-llm-invents-product-when-ungrounded",
+      "product": "pipeline (factory outreach engine — affects every product run through it)",
+      "error_pattern": "AI-composed cold-outreach openers describe the product as a DIFFERENT fabricated thing per prospect",
+      "error_symptoms": [
+        "one product pitched as a dozen contradictory things (speech analytics / WCAG auditor / phone agent / nutrition planning …)",
+        "the description is riffed off the prospect’s signal, not the real product",
+        "the SAME prospect gets different product descriptions across channels"
+      ],
+      "attempts": [
+        {
+          "tried": "tighten the compose prompt wording (“don’t embellish”)",
+          "failed_because": "the real cause was an EMPTY one-liner — with nothing to ground on, prompt wording can’t stop the model inventing from the signal"
+        }
+      ],
+      "solution": "Two parts. (1) GROUNDING SOURCE: the generate routes read product content from the WRONG table — methodology_hypothesis_cards has only mvp_url + gate state, NOT core_mechanism/promise (those live in product_validation_status), so productOneLiner came through empty. Source the one-liner from product_validation_status. (2) HARD GUARD in the composer: if the one-liner is empty, return a deterministic fallback that NAMES the product but makes NO capability claim — never call the LLM with nothing to describe; and the prompt forbids inventing/tailoring the product (it is identical for everyone; the signal personalises only the opening hook). GENERAL LESSON (portfolio-wide): an LLM given a personalisation signal but NO product grounding will fabricate a product to fit the signal — always ground product claims on a verified source and hard-fallback when absent (degrade-don’t-fake). pipeline commit 101b928.",
+      "fixed_at": "2026-06-17",
+      "fixed_by": "claude-opus-4-8"
     }
   ],
   "usage": "Before fixing ANY bug, grep this file for matching error patterns. Also check SayFix DB for product-specific attempts.",
