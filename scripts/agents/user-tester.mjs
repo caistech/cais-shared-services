@@ -28,6 +28,7 @@ const CHECKS = [
   { code: 'VT_B3', label: 'User settings: a settings page renders for the user with profile / password / notification controls that look saveable.' },
   { code: 'VT_B4', label: 'User sign-out: a Sign Out control is visible in the authenticated chrome (persistent nav / header / menu).' },
   { code: 'VT_B5', label: 'User feature navigation: the core product surfaces load (no error / blank screen) and a persistent nav lets the user move between the main features — zero dead ends.' },
+  { code: '26', label: 'Persistent left navbar + active-route indicator (§4): the AUTHED surface shows a PERSISTENT vertical nav rail (the product surfaces), the CURRENT route is highlighted (an active-state indicator), and Settings + Sign Out are present in that chrome. Judge from the authed screenshot. FAIL if there is no persistent left nav, no active-route highlight, or Settings/Sign Out is missing. (Standard authed-app chrome; not the public landing.)' },
 ]
 
 async function main() {
