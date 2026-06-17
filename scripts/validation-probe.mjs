@@ -117,6 +117,27 @@ results.push({ code: '39', status: secretHits.length > 0 ? 'fail' : 'pass',
 const vercel = await checkVercelEnv({ token: process.env.VERCEL_TOKEN, slug, deploymentId: deployment })
 results.push({ code: '40', status: vercel.status, evidence: vercel.evidence })
 
+// P4 — the TOO-MUCH guard (THIN_MVP_RUBRIC). INFORMATIONAL + NON-BLOCKING + NEVER a regression
+// signal: it flags when the repo has built SCALE INFRASTRUCTURE (billing/metering, multi-tenant/org,
+// team-admin) — pre-GO, that is the "this product has built beyond the thin-MVP requirements"
+// heads-up. A `fail` here does NOT mean strip features; the scorer files it under tooMuch (excluded
+// from the HARD gate + the weighted score), the conductor never routes it to a fix lane, and the UI
+// shows it as a warning, not a defect. `pass` = within thin-MVP scope (no scale-infra). This is the
+// repo "scale-infra heuristic" the survey's P4 placeholder deferred to.
+const p4Deps = (() => { try { const j = JSON.parse(pkg || '{}'); return Object.keys({ ...(j.dependencies || {}), ...(j.devDependencies || {}) }) } catch { return [] } })()
+const scaleSignals = []
+if (p4Deps.includes('stripe') || grepSrc(/\bstripe\b|checkout\.session|usage-?meter|per-seat|metered\b/i, 1).length) scaleSignals.push('billing/metering')
+if (grepSrc(/organisation_members|\borganisations\b|tenant_id|multi-?tenant|white-?label/i, 1).length) scaleSignals.push('multi-tenant/org')
+if (exists('src/app/admin') && grepSrc(/\binvite\b|\bmembers?\b|\brole\b/i, 1).length) scaleSignals.push('team-admin')
+const p4Over = scaleSignals.length > 0
+results.push({
+  code: 'P4',
+  status: p4Over ? 'fail' : 'pass',
+  evidence: p4Over
+    ? `Heads-up (non-blocking, NOT a regression signal): built beyond the thin-MVP requirements — scale-infra present in the repo: ${scaleSignals.join(', ')}.`
+    : 'Within thin-MVP scope — no scale-infra (billing / multi-tenant / team-admin) detected in the repo.',
+})
+
 // --- Voice integration code checks (#11/#16/#17), CONDITIONAL on the product actually using
 // ElevenLabs/convai. Only recorded when voice is present; otherwise left to the scorer's
 // applies_when (na). These are the repo-grep CI producer for the voice CODE checks the local
