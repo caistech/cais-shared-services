@@ -15,7 +15,7 @@
 //      QA_OWNER_PASSWORD (the admin-agent password — NOT an operator password);
 //      VERCEL_AUTOMATION_BYPASS_SECRET (optional).
 
-import { arg, launch, goto, shot, tryLogin, visionVerdicts, record } from './lib.mjs'
+import { arg, launch, goto, shot, tryLogin, resolveSurfaces, adminPanelUrl, findSettings, visionVerdicts, record } from './lib.mjs'
 
 const slug = arg('slug')
 const origin = arg('url').replace(/\/$/, '')
@@ -47,11 +47,15 @@ async function main() {
   const { browser, ctx } = await launch({ bypass })
   try {
     const page = await ctx.newPage()
-    // Admin login first (admin portals usually gate at /admin/login behind ADMIN_EMAILS).
+    // Resolve the REAL surfaces (landing-CTA discovery + 404-aware probe) so the admin login + panel
+    // + settings are found on whatever routes THIS product uses, not hardcoded guesses.
+    const surfaces = await resolveSurfaces(page, origin)
+    // Admin login first (admin portals usually gate at /admin/login behind ADMIN_EMAILS). Try the
+    // discovered admin URL first, then the legacy guesses.
     const login = await tryLogin(page, origin, {
       email: adminEmail,
       password: adminPw,
-      paths: ['/admin/login', '/admin', '/login', '/pipeline/login'],
+      paths: [surfaces.adminUrl, '/admin/login', '/admin', surfaces.loginUrl, '/login', '/pipeline/login'],
     })
 
     // If we couldn't authenticate as admin we CAN'T tell "no portal" (a real fail) from "portal
@@ -66,14 +70,16 @@ async function main() {
     }
 
     const shots = []
-    // VT_A1 — the admin control panel.
-    if (await goto(page, `${origin}/admin`)) shots.push(await shot(page, 'admin control panel (/admin)'))
-    // VT_A2-A4 — the SETTINGS page (profile/password/notifications). Prefer the shared /settings the
-    // admin uses; fall back to a dedicated /admin/settings if a product has one.
+    // VT_A1 — the admin control panel (the resolved admin URL with any trailing /login stripped, so
+    // we screenshot the dashboard, not the login form).
+    const panelUrl = adminPanelUrl(surfaces, origin)
+    if (await goto(page, panelUrl)) shots.push(await shot(page, `admin control panel (${panelUrl})`))
+    // VT_A2-A4 — the SETTINGS page (profile/password/notifications). findSettings prefers a real
+    // "Settings" link in the authed chrome, then a 404-AWARE probe — so a /settings 404 no longer
+    // breaks the loop before the product's real settings route (e.g. /pipeline/settings) is reached.
+    const settingsUrl = await findSettings(page, origin)
     let onSettings = false
-    for (const p of ['/settings', '/admin/settings']) {
-      if (await goto(page, `${origin}${p}`)) { shots.push(await shot(page, `settings page (${p}) — default tab`)); onSettings = true; break }
-    }
+    if (settingsUrl && (await goto(page, settingsUrl))) { shots.push(await shot(page, `settings page (${settingsUrl}) — default tab`)); onSettings = true }
     // Settings is usually tabbed (Profile default; Security/Password + Notifications behind tabs).
     // Click each so VT_A3 (password/eye toggle) + VT_A4 (notifications) can actually be judged —
     // otherwise the agent only sees the Profile tab and honestly records na for A3/A4.

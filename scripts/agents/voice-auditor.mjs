@@ -28,7 +28,7 @@
 //      the authed surface; legacy QA_USER_*/TEST_USER_* still accepted as fallback);
 //      VERCEL_AUTOMATION_BYPASS_SECRET (optional).
 
-import { arg, launch, goto, shot, tryLogin, visionVerdicts, record } from './lib.mjs'
+import { arg, launch, goto, shot, tryLogin, resolveSurfaces, visionVerdicts, record } from './lib.mjs'
 
 const slug = arg('slug')
 const origin = arg('url').replace(/\/$/, '')
@@ -94,12 +94,16 @@ async function main() {
 
     // The key value surface is usually behind auth — log in and look there too.
     const app = await ctx.newPage()
+    // Resolve the real login route first (landing-CTA discovery + 404-aware probe) so login works on
+    // products with non-default auth paths (e.g. /pipeline/login), not just /login.
+    const surfaces = await resolveSurfaces(app, origin)
     const login = await tryLogin(app, origin, {
       // Canonical QA creds first (QA_TEST_USER_*), then the legacy fallbacks. Reading only the old
       // names silently failed login (creds undefined) → the auditor saw ONLY the public landing and
       // false-negatived voice that lives behind auth (the pipeline coach #10 false-negative).
       email: process.env.QA_TEST_USER_EMAIL || process.env.QA_USER_EMAIL || process.env.TEST_USER_EMAIL || process.env.QA_TEST_EMAIL,
       password: process.env.QA_TEST_USER_PASSWORD || process.env.QA_USER_PASSWORD || process.env.QA_TEST_PASSWORD,
+      paths: [surfaces.loginUrl, '/login', '/pipeline/login', '/auth/login', '/signin'],
     })
     if (login.ok) {
       shots.push(await shot(app, 'key value surface (authed) — looking for voice'))

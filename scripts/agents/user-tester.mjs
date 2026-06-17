@@ -13,7 +13,7 @@
 // Env: ANTHROPIC_API_KEY (required); QA_USER_EMAIL (default dennis@factory2key.com.au);
 //      QA_USER_PASSWORD (the user-agent password); VERCEL_AUTOMATION_BYPASS_SECRET (optional).
 
-import { arg, launch, goto, shot, tryLogin, visionVerdicts, record } from './lib.mjs'
+import { arg, launch, goto, shot, tryLogin, resolveSurfaces, adminPanelUrl, findSettings, visionVerdicts, record } from './lib.mjs'
 
 const slug = arg('slug')
 const origin = arg('url').replace(/\/$/, '')
@@ -39,11 +39,13 @@ async function main() {
   const { browser, ctx } = await launch({ bypass })
   try {
     const page = await ctx.newPage()
-    // User login (the user portal gates at /login, NOT /admin/login — never use the admin path here).
+    // Resolve the REAL surfaces (landing-CTA discovery + 404-aware probe). The user portal gates at
+    // the discovered user login — NEVER the admin path — so we pass surfaces.loginUrl, not adminUrl.
+    const surfaces = await resolveSurfaces(page, origin)
     const login = await tryLogin(page, origin, {
       email: userEmail,
       password: userPw,
-      paths: ['/login', '/pipeline/login', '/auth/login', '/signin'],
+      paths: [surfaces.loginUrl, '/login', '/pipeline/login', '/auth/login', '/signin'],
     })
 
     // Couldn't authenticate as the user-agent → we can't distinguish "no user area" from
@@ -59,14 +61,16 @@ async function main() {
     const shots = []
     // VT_B1 + VT_B4 + VT_B5 — the user home (wherever login landed) shows the authed area + chrome/nav.
     shots.push(await shot(page, `user home after login — landed at ${page.url()} (authenticated user area + chrome)`))
-    // VT_B2 — navigate to /admin as the non-admin user; it MUST be blocked.
-    await goto(page, `${origin}/admin`)
+    // VT_B2 — navigate to the admin CONTROL PANEL as the non-admin user; it MUST be blocked. Use the
+    // resolved admin panel URL (trailing /login stripped) so we test the real panel, not a guess.
+    const panelUrl = adminPanelUrl(surfaces, origin)
+    await goto(page, panelUrl)
     await page.waitForTimeout(1200)
-    shots.push(await shot(page, `/admin requested as a NON-admin user — final url: ${page.url()} (expect a block: login wall / 403 / redirect away)`))
-    // VT_B3 — user settings (the shared /settings the user uses).
-    for (const p of ['/settings', '/account', '/pipeline/settings']) {
-      if (await goto(page, `${origin}${p}`)) { shots.push(await shot(page, `user settings (${p})`)); break }
-    }
+    shots.push(await shot(page, `${panelUrl} requested as a NON-admin user — final url: ${page.url()} (expect a block: login wall / 403 / redirect away)`))
+    // VT_B3 — user settings. findSettings prefers a real "Settings" link in the authed chrome, then
+    // a 404-aware probe — so a /settings 404 no longer wins over the product's real settings route.
+    const settingsUrl = await findSettings(page, origin)
+    if (settingsUrl && (await goto(page, settingsUrl))) shots.push(await shot(page, `user settings (${settingsUrl})`))
 
     if (!shots.length) { console.error('user-tester: no screenshots — recording nothing'); return 1 }
 

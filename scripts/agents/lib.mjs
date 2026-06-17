@@ -67,10 +67,13 @@ export async function shot(page, label) {
 // which login routes are tried (e.g. the admin-agent tries /admin/login first).
 export async function tryLogin(page, origin, { email, password, paths }) {
   if (!email || !password) return { ok: false, note: 'no QA creds supplied' }
-  const loginPaths = paths || ['/login', '/pipeline/login', '/auth/login', '/signin']
+  // Accept full URLs (from resolveSurfaces) OR bare paths; dedupe + drop empties so a resolved
+  // login URL can be tried first, with the legacy guesses as fallback.
+  const loginPaths = [...new Set((paths || ['/login', '/pipeline/login', '/auth/login', '/signin']).filter(Boolean))]
   const onLogin = () => /login|signin/i.test(page.url())
   for (const path of loginPaths) {
-    if (!(await goto(page, `${origin}${path}`))) continue
+    const target = /^https?:\/\//i.test(path) ? path : `${origin}${path}`
+    if (!(await goto(page, target))) continue
     // Target VISIBLE fields only — dual-auth/tabbed login pages render hidden signup/reset fields
     // too, and .first() would otherwise grab the wrong (hidden) tab.
     const pw = page.locator('input[type=password]:visible').first()
@@ -114,6 +117,137 @@ export async function tryLogin(page, origin, { email, password, paths }) {
     } catch (e) { return { ok: false, note: String(e.message || e).slice(0, 120) } }
   }
   return { ok: false, note: 'no password login form found (magic-link only?)' }
+}
+
+// --- Surface resolution (the once-and-done fix for the "agent tested the wrong path" class) ----
+//
+// Every browser agent used to GUESS where a product's auth/settings/admin surfaces live (hardcoded
+// `/login`, `/settings`, …). Two failure modes followed for any product NOT on those exact paths
+// (which is most — `/pipeline/*`, `/app/*`, …): (a) a 404 at the guessed path still "loads", so it
+// was screenshotted/judged instead of the real surface, and (b) a candidate-path loop broke on the
+// first NAVIGABLE response — and a 404 IS navigable. Result: a cascade of false-negative fails
+// (pipeline's VT_A2-4 / VT_B3 / VT_C1-4 all judged 404 pages). resolveSurfaces() ends this: it
+// DISCOVERS the real routes from the public landing's CTAs (config-free, self-correcting) and falls
+// back to a NOT-FOUND-aware probe so a 404 can never win over a real page.
+
+// A page is "not found" when the HTTP status is 404, OR a short body is dominated by a not-found
+// message (Next.js App Router not-found can render 200). Length-bounded so a real page that merely
+// contains the words "not found" isn't misjudged.
+async function bodyLooksNotFound(page) {
+  try {
+    const txt = (await page.locator('body').innerText({ timeout: 2500 }).catch(() => '')) || ''
+    const t = txt.trim().toLowerCase()
+    if (!t) return false
+    return t.length < 800 && /(404)|(page (could )?not be found)|(this page (could|does) ?n.?t .*found)|(\bnot found\b)/.test(t)
+  } catch { return false }
+}
+
+// Navigate and report whether the destination is a REAL page (not a 404 / not-found / 5xx). Unlike
+// goto(), which returns true for any page that loads, probe() distinguishes a real surface from an
+// error page — the distinction the candidate-path loops were missing.
+export async function probe(page, url, timeout = 30000) {
+  const target = /^https?:\/\//i.test(url) ? url : `https://${url}`
+  let resp
+  try { resp = await page.goto(target, { waitUntil: 'domcontentloaded', timeout }) }
+  catch { try { resp = await page.goto(target, { waitUntil: 'load', timeout }) } catch { return { ok: false, notFound: false, status: 0, url: '' } } }
+  const status = resp?.status?.() ?? 0
+  if (status === 0 || status >= 500) return { ok: false, notFound: false, status, url: page.url() }
+  const notFound = status === 404 || (await bodyLooksNotFound(page))
+  return { ok: !notFound, notFound, status, url: page.url() }
+}
+
+const withScheme = (origin) => (/^https?:\/\//i.test(origin) ? origin : `https://${origin}`)
+
+// First path in `paths` that resolves to a real (non-404) page; '' if none. Returns the FINAL url
+// (post-redirect), so a `/login` that 307s to `/pipeline/login` is captured correctly.
+async function firstRealPath(page, origin, paths) {
+  const base = withScheme(origin)
+  for (const p of paths) {
+    const r = await probe(page, `${base}${p}`)
+    if (r.ok) return r.url || `${base}${p}`
+  }
+  return ''
+}
+
+// Same-origin anchors on the current page: [{ href (absolute), text }]. Next.js <Link> renders to
+// <a href>, so CTA links are captured; onClick-only buttons aren't (the probe fallback covers those).
+async function collectLinks(page) {
+  const raw = await page.evaluate(() => Array.from(document.querySelectorAll('a[href]')).map((a) => ({
+    href: a.getAttribute('href') || '',
+    text: (a.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 80),
+  }))).catch(() => [])
+  const here = page.url()
+  let originHost = ''
+  try { originHost = new URL(here).host } catch { /* ignore */ }
+  const out = []
+  for (const { href, text } of raw) {
+    if (!href || href.startsWith('#') || /^(mailto:|tel:|javascript:)/i.test(href)) continue
+    let abs = ''
+    try { abs = new URL(href, here).href } catch { continue }
+    try { if (new URL(abs).host !== originHost) continue } catch { continue }
+    out.push({ href: abs, text })
+  }
+  return out
+}
+
+/**
+ * Resolve a product's auth surfaces WITHOUT hardcoding paths. Discovers from the public landing's
+ * CTAs first (robust + config-free — a dual-portal §8.5 landing exposes "Admin Login" / "User Sign
+ * up"), then a 404-aware probe fallback. Returns { loginUrl, signupUrl, forgotUrl, adminUrl } as
+ * absolute URLs ('' when a surface genuinely doesn't exist). Call once at the start; pass the
+ * results into tryLogin (login/admin) and the screenshot steps (auth-tester).
+ */
+export async function resolveSurfaces(page, origin) {
+  let originHost = ''
+  try { originHost = new URL(withScheme(origin)).host } catch { /* ignore */ }
+  const sameOrigin = (abs) => { try { return !!abs && new URL(abs).host === originHost } catch { return false } }
+  const out = { loginUrl: '', signupUrl: '', forgotUrl: '', adminUrl: '' }
+
+  // 1) Discover from the public landing CTAs.
+  if (await goto(page, withScheme(origin))) {
+    const links = await collectLinks(page)
+    const pick = (include, exclude) => {
+      for (const { href, text } of links) {
+        const hay = `${text} ${href}`.toLowerCase()
+        if (exclude && exclude.test(hay)) continue
+        if (include.test(hay) && sameOrigin(href)) return href
+      }
+      return ''
+    }
+    out.adminUrl = pick(/admin/, null)
+    out.loginUrl = pick(/log ?in|sign ?in/, /admin|sign ?up/)
+    out.signupUrl = pick(/sign ?up|create account|get started|start (as|free|now)|register|try (it )?free/, /admin/)
+  }
+
+  // 2) 404-aware probe fallback for anything the landing didn't expose. A /login 404 can no longer
+  //    win over the real /pipeline/login (the exact false-negative this whole effort removes).
+  if (!out.loginUrl) out.loginUrl = await firstRealPath(page, origin, ['/login', '/pipeline/login', '/auth/login', '/signin', '/sign-in'])
+  if (!out.signupUrl) out.signupUrl = await firstRealPath(page, origin, ['/signup', '/pipeline/signup', '/auth/signup', '/sign-up', '/register'])
+  if (!out.adminUrl) out.adminUrl = await firstRealPath(page, origin, ['/admin/login', '/admin'])
+  out.forgotUrl = await firstRealPath(page, origin, ['/auth/forgot-password', '/forgot-password', '/pipeline/forgot-password', '/auth/reset-password', '/reset-password'])
+
+  return out
+}
+
+// The /admin CONTROL PANEL url derived from a resolved adminUrl (which may be the /admin/login page).
+// Strips a trailing /login so VT_A1 / VT_B2 screenshot the panel (or the block), not the login form.
+export function adminPanelUrl(surfaces, origin) {
+  const a = surfaces?.adminUrl || ''
+  if (a) return a.replace(/\/login\/?$/i, '') || a
+  return `${withScheme(origin)}/admin`
+}
+
+// Post-auth SETTINGS url: prefer a real "Settings" link in the authed chrome, else a 404-aware probe.
+// Must be called while authenticated (the chrome link only exists post-login).
+export async function findSettings(page, origin) {
+  const link = page
+    .locator('a:has-text("Settings"), nav a[href*="settings" i], aside a[href*="settings" i], a[href*="settings" i]')
+    .first()
+  if ((await link.count().catch(() => 0)) > 0) {
+    const href = await link.getAttribute('href').catch(() => null)
+    if (href) { try { return new URL(href, page.url()).href } catch { /* fall through to probe */ } }
+  }
+  return await firstRealPath(page, origin, ['/settings', '/pipeline/settings', '/admin/settings', '/account', '/profile'])
 }
 
 function buildPrompt(persona, checks) {

@@ -10,7 +10,7 @@
 // Usage (CI): node auth-tester.mjs --slug <slug> --url <liveUrl> [--deployment <id>]
 // Env: ANTHROPIC_API_KEY (required); VERCEL_AUTOMATION_BYPASS_SECRET (optional).
 
-import { arg, launch, goto, shot, visionVerdicts, record } from './lib.mjs'
+import { arg, launch, goto, shot, resolveSurfaces, visionVerdicts, record } from './lib.mjs'
 
 const slug = arg('slug')
 const origin = arg('url').replace(/\/$/, '')
@@ -32,22 +32,17 @@ async function main() {
   const { browser, ctx } = await launch({ bypass })
   try {
     const page = await ctx.newPage()
+    // Resolve the REAL auth surfaces (landing-CTA discovery + 404-aware probe) instead of guessing
+    // `/login` etc. — a 404 at a guessed path no longer gets screenshotted/judged as the auth page
+    // (the VT_C1-C4 false-negative class on products with non-default routes, e.g. /pipeline/login).
+    const surfaces = await resolveSurfaces(page, origin)
     const shots = []
-    // Login surface — eye toggle, forgot-password, magic-link, and often the signup tab live here.
-    for (const p of ['/login', '/pipeline/login', '/auth/login', '/signin']) {
-      if (await goto(page, `${origin}${p}`)) { shots.push(await shot(page, `login page (${p})`)); break }
-    }
-    // Signup surface (own page or a tab on the login surface).
-    for (const p of ['/signup', '/pipeline/signup', '/auth/signup', '/register']) {
-      if (await goto(page, `${origin}${p}`)) { shots.push(await shot(page, `signup page (${p})`)); break }
-    }
-    // Forgot/reset-password surface.
-    for (const p of ['/auth/forgot-password', '/forgot-password', '/auth/reset-password', '/reset-password']) {
-      if (await goto(page, `${origin}${p}`)) { shots.push(await shot(page, `forgot/reset password page (${p})`)); break }
-    }
+    if (surfaces.loginUrl && (await goto(page, surfaces.loginUrl))) shots.push(await shot(page, `login page (${surfaces.loginUrl})`))
+    if (surfaces.signupUrl && (await goto(page, surfaces.signupUrl))) shots.push(await shot(page, `signup page (${surfaces.signupUrl})`))
+    if (surfaces.forgotUrl && (await goto(page, surfaces.forgotUrl))) shots.push(await shot(page, `forgot/reset password page (${surfaces.forgotUrl})`))
 
     if (!shots.length) {
-      const why = `NEEDS-YOU: no auth surface (login/signup/forgot) reachable under the usual paths for ${origin}. Confirm the product's auth routes, then re-run.`
+      const why = `NEEDS-YOU: no real auth surface (login/signup/forgot) discovered for ${origin} (resolved: login=${surfaces.loginUrl || '∅'} signup=${surfaces.signupUrl || '∅'} forgot=${surfaces.forgotUrl || '∅'}). Confirm the product's auth routes, then re-run.`
       const verdicts = CHECKS.map((c) => ({ code: c.code, status: 'na', evidence: why }))
       const n = await record(slug, 'naive-tester', verdicts, deployment)
       console.log(`auth-tester: no auth surface reachable — recorded ${n} na verdict(s) for ${slug}`)

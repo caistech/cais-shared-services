@@ -7,7 +7,15 @@
 #   2a  repo-probe   — DEFAULT, REAL: checks out the product repo, runs validation-probe.mjs
 #                      (#35 email sender · #36 @caistech-first · #37 feature pre-flight) and records
 #                      verdicts (source=auto). Deterministic, no browser.
-#   2b  browser-agents — OPT-IN (run_agents=true), FRONTIER/SCAFFOLD: the real naive-tester +
+#   2b  browser-agents — OPT-IN (run_agents=true): the auth/admin/user/voice agents. Each agent now
+#                      RESOLVES the product's real auth/settings/admin surfaces at runtime via
+#                      lib.mjs resolveSurfaces() (landing-CTA discovery + a 404-aware probe) instead
+#                      of hardcoding /login, /settings, … — so a product on non-default routes
+#                      (/pipeline/login, /pipeline/settings, …) is judged on its REAL pages, not a
+#                      404 (the VT_C/VT_A/VT_B false-negative class this orchestrator removed). No
+#                      per-product input is needed — discovery is automatic; --voice-url stays an
+#                      override for a gated voice surface the landing doesn't link to.
+#                      FRONTIER/SCAFFOLD note: the real naive-tester +
 #                      voice-auditor + dual-portal walk needs a gstack/Claude-Code browser runner,
 #                      which GitHub-hosted runners don't provide. This job is intentionally a
 #                      documented scaffold (it does NOT fake a shallow HTTP "naive-tester" — that
