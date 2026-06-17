@@ -15,8 +15,8 @@
 
 import fs from 'fs'
 import path from 'path'
-import { execFileSync } from 'child_process'
 import { checkVercelEnv } from './vercel-env-check.mjs'
+import { recordReadiness } from './gate-check.mjs'
 
 function arg(name, def = '') {
   const i = process.argv.indexOf(`--${name}`)
@@ -211,14 +211,21 @@ if (usesVoice) {
   })
 }
 
-// --- record each via gate-check.mjs record-readiness (the shared seam) ---
-const checksArg = results.map((r) => `${r.code}=${r.status}`).join(',')
+// --- record each via recordReadiness (the shared seam) ---
+// Call recordReadiness DIRECTLY (not the gate-check CLI). The old `--checks code=status` CLI form
+// carried ONLY code+status, silently DROPPING every check's `evidence` — so the card showed probe
+// results (e.g. P4's "built beyond thin-MVP — scale-infra: …", #37, #40) with no explanation. The
+// programmatic call passes the full {code, status, evidence} so the signal is legible.
 console.log('[validation-probe] results:', JSON.stringify(results, null, 2))
 try {
-  const a = [gateCheck, 'record-readiness', slug, '--source', 'auto', '--checks', checksArg]
-  if (deployment) a.push('--deployment', deployment); else a.push('--no-deployment')
-  execFileSync('node', a, { stdio: 'inherit' })
-  console.log('[validation-probe] recorded', results.length, 'verdicts for', slug)
+  await recordReadiness({
+    slug,
+    source: 'auto',
+    checks: results.map((r) => ({ code: r.code, status: r.status, evidence: r.evidence })),
+    deploymentId: deployment || null,
+    recordedBy: 'auto',
+  })
+  console.log('[validation-probe] recorded', results.length, 'verdicts (with evidence) for', slug)
 } catch (err) {
   console.error('[validation-probe] record failed:', err instanceof Error ? err.message : err)
   process.exit(1)
