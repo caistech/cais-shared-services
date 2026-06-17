@@ -24,7 +24,8 @@
 //   (e.g. a product-scoped welcome like /welcome?product=<slug>, or a post-action coach surface).
 //   Without it, the auditor only sees the landing — and a product whose coach is param/auth-gated
 //   will read as "no voice" even though it has one. Pass this for any param/gated voice surface.
-// Env: ANTHROPIC_API_KEY (required); TEST_USER_EMAIL + QA_USER_PASSWORD (optional, authed surface);
+// Env: ANTHROPIC_API_KEY (required); QA_TEST_USER_EMAIL + QA_TEST_USER_PASSWORD (canonical creds for
+//      the authed surface; legacy QA_USER_*/TEST_USER_* still accepted as fallback);
 //      VERCEL_AUTOMATION_BYPASS_SECRET (optional).
 
 import { arg, launch, goto, shot, tryLogin, visionVerdicts, record } from './lib.mjs'
@@ -94,13 +95,24 @@ async function main() {
     // The key value surface is usually behind auth — log in and look there too.
     const app = await ctx.newPage()
     const login = await tryLogin(app, origin, {
-      email: process.env.QA_USER_EMAIL || process.env.TEST_USER_EMAIL || process.env.QA_TEST_EMAIL,
-      password: process.env.QA_USER_PASSWORD || process.env.QA_TEST_PASSWORD,
+      // Canonical QA creds first (QA_TEST_USER_*), then the legacy fallbacks. Reading only the old
+      // names silently failed login (creds undefined) → the auditor saw ONLY the public landing and
+      // false-negatived voice that lives behind auth (the pipeline coach #10 false-negative).
+      email: process.env.QA_TEST_USER_EMAIL || process.env.QA_USER_EMAIL || process.env.TEST_USER_EMAIL || process.env.QA_TEST_EMAIL,
+      password: process.env.QA_TEST_USER_PASSWORD || process.env.QA_USER_PASSWORD || process.env.QA_TEST_PASSWORD,
     })
     if (login.ok) {
       shots.push(await shot(app, 'key value surface (authed) — looking for voice'))
       const opened = await openVoice(app)
       if (opened) shots.push(await shot(app, `voice panel on authed surface via ${opened}`))
+      // The voice/coach surface is often BEHIND AUTH and NOT the authed root — e.g. pipeline's intake
+      // coach at /pipeline/new-ideas. Visit the --voice-url surface on the AUTHED page too, so a gated
+      // coach isn't read as "no voice" (the bare unauthed --voice-url visit above only gets the login wall).
+      if (voiceUrl && voiceUrl !== origin && (await goto(app, voiceUrl))) {
+        shots.push(await shot(app, 'voice surface (--voice-url) AUTHED — looking for voice'))
+        const o2 = await openVoice(app)
+        if (o2) shots.push(await shot(app, `voice panel on authed voice surface via ${o2}`))
+      }
     }
 
     if (!shots.length) { console.error('voice-auditor: could not load any page — recording nothing'); return 1 }
