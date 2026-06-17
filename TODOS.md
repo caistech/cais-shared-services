@@ -32,3 +32,18 @@ Deferred work captured during reviews. Each item has enough context to be picked
 - **Cons:** Needs a per-session/IP key strategy that doesn't penalise legitimate repeat users; another middleware in the request path.
 - **Context:** Deferred from voice-service PR1. Decision 16B (no anon persistence — anon rows purged at call end) lowered the *storage/privacy* urgency, but the *cost/abuse* exposure on the live call path remains. Wire `platform-trust-middleware` rate limiting around `createConvaiWebhookRoutes` anon paths and the agent-connect endpoint.
 - **Depends on / blocked by:** Voice-service PR1 (the webhook routes must exist first). Not a launch blocker for authed-only consumers.
+
+---
+
+## 4. Portfolio sweep — `@supabase/ssr` middleware logout-on-refresh fix
+
+- **What:** Apply the one-line middleware fix (stop recreating `response` in the cookie `set()/remove()` callbacks) across every repo that carries the verbatim-ported `@supabase/ssr` middleware. Fixed in **pipeline** (commit `88e6948`); the rest still carry the bug.
+- **Why:** The `set()/remove()` callbacks reassign `response = NextResponse.next(...)` on every call, dropping all-but-the-last refresh cookie. Supabase chunks the auth token (`sb-<ref>-auth-token.0/.1` + refresh), so on a token refresh only the last cookie reaches the browser → partial/corrupt session → **authed user bounced to login on refresh.** Ported verbatim from Corporate-AI-Solutions, so it's portfolio-wide.
+- **The fix:** create `response` ONCE; in `set()/remove()` write to that same response (`response.cookies.set` + `request.cookies.set`) and do NOT recreate it. (On `@supabase/ssr` ≥0.5 prefer the `getAll/setAll` pattern.) Reference diff: pipeline `src/middleware.ts` @ `88e6948`.
+- **Sweep list (2026-06-18 grep of `response = NextResponse.next` in `**/middleware.ts`):**
+  - **High-confidence (count 3 — fix):** Corporate-AI-Solutions (source), DealFindrs, F2K-Fund-Tokenisation/admin-console, LongtailAIVentureStudio, F2K-OffshoreModular, OutreachReady, Tenderwatch
+  - **Probable (count 2):** cais-starter, executorai, F2K-Projects, HairStylistAI, UniversalLingo/host, SayFix
+  - **Verify (count 1 — may use `getAll` / be fine):** F2K-Checkpoint, Connexions, LeadSpark, RaiseReadyTemplate, community-question-responder, preflight, universal-interviews, F2K-Fund-Tokenisation/investor-portal
+- **Priority:** Do **`cais-starter` first** (the scaffold template — every future product inherits the pattern), then active revenue/case-study repos (DealFindrs, SayFix, Tenderwatch, OutreachReady, executorai), then the rest. Verify each: type-check + a real authed refresh holds the session. Per-repo it needs the edit + build + deploy.
+- **Context / detail:** Full root-cause + detection + fix logged in `bug-knowledge.json` (`id: supabase-ssr-middleware-recreates-response-logout-on-refresh`).
+- **Depends on / blocked by:** Nothing — independent per repo. Each user may need ONE more sign-in after the fix deploys (their current cookie is already in the partial state).
