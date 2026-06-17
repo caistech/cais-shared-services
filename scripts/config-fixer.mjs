@@ -388,17 +388,38 @@ do $$ begin
 end $$;
 `
 
+// VT_D4/D5/D6 ALL map to fix_profiles (one idempotent migration covers table + trigger + RLS). The
+// remediation must run ONCE per ref per run and share its verdict across the three codes — otherwise
+// the migration POSTs three times, the 2nd/3rd race the Supabase mgmt API, get a transient HTML error
+// page, and VT_D5/D6 falsely `fail` while VT_D4 (the first POST) `pass`ed. Memoize + retry once on a
+// transient, and clean the error text (it was dumping a raw <!DOCTYPE html> page into the evidence).
+const _profilesApplied = new Map() // supabaseRef → result
+
+async function applyProfilesOnce(ctx) {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const res = await fetch(`https://api.supabase.com/v1/projects/${ctx.supabaseRef}/database/query`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${ctx.supabaseToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: PROFILES_SQL }),
+    })
+    if (res.ok) {
+      return { status: 'pass', evidence: `profiles table + on_auth_user_created trigger + own-row RLS applied to ${ctx.supabaseRef} (idempotent).` }
+    }
+    const body = (await res.text()).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 130)
+    if (attempt === 2) return { status: 'fail', evidence: `profiles scaffolding failed (HTTP ${res.status}): ${body || 'no body'}` }
+    await new Promise((r) => setTimeout(r, 1500)) // transient (rate-limit / 5xx) — retry once
+  }
+}
+
 async function fix_profiles(ctx) {
   if (!ctx.supabaseRef) return { status: 'needs-you', evidence: 'NEEDS-YOU: no Supabase ref resolvable — cannot apply the profiles scaffolding.' }
   if (!ctx.supabaseToken) return { status: 'needs-you', evidence: 'NEEDS-YOU: no Supabase management token to apply the profiles scaffolding migration.' }
   if (!apply) return { status: 'fail', evidence: `Plan: apply idempotent profiles table+trigger+RLS to ${ctx.supabaseRef}. (dry-run — --apply)` }
-  const res = await fetch(`https://api.supabase.com/v1/projects/${ctx.supabaseRef}/database/query`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${ctx.supabaseToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: PROFILES_SQL }),
-  })
-  if (!res.ok) return { status: 'fail', evidence: `profiles scaffolding failed: ${(await res.text()).slice(0, 160)}` }
-  return { status: 'pass', evidence: `profiles table + on_auth_user_created trigger + own-row RLS applied to ${ctx.supabaseRef} (idempotent).` }
+  // Apply once per ref/run; VT_D4/D5/D6 all read the same verdict (no duplicate racing POSTs).
+  if (!_profilesApplied.has(ctx.supabaseRef)) {
+    _profilesApplied.set(ctx.supabaseRef, await applyProfilesOnce(ctx))
+  }
+  return _profilesApplied.get(ctx.supabaseRef)
 }
 
 // Load the @caistech/elevenlabs-convai hub (built dist) — @caistech-first: reuse the canonical
