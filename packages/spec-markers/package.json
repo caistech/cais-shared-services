@@ -1,0 +1,46 @@
+{
+  "name": "@caistech/spec-markers",
+  "version": "0.1.0",
+  "description": "Survey-marker drop-in for external pre-built products — SSRs a product's 14 survey data-* markers (sourced live from its pipeline card) so the deterministic survey gate can read them",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/react": "^18",
+    "typescript": "^5"
+  },
+  "files": [
+    "dist/"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services"
+  },
+  "keywords": [
+    "survey",
+    "validation",
+    "pipeline",
+    "spec-markers",
+    "gate-readiness"
+  ],
+  "author": "Corporate AI Solutions",
+  "license": "MIT"
+}

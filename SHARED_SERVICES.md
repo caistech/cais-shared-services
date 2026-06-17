@@ -18,7 +18,7 @@
 >
 > **Install:** registry is GitHub Packages (`@caistech:registry=https://npm.pkg.github.com`, token
 > `NODE_AUTH_TOKEN`/`GITHUB_PACKAGES_TOKEN`). `npm install @caistech/<name>`. Consumers import the
-> compiled `dist/`, never source. **Last updated:** 2026-06-16 (42 packages).
+> compiled `dist/`, never source. **Last updated:** 2026-06-17 (43 packages).
 
 ---
 
@@ -89,6 +89,7 @@
 | `@caistech/report-generator` | Markdown → branded PDF (brand + disclaimer + watermark + page numbers). |
 | `@caistech/sayfix-embed` | SayFix bug-reporting widget — GBTA-controlled service layer. Wire `<SayFixWidget repo="…" />` (root layout; `repo` MUST equal the SayFix `repos.github_repo`) per the PRODUCT_STANDARDS SayFix gate. **v0.3.0+ ships a compiled `dist/` + zero runtime deps (inlined SVG icons) → no `transpilePackages` needed; ≤0.2.0 shipped raw `src/index.ts` JSX and broke Next builds.** Rollout runbook: `SAYFIX_INTEGRATION_ROLLOUT.md`. |
 | `@caistech/byok-setup` | BYOK key-onboarding wizard — reads `byok.config.json`, validates pasted keys, generates secrets, distributes to `.env.local` + Vercel. |
+| `@caistech/spec-markers` | **Survey-marker drop-in for EXTERNAL pre-built products.** The methodology survey gate greps 14 `data-*` markers from a product's SSR'd landing HTML (no JS exec) to verdict it (RENOVATION/TEARDOWN/…). Factory-generated products plant them at build; a hand-built/external product (separate codebase, can't read the pipeline DB) installs this and drops `<SpecMarkers slug="x"/>` (async Server Component) on its public landing — it fetches the public `GET <pipeline>/api/public/spec-markers/<slug>` and SSRs the attrs. Marker MAPPING stays single-sourced in pipeline (thin renderer, no drift). Also `fetchSpecMarkers()` + `buildSurveyManifest()` (→ `public/survey-manifest.json`). ⚠️ the product's card needs `feasibility.why_now` set or survey P3 fails. |
 
 ## Portfolio operations (hub tooling, not product deps)
 | Package | Capability |
