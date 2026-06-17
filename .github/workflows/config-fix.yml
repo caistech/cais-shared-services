@@ -63,7 +63,7 @@ jobs:
           fi
         continue-on-error: true
 
-      - name: Run the config-fixer (--pull-vercel: resolves product env from Vercel, not a local file)
+      - name: "Run the config-fixer (--pull-vercel resolves product env from Vercel, not a local file)"
         run: |
           node scripts/config-fixer.mjs \
             --slug "${{ github.event.inputs.slug }}" \
