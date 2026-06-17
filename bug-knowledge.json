@@ -820,6 +820,56 @@
       "solution": "Two parts. (1) GROUNDING SOURCE: the generate routes read product content from the WRONG table — methodology_hypothesis_cards has only mvp_url + gate state, NOT core_mechanism/promise (those live in product_validation_status), so productOneLiner came through empty. Source the one-liner from product_validation_status. (2) HARD GUARD in the composer: if the one-liner is empty, return a deterministic fallback that NAMES the product but makes NO capability claim — never call the LLM with nothing to describe; and the prompt forbids inventing/tailoring the product (it is identical for everyone; the signal personalises only the opening hook). GENERAL LESSON (portfolio-wide): an LLM given a personalisation signal but NO product grounding will fabricate a product to fit the signal — always ground product claims on a verified source and hard-fallback when absent (degrade-don’t-fake). pipeline commit 101b928.",
       "fixed_at": "2026-06-17",
       "fixed_by": "claude-opus-4-8"
+    },
+    {
+      "id": "supabase-ssr-middleware-recreates-response-logout-on-refresh",
+      "product": "shared / any Next.js + @supabase/ssr middleware (the pattern ported from Corporate-AI-Solutions)",
+      "error_pattern": "Authenticated user is bounced to login when REFRESHING an authed page — session lost on refresh, intermittent (hits when the access token needs re-issuing)",
+      "error_symptoms": [
+        "Refreshing an authed page redirects to /login (or /admin/login) despite being signed in",
+        "Session \"randomly\" drops after some idle time + a refresh; fine right after login",
+        "@supabase/ssr middleware using the per-cookie get/set/remove callbacks (not getAll/setAll)",
+        "Cookies sb-<ref>-auth-token.0/.1 present but partial/corrupt after a refresh"
+      ],
+      "attempts": [],
+      "solution": {
+        "approach": "The middleware cookie set()/remove() callbacks reassign `response = NextResponse.next(...)` on EVERY call, discarding cookies set by prior calls. Supabase chunks the auth token across multiple cookies (…-auth-token.0/.1 + refresh); on a token refresh getUser() writes several cookies but only the LAST survives on the response → the browser gets a partial/corrupt session cookie → the next server render getUser() fails → redirect to login.",
+        "answer": "Create `response` ONCE; in set()/remove() write to that SAME response (response.cookies.set / request.cookies.set) and do NOT recreate it. On @supabase/ssr >=0.5 prefer the getAll/setAll pattern (writes all cookies on one response). Detection: grep middleware.ts for `response = NextResponse.next` appearing inside the cookie set/remove callbacks (count 2-3 with the get/set/remove pattern).",
+        "affected_repos_to_sweep": {
+          "high_confidence_count3": [
+            "Corporate-AI-Solutions (source)",
+            "DealFindrs",
+            "F2K-Fund-Tokenisation/admin-console",
+            "LongtailAIVentureStudio",
+            "F2K-OffshoreModular",
+            "OutreachReady",
+            "Tenderwatch"
+          ],
+          "probable_count2": [
+            "cais-starter",
+            "executorai",
+            "F2K-Projects",
+            "HairStylistAI",
+            "UniversalLingo/host",
+            "SayFix"
+          ],
+          "verify_count1": [
+            "F2K-Checkpoint",
+            "Connexions",
+            "LeadSpark",
+            "RaiseReadyTemplate",
+            "community-question-responder",
+            "preflight",
+            "universal-interviews",
+            "F2K-Fund-Tokenisation/investor-portal"
+          ],
+          "already_fixed": [
+            "pipeline (commit 88e6948)"
+          ]
+        }
+      },
+      "fixed_at": "2026-06-18",
+      "fixed_by": "pipeline middleware fix (commit 88e6948); portfolio sweep pending"
     }
   ],
   "usage": "Before fixing ANY bug, grep this file for matching error patterns. Also check SayFix DB for product-specific attempts.",
