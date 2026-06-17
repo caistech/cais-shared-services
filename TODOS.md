@@ -39,11 +39,21 @@ Deferred work captured during reviews. Each item has enough context to be picked
 
 - **What:** Apply the one-line middleware fix (stop recreating `response` in the cookie `set()/remove()` callbacks) across every repo that carries the verbatim-ported `@supabase/ssr` middleware. Fixed in **pipeline** (commit `88e6948`); the rest still carry the bug.
 - **Why:** The `set()/remove()` callbacks reassign `response = NextResponse.next(...)` on every call, dropping all-but-the-last refresh cookie. Supabase chunks the auth token (`sb-<ref>-auth-token.0/.1` + refresh), so on a token refresh only the last cookie reaches the browser → partial/corrupt session → **authed user bounced to login on refresh.** Ported verbatim from Corporate-AI-Solutions, so it's portfolio-wide.
-- **The fix:** create `response` ONCE; in `set()/remove()` write to that same response (`response.cookies.set` + `request.cookies.set`) and do NOT recreate it. (On `@supabase/ssr` ≥0.5 prefer the `getAll/setAll` pattern.) Reference diff: pipeline `src/middleware.ts` @ `88e6948`.
-- **Sweep list (2026-06-18 grep of `response = NextResponse.next` in `**/middleware.ts`):**
-  - **High-confidence (count 3 — fix):** Corporate-AI-Solutions (source), DealFindrs, F2K-Fund-Tokenisation/admin-console, LongtailAIVentureStudio, F2K-OffshoreModular, OutreachReady, Tenderwatch
-  - **Probable (count 2):** cais-starter, executorai, F2K-Projects, HairStylistAI, UniversalLingo/host, SayFix
-  - **Verify (count 1 — may use `getAll` / be fine):** F2K-Checkpoint, Connexions, LeadSpark, RaiseReadyTemplate, community-question-responder, preflight, universal-interviews, F2K-Fund-Tokenisation/investor-portal
-- **Priority:** Do **`cais-starter` first** (the scaffold template — every future product inherits the pattern), then active revenue/case-study repos (DealFindrs, SayFix, Tenderwatch, OutreachReady, executorai), then the rest. Verify each: type-check + a real authed refresh holds the session. Per-repo it needs the edit + build + deploy.
+- **The fix:** create `response` ONCE; in `set()/remove()` write to that same response (`response.cookies.set` + `request.cookies.set`) and do NOT recreate it. (On `@supabase/ssr` ≥0.5 prefer the `getAll/setAll` pattern, which is already immune — see below.) Reference diff: pipeline `src/middleware.ts` @ `88e6948`.
+- **The real discriminator (corrected 2026-06-18 — DO NOT triage by occurrence count):** the original `grep response = NextResponse.next` count buckets were wrong. The bug exists **only** in the old per-cookie `get/set/remove` cookie API where `set()`/`remove()` *recreate* `response` on each call (they fire once per cookie, so each recreate drops the prior chunk). It does **NOT** exist in:
+  - the `getAll/setAll` API — `setAll` receives ALL cookies in one call and writes them after a single recreate, so recreating `response` there is harmless (this is the canonical Supabase ≥0.5 pattern and *is* the fix); nor in
+  - `get/set/remove` files that write to one persistent `response` without recreating it (pipeline's fix shape).
+  The count heuristic mislabelled both safe shapes: `getAll/setAll` lands at count 2 ("probable"), and the genuinely-buggy old pattern at count 3. **All 23 files were read and classified by cookie API + recreate-behaviour:**
+- **Sweep list (re-triaged 2026-06-18 by reading every file — only 5 are actually buggy):**
+  - **❌ ACTUALLY BUGGY (fix these — `get/set/remove` recreating `response` per call):**
+    Corporate-AI-Solutions (the source), DealFindrs, F2K-OffshoreModular, LongtailAIVentureStudio, Tenderwatch (`apps/web`).
+  - **✅ ALREADY FIXED / SAFE — `get/set/remove` writing to ONE persistent response (no change):**
+    pipeline (the reference fix), preflight, universal-interviews, Connexions, community-question-responder, OutreachReady, LeadSpark (`packages/frontend/portal/middleware.ts`).
+  - **✅ ALREADY SAFE — `getAll/setAll` canonical pattern (no change, ever):**
+    cais-starter, executorai, HairStylistAI, F2K-Checkpoint, F2K-Fund-Tokenisation/admin-console, F2K-Projects, UniversalLingo/host, SayFix (root `middleware.ts` + `src/lib/supabase/middleware.ts`).
+  - **— NOT APPLICABLE — grep false positive, no Supabase cookie handling at all (rate-limit/CSP middleware):**
+    RaiseReadyTemplate, LeadSpark (`middleware.ts`), F2K-Fund-Tokenisation/investor-portal.
+  - **Sweep complete:** `LeadSpark/packages/frontend/portal/middleware.ts` (the second LeadSpark middleware, not in the original 23) was checked 2026-06-18 — `get/set/remove` writing to one persistent `res`, no recreate → **safe** (listed above). No outstanding files.
+- **Priority:** **cais-starter needs NO change** — it's already on the safe `getAll/setAll` pattern (the prior "do cais-starter first" instruction was based on the bad count triage; applying the reference diff to it would be a no-op/regression). Fix only the 5 buggy repos, revenue/case-study first: **DealFindrs → Tenderwatch → Corporate-AI-Solutions (source) → LongtailAIVentureStudio → F2K-OffshoreModular.** Verify each: type-check + a real authed refresh holds the session. Per-repo it needs the edit + build + deploy.
 - **Context / detail:** Full root-cause + detection + fix logged in `bug-knowledge.json` (`id: supabase-ssr-middleware-recreates-response-logout-on-refresh`).
 - **Depends on / blocked by:** Nothing — independent per repo. Each user may need ONE more sign-in after the fix deploys (their current cookie is already in the partial state).
