@@ -84,39 +84,16 @@ if (apexHits.length > 0) { emailStatus = 'fail'; emailEvidence = `bare-apex send
 else if (verifiedHits.length > 0) { emailStatus = 'pass'; emailEvidence = `verified subdomain sender (${verifiedHits.length} ref(s))` }
 results.push({ code: '35', status: emailStatus, evidence: emailEvidence })
 
-// --- VT_D scaffold checks (the §8.5/§9.5 scaffold layer). D1/D4/D5/D6/D7 are determinable from the
-// repo + migrations; D2/D3 are runtime/browser → left to the user-tester (VT_B), na here with the
-// cross-reference (degrade-don't-fake). Built 2026-06-15 — these had NO producer before, so they sat
-// `unknown` forever and the gate could never go green.
-function readMigrations() {
-  const dir = 'supabase/migrations'
-  let out = ''
-  try { for (const f of fs.readdirSync(path.join(repo, dir)).sort()) if (f.endsWith('.sql')) out += '\n' + read(path.join(dir, f)) } catch {}
-  return out
-}
-const migrations = readMigrations()
-const mig = (re) => re.test(migrations)
-
-// VT_D1 — ADMIN_EMAILS includes the two operator identities (§9.5).
-const adminEmailsHits = grepSrc(/ADMIN_EMAILS/i, 8).join('\n')
-const hasOps = /dennis@corporateaisolutions\.com/i.test(adminEmailsHits) && /mcmdennis@gmail\.com/i.test(adminEmailsHits)
-results.push({ code: 'VT_D1', status: !adminEmailsHits ? 'fail' : (hasOps ? 'pass' : 'fail'),
-  evidence: !adminEmailsHits ? 'no ADMIN_EMAILS reference found in src/' : (hasOps ? 'ADMIN_EMAILS references both operator identities' : 'ADMIN_EMAILS present but an operator identity is missing') })
-
-// VT_D4 — profiles table defined in migrations.
-const hasProfiles = mig(/create\s+table\s+(if\s+not\s+exists\s+)?(public\.)?["']?profiles["']?/i)
-results.push({ code: 'VT_D4', status: !migrations ? 'na' : (hasProfiles ? 'pass' : 'fail'),
-  evidence: !migrations ? 'no supabase/migrations — cannot verify the profiles table from the repo' : (hasProfiles ? 'profiles table created in migrations' : 'no `create table profiles` found in migrations') })
-
-// VT_D5 — on_auth_user_created trigger fires on signup.
-const hasTrigger = mig(/on_auth_user_created/i)
-results.push({ code: 'VT_D5', status: !migrations ? 'na' : (hasTrigger ? 'pass' : 'fail'),
-  evidence: !migrations ? 'no migrations' : (hasTrigger ? 'on_auth_user_created trigger present' : 'no on_auth_user_created trigger in migrations') })
-
-// VT_D6 — RLS on the profiles table (own-row).
-const hasRls = mig(/["']?profiles["']?\s+enable\s+row\s+level\s+security/i) || (/create\s+policy/i.test(migrations) && /on\s+(public\.)?["']?profiles/i.test(migrations))
-results.push({ code: 'VT_D6', status: !migrations ? 'na' : (hasRls ? 'pass' : 'fail'),
-  evidence: !migrations ? 'no migrations' : (hasRls ? 'RLS enabled / policy on profiles' : 'no RLS or policy on profiles in migrations') })
+// --- VT_D scaffold checks (the §8.5/§9.5 scaffold layer).
+// VT_D1 (ADMIN_EMAILS) + VT_D4/D5/D6 (profiles table / trigger / RLS) are NOW OWNED SOLELY by the
+// config-fixer (the config lane), which verifies them against LIVE infra (the Vercel env + the
+// Supabase DB) and APPLIES the remediation. The repo-probe USED to also emit them from the repo
+// (grep ADMIN_EMAILS / a profiles migration FILE), but: (a) the config-fixer applies the profiles
+// migration straight to the DB — there is NO migration file in the product repo to grep — and (b)
+// the ADMIN_EMAILS grep missed env-set operators. So the repo-probe's verdicts were FALSE FAILS that
+// flip-flopped with the config-fixer's passes every round (both source=auto, latest-write-wins → the
+// card oscillated). Removed here so the config-fixer is the SINGLE source of truth for these four.
+// (D2/D3 remain na runtime cross-refs; D7 mirrors the repo-side #35 email-sender check, kept below.)
 
 // VT_D7 — email infrastructure = the verified-subdomain sender (mirrors #35).
 results.push({ code: 'VT_D7', status: emailStatus, evidence: `email sender: ${emailEvidence}` })
