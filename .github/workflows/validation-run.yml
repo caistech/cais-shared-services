@@ -36,6 +36,10 @@ on:
         description: 'Deployment the verdicts bind to (blank = --no-deployment)'
         required: false
         default: ''
+      voice_url:
+        description: 'Surface where the voice agent/coach renders if NOT the bare landing (e.g. an authed intake route like /pipeline/new-ideas). The voice-auditor visits it (authed) so a gated coach is not read as no-voice.'
+        required: false
+        default: ''
       run_agents:
         description: 'Run the CI-native browser test-agents (naive-tester + voice-auditor)'
         required: false
@@ -171,6 +175,7 @@ jobs:
           node scripts/agents/voice-auditor.mjs \
             --slug "${{ github.event.inputs.slug }}" \
             --url "${{ github.event.inputs.url }}" \
+            --voice-url "${{ github.event.inputs.voice_url }}" \
             --deployment "${{ github.event.inputs.deployment_id }}"
         continue-on-error: true
 
