@@ -64,6 +64,19 @@ async function openVoice(page) {
   return null
 }
 
+// The convai SDK mounts its launcher ASYNCHRONOUSLY (script load + widget init), so a screenshot
+// taken immediately after navigation can miss it — a gated coach then reads as "no voice" purely on
+// timing (the pipeline #10/#12/#13 false-negative). Wait for any launcher shape to render before the
+// screenshot. Best-effort: returns false (and we screenshot anyway) if it never appears.
+async function waitForVoice(page, ms = 9000) {
+  const sel = [
+    '[class*="convai-launch"]', '[class*="convai-btn"]', '[class*="convai"]', 'elevenlabs-convai',
+    'button:has-text("Begin")', 'button:has-text("Start a conversation")', 'button:has-text("Talk it through")',
+    '[aria-label*="voice" i]', '[aria-label*="microphone" i]',
+  ].join(', ')
+  try { await page.waitForSelector(sel, { timeout: ms, state: 'visible' }); return true } catch { return false }
+}
+
 async function main() {
   if (!slug || !origin) { console.error('voice-auditor: --slug and --url are required'); return 2 }
   if (!apiKey) { console.error("voice-auditor: ANTHROPIC_API_KEY required — recording nothing (degrade-don't-fake)"); return 1 }
@@ -86,6 +99,7 @@ async function main() {
     if (voiceUrl && voiceUrl !== origin) {
       const vp = await ctx.newPage()
       if (await goto(vp, voiceUrl)) {
+        await waitForVoice(vp) // async convai mount — wait before the shot
         shots.push(await shot(vp, 'voice surface (--voice-url) — looking for a voice launcher'))
         const opened = await openVoice(vp)
         if (opened) shots.push(await shot(vp, `voice panel opened on voice surface via ${opened}`))
@@ -113,7 +127,8 @@ async function main() {
       // coach at /pipeline/new-ideas. Visit the --voice-url surface on the AUTHED page too, so a gated
       // coach isn't read as "no voice" (the bare unauthed --voice-url visit above only gets the login wall).
       if (voiceUrl && voiceUrl !== origin && (await goto(app, voiceUrl))) {
-        shots.push(await shot(app, 'voice surface (--voice-url) AUTHED — looking for voice'))
+        const mounted = await waitForVoice(app) // let the async convai widget render before the shot
+        shots.push(await shot(app, `voice surface (--voice-url) AUTHED — looking for voice${mounted ? ' (launcher detected)' : ''}`))
         const o2 = await openVoice(app)
         if (o2) shots.push(await shot(app, `voice panel on authed voice surface via ${o2}`))
       }
