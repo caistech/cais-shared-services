@@ -59,6 +59,10 @@ on:
         description: 'OpenCode model id (blank = DESIGN_BUILD_MODEL var, else shared OPENCODE_MODEL, else Sonnet)'
         required: false
         type: string
+      repo:
+        description: 'Target repo owner/name or URL (e.g. caistech/f2k-checkpoint). The DISPATCHER supplies the cards github_repo binding here — design-build can not read it from the auth-gated cockpit. When set, it overrides the slug->repo guess (fixes slug != repo: f2k-checkpoint-new, investorpilot, singify). Optional.'
+        required: false
+        type: string
 
 concurrency:
   group: design-build-${{ github.event.inputs.slug }}
@@ -103,12 +107,16 @@ jobs:
           set -e
           REPO="$SLUG"
           TARGET_FULL=""
-          # 1. PREFER the card's explicit github_repo binding (set via onboarding "Save details").
-          # The slug→repo guess is WRONG whenever slug != repo (f2k-checkpoint-new→caistech/f2k-checkpoint,
-          # investorpilot→dennissolver/investor-pilot, singify→singify-platform). The binding is the
-          # operator's stated input — honour it; fall back to the slug scan only when it's unset.
-          GHBIND=$(curl -sSL "$COCKPIT_BASE/api/admin/pipeline/$SLUG" 2>/dev/null \
-            | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{process.stdout.write(((JSON.parse(d).github_repo)||'').trim())}catch{process.stdout.write('')}})" 2>/dev/null || echo "")
+          # 1. PREFER the card's github_repo binding. The slug→repo guess is WRONG whenever slug != repo
+          # (f2k-checkpoint-new→caistech/f2k-checkpoint, investorpilot→dennissolver/investor-pilot,
+          # singify→singify-platform). The DISPATCHER (conductor / manual) passes the binding as the
+          # `repo` input — design-build can't read it from the auth-gated, multi-instance cockpit
+          # reliably. Prefer the input; fall back to a best-effort cockpit read; then the slug scan.
+          GHBIND="${{ github.event.inputs.repo }}"
+          if [ -z "$GHBIND" ]; then
+            GHBIND=$(curl -sSL "$COCKPIT_BASE/api/admin/pipeline/$SLUG" 2>/dev/null \
+              | node -e "let d='';process.stdin.on('data',c=>c&&(d+=c)).on('end',()=>{try{const j=JSON.parse(d);process.stdout.write(((j.github_repo||(j.validation&&j.validation.github_repo))||'').trim())}catch{process.stdout.write('')}})" 2>/dev/null || echo "")
+          fi
           # Normalize: https://github.com/owner/name(.git) | owner/name → owner/name
           GHBIND=$(printf '%s' "$GHBIND" | sed -E 's#^https?://github.com/##I; s#\.git$##; s#/+$##')
           if printf '%s' "$GHBIND" | grep -qE '^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$'; then
