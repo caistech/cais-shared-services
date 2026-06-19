@@ -111,6 +111,11 @@ export function markerProps(
  * Build the route manifest the survey fetches first (SURVEY_MARKER_CONTRACT §4). Write the
  * returned string to `public/survey-manifest.json`. List EVERY route that carries a marker —
  * the survey greps the union of their DOM, so a missing route hides its markers.
+ *
+ * CRITICAL: this manifest AND every route it lists must be PUBLICLY served (in the middleware
+ * PUBLIC_PATHS / not behind the auth gate). The survey fetches them UNAUTHENTICATED — an auth
+ * redirect makes it read redirect HTML instead of the markers, a false TEARDOWN below 14/14
+ * (this capped executorai at 9/14 when /partners + this manifest were auth-redirected).
  */
 export function surveyManifest(routes: string[]): string {
   const clean = Array.from(
