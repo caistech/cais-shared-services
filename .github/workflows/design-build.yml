@@ -81,6 +81,11 @@ jobs:
       # (e.g. @caistech/elevenlabs-convai) instead of inlining/forking its logic. GH_PAT must carry
       # read:packages scope. Read by the .npmrc written into target/ below.
       NODE_AUTH_TOKEN: ${{ secrets.GH_PAT }}
+      # BYOK: when DESIGN_BUILD_MODEL is a direct-provider model (e.g. anthropic/claude-sonnet-4-6),
+      # the builder bills the operator's OWN Anthropic key instead of OpenCode's hosted credits —
+      # so an out-of-credit OpenCode workspace no longer blocks design-build. opencode.json (below)
+      # references this via "{env:ANTHROPIC_API_KEY}". Unused when the model is an opencode/* id.
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
     steps:
       - name: Checkout shared-services (standards + template)
@@ -255,6 +260,13 @@ jobs:
               "bash": "allow",
               "webfetch": "allow",
               "external_directory": "allow"
+            },
+            "provider": {
+              "anthropic": {
+                "options": {
+                  "apiKey": "{env:ANTHROPIC_API_KEY}"
+                }
+              }
             }
           }
           JSON
