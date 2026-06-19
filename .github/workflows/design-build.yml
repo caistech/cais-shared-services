@@ -59,6 +59,10 @@ on:
         description: 'OpenCode model id (blank = DESIGN_BUILD_MODEL var, else shared OPENCODE_MODEL, else Sonnet)'
         required: false
         type: string
+      repo:
+        description: 'Target repo owner/name or URL (e.g. caistech/f2k-checkpoint). The DISPATCHER supplies the cards github_repo binding here — design-build cant read it from the auth-gated cockpit. Overrides the slug->repo guess (fixes slug != repo). Optional.'
+        required: false
+        type: string
 
 concurrency:
   group: design-build-${{ github.event.inputs.slug }}
@@ -107,8 +111,14 @@ jobs:
           # The slug→repo guess is WRONG whenever slug != repo (f2k-checkpoint-new→caistech/f2k-checkpoint,
           # investorpilot→dennissolver/investor-pilot, singify→singify-platform). The binding is the
           # operator's stated input — honour it; fall back to the slug scan only when it's unset.
-          GHBIND=$(curl -sSL "$COCKPIT_BASE/api/admin/pipeline/$SLUG" 2>/dev/null \
-            | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{process.stdout.write(((JSON.parse(d).github_repo)||'').trim())}catch{process.stdout.write('')}})" 2>/dev/null || echo "")
+          # The DISPATCHER (conductor / manual) passes the binding as the `repo` input — design-build
+          # can't read it from the auth-gated, multi-instance cockpit reliably. Prefer it; fall back to
+          # a best-effort cockpit read (handles {validation:{github_repo}} | {github_repo}); then slug.
+          GHBIND="${{ github.event.inputs.repo }}"
+          if [ -z "$GHBIND" ]; then
+            GHBIND=$(curl -sSL "$COCKPIT_BASE/api/admin/pipeline/$SLUG" 2>/dev/null \
+              | node -e "let d='';process.stdin.on('data',c=>c&&(d+=c)).on('end',()=>{try{const j=JSON.parse(d);process.stdout.write(((j.github_repo||(j.validation&&j.validation.github_repo))||'').trim())}catch{process.stdout.write('')}})" 2>/dev/null || echo "")
+          fi
           # Normalize: https://github.com/owner/name(.git) | owner/name → owner/name
           GHBIND=$(printf '%s' "$GHBIND" | sed -E 's#^https?://github.com/##I; s#\.git$##; s#/+$##')
           if printf '%s' "$GHBIND" | grep -qE '^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$'; then
