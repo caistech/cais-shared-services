@@ -242,8 +242,14 @@ export interface AuthFormProps {
    * Optional override: pass your own Supabase browser client (e.g. you have
    * a project-wide `createClient()` helper). When provided, `supabaseUrl` and
    * `supabaseAnonKey` are ignored.
+   *
+   * Accepts `null` because the common SSR-safe consumer pattern
+   * (`useMemo(() => createClient(), [])`) returns `SupabaseClient | null` when
+   * env is absent — the component already handles a null client internally
+   * (`client: SupabaseClientLike | null`), so the prop contract must too,
+   * otherwise every generated login page passing a nullable client fails tsc.
    */
-  supabaseClient?: SupabaseClientLike;
+  supabaseClient?: SupabaseClientLike | null;
 
   /**
    * `@supabase/ssr`'s `createBrowserClient` factory. Injected by the consumer

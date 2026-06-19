@@ -1,6 +1,6 @@
 {
   "name": "@caistech/corporate-components",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Corporate AI Solutions React components — theme-able auth surface (AuthForm light/dark + accent, canonical /auth/callback recovery flow), header, footer, explanatory page header (R3), trust scaffolding (R15), ABN lookup, address autocomplete. Plus brand Tailwind palette + global CSS.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
