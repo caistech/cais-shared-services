@@ -102,31 +102,46 @@ jobs:
           # starter to spec. So the repo MUST already exist here; a 404 means provisioning didn't run.
           set -e
           REPO="$SLUG"
-          # The portfolio repos moved to the caistech org — the old dennissolver/* paths now 301-redirect.
-          # Resolve the owner by probing caistech first, then dennissolver, so this works for migrated
-          # repos AND any not-yet-moved one. (A bare 301 from a hardcoded owner used to read as "not
-          # found" and killed the run in ~10s — sayfix, 2026-06-15.)
-          OWNER=""
-          for cand in caistech dennissolver; do
-            code=$(curl -sS -o /tmp/repo.json -w '%{http_code}' \
-              -H "Authorization: Bearer $GH_PAT" -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/$cand/$REPO")
-            if [ "$code" = "200" ]; then OWNER="$cand"; break; fi
-          done
-          if [ -z "$OWNER" ]; then
-            echo "::error::repo {caistech,dennissolver}/$REPO not found (last HTTP $code). Provision the product first (new-product), then re-run design-build — design-build no longer creates repos."
-            exit 1
+          TARGET_FULL=""
+          # 1. PREFER the card's explicit github_repo binding (set via onboarding "Save details").
+          # The slug→repo guess is WRONG whenever slug != repo (f2k-checkpoint-new→caistech/f2k-checkpoint,
+          # investorpilot→dennissolver/investor-pilot, singify→singify-platform). The binding is the
+          # operator's stated input — honour it; fall back to the slug scan only when it's unset.
+          GHBIND=$(curl -sSL "$COCKPIT_BASE/api/admin/pipeline/$SLUG" 2>/dev/null \
+            | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{process.stdout.write(((JSON.parse(d).github_repo)||'').trim())}catch{process.stdout.write('')}})" 2>/dev/null || echo "")
+          # Normalize: https://github.com/owner/name(.git) | owner/name → owner/name
+          GHBIND=$(printf '%s' "$GHBIND" | sed -E 's#^https?://github.com/##I; s#\.git$##; s#/+$##')
+          if printf '%s' "$GHBIND" | grep -qE '^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$'; then
+            code=$(curl -sS -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $GH_PAT" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$GHBIND")
+            if [ "$code" = "200" ]; then TARGET_FULL="$GHBIND"; echo "repo resolved from card github_repo binding: $GHBIND";
+            else echo "::warning::card github_repo='$GHBIND' not found (HTTP $code) — falling back to slug scan"; fi
           fi
-          echo "TARGET_REPO=$OWNER/$REPO" >> "$GITHUB_ENV"
-          echo "repo resolved: $OWNER/$REPO"
+          # 2. Fallback: the portfolio repos moved to caistech (old dennissolver/* 301-redirect). Probe
+          # caistech first, then dennissolver, for a repo named after the SLUG.
+          if [ -z "$TARGET_FULL" ]; then
+            OWNER=""
+            for cand in caistech dennissolver; do
+              code=$(curl -sS -o /tmp/repo.json -w '%{http_code}' \
+                -H "Authorization: Bearer $GH_PAT" -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/$cand/$REPO")
+              if [ "$code" = "200" ]; then OWNER="$cand"; break; fi
+            done
+            if [ -z "$OWNER" ]; then
+              echo "::error::no github_repo binding on the card AND repo {caistech,dennissolver}/$REPO not found (last HTTP $code). Set the repo via onboarding 'Save details', or provision the product first (new-product)."
+              exit 1
+            fi
+            TARGET_FULL="$OWNER/$REPO"
+          fi
+          echo "TARGET_REPO=$TARGET_FULL" >> "$GITHUB_ENV"
+          echo "repo resolved: $TARGET_FULL"
           # NET-NEW vs existing is the VERDICT, not repo existence: verdict=NEW = a freshly provisioned
           # cais-starter to customize to spec (no survey failures yet); TEARDOWN/RENOVATE = an existing
           # live product to fix against its recorded survey findings.
           if [ "${VERDICT_IN:-}" = "NEW" ]; then
-            echo "repo $OWNER/$REPO exists; verdict=NEW — customize the freshly-provisioned starter to spec"
+            echo "repo $TARGET_FULL exists; verdict=NEW — customize the freshly-provisioned starter to spec"
             echo "NET_NEW=true" >> "$GITHUB_ENV"
           else
-            echo "repo $OWNER/$REPO exists; verdict=${VERDICT_IN:-TEARDOWN} — existing-repo (teardown/renovate) path"
+            echo "repo $TARGET_FULL exists; verdict=${VERDICT_IN:-TEARDOWN} — existing-repo (teardown/renovate) path"
             echo "NET_NEW=false" >> "$GITHUB_ENV"
           fi
 
