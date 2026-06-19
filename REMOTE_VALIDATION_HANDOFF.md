@@ -18,8 +18,10 @@ substrate so sayfix (and every product) validates green end-to-end, remotely, wi
 - **`~/.supabase-token`** — portfolio-wide Supabase Management PAT (`sbp_…`, covers all 44 projects,
   incl. sayfix `vwvfmsuquohlgxcpzdjo` in org `slswtirckvqfcqrlgzgi`).
 - **`~/.vercel-token`** — Vercel token.
-- **`portfolio-manifest.yaml`** `shared.admin_users` / `shared.test_user` — has DRIFT (it carries
-  `qa-admin@qa.corporateaisolutions.com`, NOT the §9.5 agent accounts). Reconcile to §9.5.
+- **`portfolio-manifest.yaml`** `shared.admin_users` / `shared.test_user` — RECONCILED to §9.5
+  2026-06-19 (`dennis+qaadmin@factory2key.com.au` / `dennis@factory2key.com.au`). The
+  test-accounts.config template + new-product default + config-fixer ADMIN_EMAILS now all map to the
+  same canonical accounts, so the admin-agent is allowlisted everywhere (was the VT_A1 root cause).
 
 ---
 

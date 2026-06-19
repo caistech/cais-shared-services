@@ -1,11 +1,12 @@
 {
-  "_comment": "Per-product QA identities, read by provision-qa-accounts.mjs AND the portfolio-gate test-accounts audit/fixer. Generated per product by new-product.mjs (which substitutes the QA test domain). A third-party deployment sets the QA_TEST_DOMAIN env var to its own domain so it provisions its own QA accounts Ã¢â‚¬â€ nothing here references the operator's personal email. qaDomain MUST be a real, mail-capable domain if the QA agents need to pass email-delivery checks (VT_C1/C3/C4); otherwise those run na.",
+  "_comment": "Per-product QA identities, read by provision-qa-accounts.mjs AND the portfolio-gate test-accounts audit/fixer. §9.5 CANONICAL scheme: admin-agent is the +qaadmin plus-alias and user-agent the base mailbox on QA_TEST_DOMAIN (CAS default factory2key.com.au) — this MUST match what admin-tester/user-tester log in as and what config-fixer puts in ADMIN_EMAILS, or VT_A1 fails 'Access Denied'. The admin-agent is ALSO listed in adminEmails (it must be allowlisted to reach /admin). A third-party deployment sets QA_TEST_DOMAIN to its own deliverable domain to provision its own accounts. qaDomain MUST be a real, mail-capable domain if the QA agents need email-delivery checks (VT_C1/C3/C4); otherwise those run na.",
   "qaDomain": "${QA_TEST_DOMAIN}",
   "adminEmails": [
     "dennis@corporateaisolutions.com",
-    "mcmdennis@gmail.com"
+    "mcmdennis@gmail.com",
+    "dennis+qaadmin@${QA_TEST_DOMAIN}"
   ],
-  "adminAgentEmail": "qa-admin@${QA_TEST_DOMAIN}",
-  "userAgentEmail": "qa-user@${QA_TEST_DOMAIN}",
-  "testUserEmail": "qa-user@${QA_TEST_DOMAIN}"
+  "adminAgentEmail": "dennis+qaadmin@${QA_TEST_DOMAIN}",
+  "userAgentEmail": "dennis@${QA_TEST_DOMAIN}",
+  "testUserEmail": "dennis@${QA_TEST_DOMAIN}"
 }

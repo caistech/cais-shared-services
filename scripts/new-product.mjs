@@ -596,7 +596,12 @@ async function stepVoice(prodUrl) {
 // left in the file would make the audit look for a literal placeholder address).
 function stepTestAccountsConfig(ref) {
   step("QA accounts — write config + CREATE + email-confirm");
-  const qaDomain = process.env.QA_TEST_DOMAIN || "qa.corporateaisolutions.com";
+  // §9.5 canonical CAS QA domain (was qa.corporateaisolutions.com, which produced the stale
+  // qa-admin@/qa-user@ scheme that did NOT match what the testers log in as → VT_A1 Access Denied).
+  // The template now uses the +qaadmin plus-alias scheme, so the CAS default resolves to the
+  // canonical dennis+qaadmin@factory2key.com.au / dennis@factory2key.com.au. Third-party overrides
+  // via QA_TEST_DOMAIN.
+  const qaDomain = process.env.QA_TEST_DOMAIN || "factory2key.com.au";
   const templatePath = join(HUB_ROOT, "templates", "test-accounts.config.template.json");
   const outPath = join(PORTFOLIO_BASE, SLUG, "test-accounts.config.json");
 
