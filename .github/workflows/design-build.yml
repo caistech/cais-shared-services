@@ -247,6 +247,27 @@ jobs:
           ' || echo "(could not build teardown brief — spec may lack survey_gate.result)"
           echo "--- teardown brief ---"; cat "$GITHUB_WORKSPACE/target/_teardown_brief.md" 2>/dev/null || echo "(none)"
 
+          # Append a REPO FILE MAP + per-check location hints so the agent goes STRAIGHT to the right
+          # files instead of burning ~10-20 turns exploring (the "orient" phase). Pure context, no
+          # runtime cost — the brief is read first, so the map lands in the agent's window up front.
+          BRIEF="$GITHUB_WORKSPACE/target/_teardown_brief.md"
+          {
+            echo ""
+            echo "## REPO FILE MAP (existing source files) — go STRAIGHT to the relevant ones. Do NOT run find/ls/glob to re-discover the repo structure; it is listed here."
+            echo '```'
+            ( cd "$GITHUB_WORKSPACE/target" && find src app -type f \( -name '*.ts' -o -name '*.tsx' \) 2>/dev/null | grep -vE 'node_modules|/\.next/|/dist/|/_template/|/_standards/' | sort | head -250 )
+            echo '```'
+            echo ""
+            echo "## WHERE TO LOOK per failing check (open these first; verify before editing):"
+            echo "- Admin checks (VT_A*, admin portal / settings): src/app/admin/**"
+            echo "- Auth checks (#22-25, login/signup/forgot/reset): src/app/(auth)/** or src/app/{login,signup,reset-password}; the AuthForm consumer"
+            echo "- Voice (#10-19): the component mounting <VoiceWidget> from @caistech/elevenlabs-convai/react (grep VoiceWidget / convai)"
+            echo "- Survey markers + the 14 spec fields (P1-P3): marker-bearing pages via @/lib/surveyMarkers (grep markerProps / data-); keep public/survey-manifest.json listing every marker route"
+            echo "- Distributor surface (distributor, distributor_outcomes): src/app/partners/**"
+            echo "- Settings / profiles (#27-28): src/app/settings or src/app/admin/settings; the profiles table migration"
+          } >> "$BRIEF" 2>/dev/null || true
+          echo "--- file map appended ---"; tail -30 "$BRIEF" 2>/dev/null || true
+
       - name: Configure OpenCode permissions (full autonomy)
         working-directory: target
         run: |
