@@ -308,9 +308,16 @@ async function fix_VT_D1(ctx) {
   const { envs } = await vercel(`/v9/projects/${encodeURIComponent(ctx.vercelProjectId)}/env`, ctx)
   const row = (envs || []).find((e) => e.key === 'ADMIN_EMAILS')
   const STANDARD = 'dennis@corporateaisolutions.com,mcmdennis@gmail.com,dennis+qaadmin@factory2key.com.au'
-  const value = ctx.adminEmails || STANDARD
+  // ENSURE the standard accounts (esp. the admin-AGENT that runs the admin checks) are present.
+  // UNION with any known custom admins — do NOT just preserve the existing value: preserving left
+  // the agent out of ADMIN_EMAILS on every product, so VT_A1 (admin portal access) failed forever
+  // and the gated admin checks (VT_A5/A6) could never even run. Vercel sensitive values are
+  // non-readable, so when we can't see the current value we (re)set the union to GUARANTEE the agent.
+  const existing = (ctx.adminEmails || '').split(',').map((s) => s.trim()).filter(Boolean)
+  const value = Array.from(new Set([...existing, ...STANDARD.split(',')])).join(',')
+  const includesAllStandard = existing.length > 0 && STANDARD.split(',').every((e) => existing.includes(e))
   const okMeta = row && row.type === 'sensitive' && Array.isArray(row.target) && row.target.includes('production') && row.target.includes('preview') && !row.target.includes('development')
-  if (row && okMeta) return { status: 'pass', evidence: `ADMIN_EMAILS present, sensitive, prod+preview.` }
+  if (row && okMeta && includesAllStandard) return { status: 'pass', evidence: `ADMIN_EMAILS present, sensitive, prod+preview, includes the standard admin accounts (incl. the admin-AGENT).` }
   if (!apply) return { status: 'fail', evidence: `Plan: ${row ? 'recreate' : 'create'} ADMIN_EMAILS sensitive/prod+preview. (dry-run — --apply)` }
   if (row) await vercel(`/v9/projects/${encodeURIComponent(ctx.vercelProjectId)}/env/${row.id}`, ctx, { method: 'DELETE' })
   await vercel(`/v10/projects/${encodeURIComponent(ctx.vercelProjectId)}/env`, ctx, { method: 'POST', body: { key: 'ADMIN_EMAILS', value, type: 'sensitive', target: ['production', 'preview'] } })

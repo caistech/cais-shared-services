@@ -73,9 +73,9 @@ shared:
   admin_users:
     - email: dennis@corporateaisolutions.com # operator (by hand)
     - email: mcmdennis@gmail.com # operator (by hand)
-    - email: qa-admin@qa.corporateaisolutions.com # admin-AGENT (QA_OWNER_EMAIL)
+    - email: dennis+qaadmin@factory2key.com.au # admin-AGENT (QA_TEST_ADMIN_EMAIL) — §9.5 canonical (was the stale qa-admin@qa.corporateaisolutions.com, which is why the agent was never in any product's ADMIN_EMAILS → VT_A1 Access Denied)
   test_user:
-    email: qa-user@qa.corporateaisolutions.com # user-agent (QA_USER_EMAIL)
+    email: dennis@factory2key.com.au # user-agent (QA_TEST_USER_EMAIL) — §9.5 canonical (was the stale qa-user@qa.corporateaisolutions.com)
 
   # Property-services shared infra (one Supabase project + edge functions
   # for property intelligence across F2K, mmcbuild, deal-findrs).
