@@ -37,6 +37,13 @@ secrets:
     from_env:
       var: STRIPE_WEBHOOK_SECRET
 
+  # Resend — CAIS platform email (auth SMTP + transactional sends like vault invites).
+  # Operator exports RESEND_API_KEY in their shell; `--apply` pushes it to each declared
+  # project's Vercel as SENSITIVE. The value is never committed.
+  resend_api_key:
+    from_env:
+      var: RESEND_API_KEY
+
 # -----------------------------------------------------------------------------
 # Shared bindings — included via `inherit_shared:` in each project below.
 # -----------------------------------------------------------------------------
@@ -53,6 +60,10 @@ shared:
   # Common LLM provider keys — present in most consumer apps.
   ANTHROPIC_API_KEY: { ref: "$secret:anthropic_api_key" }
   OPENAI_API_KEY: { ref: "$secret:openai_api_key" }
+
+  # Resend API key — auth SMTP + transactional email (e.g. vault party invites).
+  # Operator-sourced (from_env: RESEND_API_KEY); set on Vercel as SENSITIVE, production+preview only.
+  RESEND_API_KEY: { ref: "$secret:resend_api_key", targets: ["production", "preview"] }
 
   # Stripe — CAIS PLATFORM account ONLY (CAIS-owned products: SayFix billing, cockpit, etc.).
   # CLIENT products (mmcbuild, etc.) use their OWN Stripe account — do NOT inherit these there.
