@@ -40,6 +40,22 @@ try { payload = JSON.parse(readFileSync(0, "utf8") || "{}"); } catch { allow(); 
 // Already re-entered after a block — the agent has been warned; don't loop forever.
 if (payload.stop_hook_active) allow();
 
+// SCOPE (re-scoped 2026-06-20): the gate guards against leaking a PRODUCT's URL to a PROSPECT
+// before audit. When the agent is working IN a factory/meta repo (pipeline, cais-shared-services),
+// product-URL mentions are OPERATIONAL — orchestrating the factory (setting mvp_url, dispatching
+// builds, reporting a build's status to the operator), NOT sharing a product to a prospect. The
+// pipeline runs /naive-tester itself as part of drive-to-ready, and the real external-share
+// protection lives at the outreach-send path. Gating those internal mentions was pure friction
+// (and mis-scoped — it checked the WORKING repo's own naive-tester status). So exempt factory
+// repos here; the gate still bites in actual PRODUCT repos, where surfacing the repo's own URL is
+// the genuine §0.5 leak risk (the SayFix incident that created the gate).
+const FACTORY_REPOS = new Set(["pipeline", "cais-shared-services", "corporate-ai-solutions"]);
+{
+  const r = spawnSync("git", ["rev-parse", "--show-toplevel"], { cwd: payload.cwd ?? process.cwd(), encoding: "utf8" });
+  const cwdRepo = r.status === 0 ? basename(r.stdout.trim()).toLowerCase() : null;
+  if (cwdRepo && FACTORY_REPOS.has(cwdRepo)) allow();
+}
+
 // --- pull the agent's last message text from the transcript ------------------
 function lastAssistantText(transcriptPath) {
   if (!transcriptPath || !existsSync(transcriptPath)) return "";
