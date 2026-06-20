@@ -369,6 +369,7 @@ projects:
       - PLATFORM_TRUST_SUPABASE_URL
       - PLATFORM_TRUST_SERVICE_KEY
       - GITHUB_PACKAGES_TOKEN
+      - RESEND_API_KEY        # vault party-invite emails + auth SMTP
     envs:
       PLATFORM_TRUST_PROJECT_ID:
         ref: $secret:platform_trust_project_id_executorai
@@ -378,6 +379,7 @@ projects:
         from_supabase: anon_key
       SUPABASE_SERVICE_ROLE_KEY:
         from_supabase: service_role_key
+      RESEND_FROM_EMAIL: { value: "noreply@updates.corporateaisolutions.com" }
   - name: pipeline
     vercel_project_id: prj_F8PSE5D6wjiCtKbsTCxEThg6S4c1
     supabase_project_ref: fslkzhmqcrjsswyrgwnc
