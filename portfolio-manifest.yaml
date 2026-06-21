@@ -44,6 +44,14 @@ secrets:
     from_env:
       var: RESEND_API_KEY
 
+  # ElevenLabs — voice-agent PROVISIONING key (operator-exported), read by new-product.mjs +
+  # scripts/align-morgan-agent.mjs to create/align Convai agents. NOT a runtime env and NOT in
+  # `shared:` — the runtime only needs the public NEXT_PUBLIC_ELEVENLABS_AGENT_ID, so this key
+  # must never be pushed to product Vercels. Declared here so the source is canonical.
+  elevenlabs_api_key:
+    from_env:
+      var: ELEVENLABS_API_KEY
+
 # -----------------------------------------------------------------------------
 # Shared bindings — included via `inherit_shared:` in each project below.
 # -----------------------------------------------------------------------------

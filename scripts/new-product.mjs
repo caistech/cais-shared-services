@@ -567,10 +567,13 @@ async function stepVoice(prodUrl) {
   const baseUrl = prodUrl || `https://${SLUG}.vercel.app`;
   const voiceId = process.env.ELEVENLABS_VOICE_ID || "21m00Tcm4TlvDq8ikWAM"; // canonical warm default
   try {
+    // Canonical persona = "Morgan" (PRODUCT_STANDARDS VOICE AI: one consistent voice/opening/
+    // signature across the portfolio). The agent is Morgan everywhere; only the product it guides
+    // changes. gpt-4.1-mini (DEFAULT_AGENT_LLM) — gpt-4o-mini drops tool calls over long calls.
     const result = await provision(process.env.ELEVENLABS_API_KEY, {
-      config: { agentName: `${CONFIG.displayName} guide`, voiceId, llmModel: "gpt-4o-mini", temperature: 0.5, voiceModel: "eleven_turbo_v2" },
-      systemPrompt: `You are the helpful in-app guide for ${CONFIG.displayName}. Answer questions about using the product clearly and plainly. If a question has nuance a field label can't convey, talk it through.`,
-      firstMessage: `Hi! I'm here to help you with ${CONFIG.displayName}. What would you like to do?`,
+      config: { agentName: `Morgan (${CONFIG.displayName})`, voiceId, llmModel: "gpt-4.1-mini", temperature: 0.5, voiceModel: "eleven_turbo_v2" },
+      systemPrompt: `You are Morgan, the friendly in-app guide for ${CONFIG.displayName}. You speak warmly, calmly, and plainly, and keep answers short and easy to follow out loud. Help people use ${CONFIG.displayName} and answer their questions clearly; if something has nuance a field label can't convey, talk it through. If asked your name, you're Morgan. You give helpful guidance, not professional, legal, or financial advice — for anything specialised, suggest checking with the relevant professional.`,
+      firstMessage: `Hi, I'm Morgan — I'm here to help you with ${CONFIG.displayName}. What would you like to do?`,
       baseUrl,
       allowedOrigins: [baseUrl, "https://*.vercel.app", "http://localhost:3000"],
     });
