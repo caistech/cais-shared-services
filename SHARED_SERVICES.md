@@ -30,7 +30,7 @@
 | `@caistech/agent-trust-score` | Agent trust-score scanner/grader/badge — static + behavioural checks (security, correctness, observability, reliability). |
 | `@caistech/api-key-auth` | B2B public-API auth: opaque API keys, monthly quota + rollover, `X-RateLimit` headers, Stripe billing webhook. Deno-first (Supabase Edge) + Node. |
 | `@caistech/security` | Legacy JS: permissions, PII classification, audit logging, consent, data retention. |
-| `@caistech/portfolio-gate` | Portfolio Standard enforcement: `errorResponse` (R10), route/auth/session smoke tests, seven static audits (R3/R7/R8/R9/R11/R15 + responsive), `audit-all` runner. |
+| `@caistech/portfolio-gate` | Portfolio Standard enforcement: `errorResponse` (R10), route/auth/session smoke tests, static audits (R3/R7/R8/R9/R11/R15 + responsive), a **live RLS audit** (`runRlsLiveAudit`/`audit-rls-live`, R9 — queries the running DB via the Supabase Management API and fails any public table that is RLS-off + anon-readable, so **Drizzle-push/dashboard schemas and prod drift can't hide from the static migration audit**; skips cleanly without a project ref + `SUPABASE_ACCESS_TOKEN`), and an `audit-all` runner. **v0.4.0+.** |
 | `@caistech/sanctions-screen` | Multi-list sanctions screening (OFAC SDN, UN, AU DFAT, UK HMT, EU) — provider pattern, caching, fuzzy match. |
 | `@caistech/business-registry` | Multi-country business-registry lookup (CN/VN/MY/AU formats + pluggable live providers). |
 | `@caistech/cais-au-compliance-mcp` | MCP server exposing AU compliance tools (ABN, registry, sanctions, cert extraction). Thin adapter over the `@caistech/*` packages. |

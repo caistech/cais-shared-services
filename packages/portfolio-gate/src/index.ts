@@ -53,6 +53,8 @@ export type {
 
 // v0.2 + v0.3 static audits.
 export { runRlsAudit } from './audit/rls.js'
+export { runRlsLiveAudit } from './audit/rls-live.js'
+export type { RlsLiveAuditConfig, RlsLiveAuditOptions } from './audit/rls-live.js'
 export { runVendorLeakAudit } from './audit/vendor-leak.js'
 export { runUnauthEndpointsAudit } from './audit/unauth-endpoints.js'
 export { runSampleAudit } from './audit/sample.js'

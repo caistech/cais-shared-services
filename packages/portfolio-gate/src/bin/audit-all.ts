@@ -3,7 +3,8 @@
  * portfolio-gate-audit-all — run every static audit + emit a summary.
  *
  * Runs in this order (independent — one audit's failure doesn't stop the rest):
- *   1. RLS (R9)
+ *   1. RLS — static migration audit (R9)
+ *   1b. RLS — live DB audit (R9), skips unless a project ref + management token are set
  *   2. Vendor-leak (R11)
  *   3. Unauth endpoints (R7 / R9 boundary)
  *   4. Sample artefact (R8)
@@ -21,6 +22,7 @@
  * Exit codes: 0 all-pass, 1 any-fail, 2 unexpected error.
  */
 import { runRlsAudit } from '../audit/rls.js'
+import { runRlsLiveAudit } from '../audit/rls-live.js'
 import { runVendorLeakAudit } from '../audit/vendor-leak.js'
 import { runUnauthEndpointsAudit } from '../audit/unauth-endpoints.js'
 import { runSampleAudit } from '../audit/sample.js'
@@ -60,6 +62,7 @@ async function main(): Promise<void> {
   }
   const runners: Array<{ name: string; run: AuditRunner }> = [
     { name: 'rls', run: () => runRlsAudit(opts) },
+    { name: 'rls-live', run: () => runRlsLiveAudit(opts) },
     { name: 'vendor-leak', run: () => runVendorLeakAudit(opts) },
     {
       name: 'unauth-endpoints',

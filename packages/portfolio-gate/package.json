@@ -1,7 +1,7 @@
 {
   "name": "@caistech/portfolio-gate",
-  "version": "0.3.4",
-  "description": "Portfolio Standard enforcement layer — errorResponse helper (R10), route smoke test (R13), auth smoke test (R1/R4), session smoke test (authenticated routes), seven static audits (R3/R7/R8/R9/R11/R15 + responsive-design), and a `audit-all` master runner.",
+  "version": "0.4.0",
+  "description": "Portfolio Standard enforcement layer — errorResponse helper (R10), route smoke test (R13), auth smoke test (R1/R4), session smoke test (authenticated routes), static audits (R3/R7/R8/R9/R11/R15 + responsive-design), a LIVE RLS audit (R9 — queries the running DB so Drizzle-push/dashboard schemas and prod drift can't hide), and a `audit-all` master runner.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -33,6 +33,7 @@
     "portfolio-gate-smoke-session": "dist/bin/smoke-session.js",
     "portfolio-gate-fix-auth": "dist/bin/fix-auth-compliance.js",
     "portfolio-gate-audit-rls": "dist/bin/audit-rls.js",
+    "portfolio-gate-audit-rls-live": "dist/bin/audit-rls-live.js",
     "portfolio-gate-audit-vendor-leak": "dist/bin/audit-vendor-leak.js",
     "portfolio-gate-audit-unauth-endpoints": "dist/bin/audit-unauth-endpoints.js",
     "portfolio-gate-audit-sample-artefact": "dist/bin/audit-sample-artefact.js",
