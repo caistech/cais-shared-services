@@ -8,6 +8,7 @@ export interface PropertyProfile {
   lot: LotInfo | null
   zoning: ZoningInfo | null
   environment: EnvironmentInfo
+  terrain: TerrainInfo | null
   overlays: PlanningOverlay[]
   subdivision: SubdivisionAnalysis | null
   summary: string
@@ -60,6 +61,14 @@ export interface EnvironmentInfo {
   balInOverlay: boolean
 }
 
+export interface TerrainInfo {
+  elevationM: number | null    // ground elevation at the parcel (m AHD)
+  slopePercent: number | null  // finite-difference slope from the DEM
+  fallMeters: number | null    // total fall across the ~60 m sample window
+  buildability: string | null  // FLAT / GENTLE / MODERATE / STEEP band + implication
+  source: string               // dataset the values came from (e.g. "qld_dem")
+}
+
 export interface PlanningOverlay {
   type: string
   name: string
@@ -91,6 +100,13 @@ export interface ProfileMetadata {
   cached: boolean
   derivedAt: string
   expiresAt: string
+  availableZones?: Array<{ code: string; name: string }>
+  /** Present when zoning is null — how the operator looks the zone up by hand. */
+  zoningManualLookup?: {
+    source: string
+    url: string
+    instructions: string
+  }
 }
 
 export interface SuitabilityAssessment {
