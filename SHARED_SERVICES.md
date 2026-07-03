@@ -18,7 +18,7 @@
 >
 > **Install:** registry is GitHub Packages (`@caistech:registry=https://npm.pkg.github.com`, token
 > `NODE_AUTH_TOKEN`/`GITHUB_PACKAGES_TOKEN`). `npm install @caistech/<name>`. Consumers import the
-> compiled `dist/`, never source. **Last updated:** 2026-06-17 (43 packages).
+> compiled `dist/`, never source. **Last updated:** 2026-07-03 (44 packages).
 
 ---
 
@@ -80,6 +80,7 @@
 | `@caistech/property-services-sdk` | Property intelligence — derive/assess/onboard. Wraps the property-services Supabase edge functions. The substrate for the property engine. |
 | `@caistech/property-launch-kit` | Property-sale launch-page primitives — branded admin emails, notify-recipient mgmt, React cards. Used by f2k-projects. |
 | `@caistech/coordination-sdk` | Cross-project issue tracking + multi-party coordination — Supabase-backed, evaluators, magic links, React hooks. |
+| `@caistech/deal-model` | **Generic Estate Deal Model (F2K), V5** — pure, stateless engine turning an ingested feasibility study into a finance-inclusive base price, entry-stage uplift split, and GO/ADJUST/REJECT verdict. Single source of truth: DealFindrs computes + owns the verdict; F2K-Checkpoint/F2K-Projects read the locked snapshot (never recompute). Mirrors `Generic_Estate_Deal_Model_V5.xlsx` 1:1 with a golden conformance test. Replaces the spreadsheet. |
 
 ## UI, reporting & embeds
 | Package | Capability |
