@@ -1,9 +1,11 @@
 /**
- * Type definitions for the Generic Estate Deal Model (F2K), V5.
+ * Type definitions for the Generic Estate Deal Model (F2K), V7.
  *
- * Faithful to `Generic_Estate_Deal_Model_V5.xlsx` (sheet "Estate Model"). Cell
- * references in comments (e.g. C85) point back to that workbook so the code and
- * the spreadsheet can be reconciled line-by-line.
+ * Faithful to `Seafields_Estate_Deal_Model_V7.xlsx` (sheet "Estate Model"). Cell
+ * references in comments (e.g. B85) point back to that workbook so the code and
+ * the spreadsheet can be reconciled line-by-line. V7 delta over V5: every party's
+ * contribution is recovered in the base — the base subtotal now adds the F2K
+ * contribution per lot (B82 = SUM(B74:B81) + B61/B37), per the SPV/HoA reset.
  *
  * UNITS CONTRACT (do not conflate — the workbook mixes the two):
  *   - `*PerLot`  fields are entered per lot (workbook column C).
@@ -106,8 +108,11 @@ export interface DealModelInputs {
   homeCaptureRate: number;
   civilMode: CivilMode; // C42
 
-  /** Live dev-finance quotes; external average = mean of these (C45:C47). */
-  externalQuotes: number[];
+  /**
+   * Live dev-finance quotes; external average = mean of these (C45:C47).
+   * Optional — defaults to `[0.12, 0.12, 0.12]` (V7 flat 12% market rate) when omitted.
+   */
+  externalQuotes?: number[];
 
   landPerLot: number; // C54
   developerSunkCostTotal: number; // D55 (TOTAL)
@@ -156,8 +161,10 @@ export interface BaseRateResult {
     developerSunkPerLot: number; // C79
     baseFinancePerLot: number; // C80
     introducerPerLot: number; // C81
+    /** F2K contribution per lot (B61/B37) — V7: recovered in the base like every other party's. */
+    f2kContributionPerLot: number;
   };
-  subtotalPerLot: number; // C82
+  subtotalPerLot: number; // B82
   /** BASE RATE / lot — the finance-inclusive, PM-loaded price floor (C85). */
   baseRatePerLot: number;
 }

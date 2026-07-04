@@ -6,13 +6,16 @@ import type {
 } from "./types.js";
 import { assignStage, resolveStage } from "./stage-gate.js";
 
-/** V5 default constants (workbook "Constants - editable if needed"). */
+/** Default finance quotes (workbook C45:C47) — V7 flat 12% market rate. All editable. */
+export const DEFAULT_EXTERNAL_QUOTES = [0.12, 0.12, 0.12];
+
+/** V7 default constants (workbook "Constants - editable if needed"). All editable per-deal. */
 export const DEFAULT_CONSTANTS: DealModelConstants = {
   internalDeduction: 0.02, // C49
   civilEngFeePct: 0.08, // C57
   civilContractorMarginPct: 0.12, // C62
   pmFeePct: 0.05, // C83
-  agentCommissionPct: 0.02, // C91
+  agentCommissionPct: 0.035, // C91 (V7: 3.5% — Barry's rate; was 2% in V5)
   introducerPctOfLand: 0.01, // C81 / E136
   stageSplits: {
     Conception: 0.6,
@@ -68,7 +71,7 @@ export function computeDeal(inputs: DealModelInputs): DealModelResult {
     fundingMode,
     homeCaptureRate,
     civilMode,
-    externalQuotes,
+    externalQuotes = DEFAULT_EXTERNAL_QUOTES,
     landPerLot,
     developerSunkCostTotal,
     infraPerLot,
@@ -110,6 +113,7 @@ export function computeDeal(inputs: DealModelInputs): DealModelResult {
   const civilEngFeePerLot = k.civilEngFeePct * infraPerLot; // C58/C77
   const developerSunkPerLot = developerSunkCostTotal / lots; // C79
   const introducerPerLot = k.introducerPctOfLand * landPerLot; // C81 (= 0.01*D54/C37)
+  const f2kContributionPerLot = f2kContributionTotal / lots; // B61/B37
 
   const components = {
     land: landPerLot, // C74
@@ -120,7 +124,12 @@ export function computeDeal(inputs: DealModelInputs): DealModelResult {
     developerSunkPerLot, // C79
     baseFinancePerLot, // C80
     introducerPerLot, // C81
+    f2kContributionPerLot, // B61/B37 (V7)
   };
+  // B82 (V7): SUM(B74:B81) + B61/B37 — the F2K contribution is recovered in the base
+  // like every other party's, per the SPV/HoA reset ("every party's contribution
+  // repaid in the base with interest"). V5 omitted this term; with a $0 F2K
+  // contribution the two are identical, so V5 conformance is preserved.
   const subtotalPerLot =
     components.land +
     components.soft +
@@ -129,7 +138,8 @@ export function computeDeal(inputs: DealModelInputs): DealModelResult {
     components.education +
     components.developerSunkPerLot +
     components.baseFinancePerLot +
-    components.introducerPerLot; // C82
+    components.introducerPerLot +
+    components.f2kContributionPerLot;
 
   // PM is the only % of base: base = subtotal / (1 - PM%). C85.
   const baseRatePerLot = subtotalPerLot / (1 - k.pmFeePct);

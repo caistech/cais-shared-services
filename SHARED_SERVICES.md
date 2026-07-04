@@ -80,7 +80,7 @@
 | `@caistech/property-services-sdk` | Property intelligence — derive/assess/onboard. Wraps the property-services Supabase edge functions. The substrate for the property engine. |
 | `@caistech/property-launch-kit` | Property-sale launch-page primitives — branded admin emails, notify-recipient mgmt, React cards. Used by f2k-projects. |
 | `@caistech/coordination-sdk` | Cross-project issue tracking + multi-party coordination — Supabase-backed, evaluators, magic links, React hooks. |
-| `@caistech/deal-model` | **Generic Estate Deal Model (F2K), V5** — pure, stateless engine turning an ingested feasibility study into a finance-inclusive base price, entry-stage uplift split, and GO/ADJUST/REJECT verdict. Single source of truth: DealFindrs computes + owns the verdict; F2K-Checkpoint/F2K-Projects read the locked snapshot (never recompute). Mirrors `Generic_Estate_Deal_Model_V5.xlsx` 1:1 with a golden conformance test. Replaces the spreadsheet. |
+| `@caistech/deal-model` | **Generic Estate Deal Model (F2K), V7** — pure, stateless engine turning an ingested feasibility study into a finance-inclusive base price, entry-stage uplift split, and GO/ADJUST/REJECT verdict. Single source of truth: DealFindrs computes + owns the verdict; F2K-Checkpoint/F2K-Projects read the locked snapshot (never recompute). Mirrors `Seafields_Estate_Deal_Model_V7.xlsx` 1:1 with golden conformance tests (V5 + V7). **V7:** every party's contribution recovered in the base (`B82 += B61/B37`); defaults agent 3.5% + flat-12% quotes (all editable). Replaces the spreadsheet. |
 
 ## UI, reporting & embeds
 | Package | Capability |

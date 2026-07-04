@@ -1,13 +1,22 @@
 # @caistech/deal-model
 
-The canonical **Generic Estate Deal Model (F2K), V5** — a pure, stateless TypeScript
+The canonical **Generic Estate Deal Model (F2K), V7** — a pure, stateless TypeScript
 engine that turns an ingested feasibility study into a finance-inclusive **base price**,
 an entry-stage **uplift split**, and a **GO / ADJUST / REJECT** verdict.
 
 This is the **single source of truth** for the deal maths. DealFindrs computes with it and
 owns the resulting verdict; F2K-Checkpoint and F2K-Projects read the locked snapshot rather
-than recomputing. It replaces the `Generic_Estate_Deal_Model_V5.xlsx` spreadsheet; every
+than recomputing. It replaces the `Seafields_Estate_Deal_Model_V7.xlsx` spreadsheet; every
 formula is mirrored 1:1 with the workbook cell references in code comments.
+
+### V7 changes (over V5)
+- **Every party's contribution is recovered in the base.** The base subtotal now adds the
+  F2K contribution per lot (`B82 = SUM(B74:B81) + B61/B37`), per the SPV/HoA reset
+  ("every party's contribution repaid in the base with interest"). Backward-compatible: a
+  `$0` F2K contribution reproduces the V5 base exactly.
+- **Defaults moved (all still editable per-deal via `constants` / `externalQuotes`):**
+  agent commission `2% → 3.5%`; finance quotes default to `[0.12, 0.12, 0.12]` (flat 12%
+  market rate) when omitted. Internal-rate deduction default stays `2%`.
 
 ## Install
 ```bash

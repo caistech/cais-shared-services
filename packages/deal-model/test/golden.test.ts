@@ -26,6 +26,10 @@ const V5_SAMPLE: DealModelInputs = {
   f2kContributionTotal: 0, // C61
   modularMarginPerHome: 30_000, // C120
   stageGate: emptyStageGate(), // all FALSE -> Conception
+  // Pin the V5 policy values so this stays a faithful V5 regression anchor after the
+  // V7 default moved agent commission 2% -> 3.5%. (internalDeduction/introducer are
+  // unchanged from V5 defaults, so only the agent rate needs pinning.)
+  constants: { agentCommissionPct: 0.02 },
 };
 
 describe("V5 golden sample", () => {
@@ -168,5 +172,83 @@ describe("verdict branches", () => {
     // ...but takes an off-the-top share, so uplift-to-split shrinks vs raw net uplift
     expect(jv.split.civilJvSharePerLot).toBeGreaterThan(0);
     expect(jv.split.upliftToSplitPerLot).toBeLessThan(jv.market.netUpliftPerLot);
+  });
+});
+
+/**
+ * V7 conformance — reproduces the Seafields V7 workbook exactly
+ * (Seafields_Estate_Deal_Model_V7.xlsx). Exercises the V7 delta (F2K contribution
+ * recovered in the base) and the V7 defaults (agent 3.5%, flat 12% quotes).
+ *
+ * Seafields: 145 lots, $155k comps, De-risked, Internal, Contractor, 100% capture,
+ * F2K contribution $320k -> base ≈ $137,817.06/lot, net uplift ≈ 8.53%, REJECT.
+ */
+const V7_SEAFIELDS: DealModelInputs = {
+  lots: 145, // B37
+  marketPricePerLot: 155_000, // B38
+  fundingMode: "Internal", // B40
+  homeCaptureRate: 1, // B41
+  civilMode: "Contractor", // B42
+  externalQuotes: [0.12, 0.12, 0.12], // B45:B47 (== the V7 default)
+  landPerLot: 15_000, // B54
+  developerSunkCostTotal: 300_000, // C55
+  infraPerLot: 80_000, // B56
+  softCostsPerLot: 6_000, // B59
+  educationPerLot: 4_000, // B60
+  f2kContributionTotal: 320_000, // B61
+  modularMarginPerHome: 30_000, // B120
+  stageGate: emptyStageGate(),
+  stageOverride: "De-risked", // B6 manual override
+  // Seafields sets the internal deduction and introducer to zero (flat 12%, no introducer);
+  // agent 3.5% is the V7 default so it is deliberately NOT overridden here.
+  constants: { internalDeduction: 0, introducerPctOfLand: 0 },
+};
+
+describe("V7 Seafields sample", () => {
+  const r = computeDeal(V7_SEAFIELDS);
+
+  it("uses the De-risked stage (B7) and flat 12% project rate (B51)", () => {
+    expect(r.stageUsed).toBe("De-risked");
+    expect(r.projectRate).toBeCloseTo(0.12, 6);
+  });
+
+  it("recovers the F2K contribution in the base (B82 = SUM(B74:B81) + B61/B37)", () => {
+    expect(r.baseRate.components.f2kContributionPerLot).toBeCloseTo(2_206.897, 2);
+    expect(r.baseRate.subtotalPerLot).toBeCloseTo(130_926.207, 2);
+    expect(r.baseRate.baseRatePerLot).toBeCloseTo(137_817.06, 2);
+  });
+
+  it("proves the F2K contribution moves the base (V7 delta)", () => {
+    const withoutF2k = computeDeal({ ...V7_SEAFIELDS, f2kContributionTotal: 0 });
+    expect(r.baseRate.baseRatePerLot).toBeGreaterThan(
+      withoutF2k.baseRate.baseRatePerLot,
+    );
+  });
+
+  it("runs the market test at the V7 default 3.5% agent (B91/B92/B93)", () => {
+    expect(r.market.agentCommissionPerLot).toBeCloseTo(5_425, 2);
+    expect(r.market.netUpliftPerLot).toBeCloseTo(11_757.94, 2);
+    expect(r.market.netUpliftPctOfBase).toBeCloseTo(0.0853156, 6);
+  });
+
+  it("splits 40/60 at De-risked (B106/B108/B109)", () => {
+    expect(r.split.f2kShare).toBeCloseTo(0.4, 6);
+    expect(r.split.developerShare).toBeCloseTo(0.6, 6);
+    expect(r.split.upliftToSplitTotal).toBeCloseTo(1_704_901.316, 2);
+    expect(r.split.f2kUpliftTotal).toBeCloseTo(681_960.526, 2);
+    expect(r.split.developerUpliftTotal).toBeCloseTo(1_022_940.789, 2);
+  });
+
+  it("returns REJECT — uplift below the floor (B116/B117)", () => {
+    expect(r.hurdle.verdict).toBe("REJECT");
+    expect(r.hurdle.developerThin).toBe(false);
+    expect(r.hurdle.reason).toBe("Uplift below floor - numbers do not work");
+    expect(r.hurdle.developerPostSplitPctOfBase).toBeCloseTo(0.0511893, 6);
+  });
+
+  it("computes F2K income (B122/B125/B127)", () => {
+    expect(r.f2kIncome.pmFeeTotal).toBeCloseTo(999_173.684, 2);
+    expect(r.f2kIncome.landOnlyReturn).toBeCloseTo(1_757_934.211, 2);
+    expect(r.f2kIncome.landPlusHomesReturn).toBeCloseTo(6_107_934.211, 2);
   });
 });
