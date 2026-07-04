@@ -190,3 +190,132 @@ export interface ComparablesResponse {
   data?: PriceComparison
   error?: string
 }
+
+// ─── Site dossier (one-call aggregate) ──────────────────────────
+
+/**
+ * A field the engine cannot auto-source (title, contamination, servicing, native
+ * title, on-site survey) — carried in the dossier as a disciplined placeholder for
+ * the responsible panel professional. Once someone writes it back via `/contribute`,
+ * `status` flips to `completed` and `completed` is populated.
+ */
+export interface PlannerReviewItem {
+  key: string        // stable field key a contribution is matched on
+  field: string      // display label
+  discipline: string
+  status: 'for_panel_review' | 'completed'
+  note: string
+  completed?: {
+    summary: string
+    contributor: string | null
+    source: string | null
+    date: string
+    value?: unknown
+  }
+}
+
+/** A field written back for a parcel by a panel professional (as surfaced in a dossier). */
+export interface Contribution {
+  field: string
+  summary: string
+  contributor: string | null
+  discipline: string | null
+  source: string | null
+  value?: unknown
+  createdAt: string
+  expiresAt: string | null
+}
+
+/**
+ * The consolidated site dossier — one call aggregates profile + AI assessment + price
+ * position + the panel-review checklist + any prior write-backs. Every section is
+ * fail-open: a leg that errors leaves its section `null` and the dossier still returns.
+ */
+export interface SiteDossier {
+  address: string
+  generatedAt: string
+  profile: PropertyProfile | null
+  assessment: SuitabilityAssessment | null
+  price: PriceComparison | null
+  plannerReview: PlannerReviewItem[]
+  contributions: Contribution[]
+  meta: {
+    useCase: string | null
+    sources: string[]
+    engineFieldsFilled: number
+    reviewCompleted: number
+  }
+}
+
+export interface DossierResponse {
+  success: boolean
+  data?: SiteDossier
+  error?: string
+}
+
+// ─── Address autocomplete ───────────────────────────────────────
+
+export interface AddressSuggestion {
+  label: string
+  lat: number
+  lng: number
+  suburb: string
+  state: string
+  postcode: string
+}
+
+export interface SuggestResponse {
+  success: boolean
+  suggestions: AddressSuggestion[]
+  error?: string
+}
+
+// ─── Professional write-back (/contribute) ──────────────────────
+
+/**
+ * A completed field written back to the parcel. Either `parcelId` OR `address` is
+ * required (the parcel key is preferred; address is the fallback). `field` must be one
+ * of the known keys: title · contamination · servicing · native_title · survey_geotech,
+ * or an engine-value correction: zoning · lot_size · flood · bushfire · heritage ·
+ * character · other.
+ */
+export interface ContributeInput {
+  field: string
+  summary: string
+  parcelId?: string
+  address?: string
+  lat?: number
+  lng?: number
+  state?: string
+  value?: unknown
+  contributor?: string
+  discipline?: string
+  source?: string
+  /** ISO timestamp after which this write-back should stop resolving (optional TTL). */
+  expiresAt?: string
+}
+
+/** The stored contribution row returned by `/contribute` (DB shape, snake_case). */
+export interface ContributionRecord {
+  id: string
+  parcel_id: string | null
+  address_normalised: string | null
+  lat: number | null
+  lng: number | null
+  state: string | null
+  field: string
+  value: unknown
+  summary: string
+  contributor: string | null
+  discipline: string | null
+  source: string | null
+  status: string
+  created_at: string
+  expires_at: string | null
+}
+
+export interface ContributeResponse {
+  success: boolean
+  contribution?: ContributionRecord
+  error?: string
+}
