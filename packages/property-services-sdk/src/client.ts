@@ -9,6 +9,7 @@ import type {
   AssessResponse,
   ComparablesResponse,
   DossierResponse,
+  ContributionsResponse,
   SuggestResponse,
   ContributeInput,
   ContributeResponse,
@@ -131,6 +132,22 @@ export class PropertyServicesClient {
       ...params,
       product: this.product,
     })
+  }
+
+  /**
+   * Lightweight panel-review read — the checklist (merged with write-backs → completed) + the raw
+   * contributions for a site, WITHOUT the derive/assess/AVM legs that `dossier()` runs. Prefer this
+   * over `dossier()` when you only need the panel review + write-backs (e.g. rendering a review pack
+   * or a panel UI). Pass `address` or `parcelId`.
+   */
+  async contributions(params: {
+    address?: string
+    parcelId?: string
+    lat?: number
+    lng?: number
+    state?: string
+  }): Promise<ContributionsResponse> {
+    return this.request<ContributionsResponse>('/contributions', params)
   }
 
   /**

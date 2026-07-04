@@ -25,6 +25,7 @@ export type {
   Contribution,
   SiteDossier,
   DossierResponse,
+  ContributionsResponse,
   AddressSuggestion,
   SuggestResponse,
   ContributeInput,

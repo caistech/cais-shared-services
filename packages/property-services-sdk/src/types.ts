@@ -253,6 +253,18 @@ export interface DossierResponse {
   error?: string
 }
 
+/**
+ * Response of the lightweight `contributions()` read — the panel-review checklist (merged with any
+ * write-backs → completed) + the raw contributions, WITHOUT the derive/assess/AVM legs that
+ * `dossier()` runs. Prefer this when you only need the panel review + write-backs.
+ */
+export interface ContributionsResponse {
+  success: boolean
+  plannerReview: PlannerReviewItem[]
+  contributions: Contribution[]
+  error?: string
+}
+
 // ─── Address autocomplete ───────────────────────────────────────
 
 export interface AddressSuggestion {
