@@ -294,3 +294,59 @@ export interface CashflowResult {
   /** 1-based stage number of the crossover, or null when it only self-funds post-works. */
   selfFundingCrossoverStage: number | null;
 }
+
+// ---- GST engine (feasibility + valuation are GST-inclusive; QS is GST-exclusive) ----
+
+/**
+ * How GST on the sale is calculated.
+ *  - `"margin"` (the DEFAULT for englobo/subdivision): land was bought without a GST credit,
+ *    so GST is charged only on the developer's MARGIN — `(sale − land) / 11`, and NO input
+ *    tax credit is available on the land. This is the Feastudy "Margin Scheme" treatment.
+ *  - `"standard"`: GST is `sale / 11` on the full price, and land carries an ITC if it was
+ *    acquired taxably (`landIsCreditable`). This is the AEC study's treatment.
+ */
+export type GstScheme = "margin" | "standard";
+
+/**
+ * GST inputs. All money figures are **GST-INCLUSIVE** amounts (the $ actually paid/received),
+ * because GST on a GST-inclusive amount is `amount / 11` (10% GST). Report GST is derived from
+ * these; a report that mixes GST-inclusive and GST-exclusive figures is a defect (the QS pack
+ * must state its GST-exclusive basis — see PRODUCT_STANDARDS report checklist).
+ */
+export interface GstInputs {
+  scheme: GstScheme;
+  /** Total GST-inclusive gross realisation (all lot sales). */
+  grossRealisation: number;
+  /** GST-inclusive land acquisition cost — the margin-scheme "purchase price" the margin is measured from. */
+  landAcquisitionCost: number;
+  /**
+   * GST-inclusive development costs that carry claimable GST (construction, civil, consultants,
+   * soft costs) — i.e. taxable acquisitions. EXCLUDES land (handled by `scheme`), borrowing
+   * interest, wages, and other GST-free / input-taxed items.
+   */
+  creditableCosts: number;
+  /** STANDARD scheme only: was the land bought taxably (so its GST is claimable)? Default false. */
+  landIsCreditable?: boolean;
+}
+
+/** One line of the with-GST / GST / pre-GST reconciliation (the Feastudy GST Summary Report shape). */
+export interface GstSummaryLine {
+  label: string;
+  withGst: number;
+  gst: number;
+  preGst: number;
+}
+
+export interface GstResult {
+  scheme: GstScheme;
+  /** GST payable on sales (output tax). Margin: `(realisation − land)/11` floored at 0; standard: `realisation/11`. */
+  gstOnSales: number;
+  /** Input tax credits reclaimed on creditable costs (+ land under the standard scheme when creditable). */
+  inputTaxCredits: number;
+  /** Net GST remitted to the ATO = `gstOnSales − inputTaxCredits` (negative = net refund). */
+  netGstPayable: number;
+  /** Gross realisation less GST on sales — the ex-GST revenue that flows to the P&L. */
+  realisationExGst: number;
+  /** Three-column reconciliation (with-GST / GST / pre-GST) per the Feastudy GST Summary Report. */
+  summary: GstSummaryLine[];
+}
