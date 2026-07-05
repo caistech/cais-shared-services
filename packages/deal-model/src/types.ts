@@ -226,3 +226,71 @@ export interface DealModelResult {
   f2kIncome: F2kIncomeResult;
   partyOutcomes: PartyOutcome[];
 }
+
+// ---- Staged cashflow model (companion; Seafields_Cashflow_Model_V1.xlsx) ----------
+
+/**
+ * The staged cashflow inputs (workbook yellow "INPUTS", C5:C13). Answers the funder's
+ * question — how much money, when, and when does the funder get out. `sellingCostPct`
+ * and `interestRate` are OPTIONAL: they default to the deal model's shared knobs
+ * (`DEFAULT_CONSTANTS.agentCommissionPct` and flat 12%) so the two models cannot drift.
+ *
+ * CONTRIBUTIONS CONTRACT: `totalContributions` is the WHOLE contribution pool (founders +
+ * F2K, cash + kind) — deliberately BROADER than the deal model's `f2kContributionTotal`
+ * (F2K's slice). Feed both from the same contribution schedule; this layer only re-times
+ * the pool (75% now / 25% from surplus), it does not re-recover it against the base.
+ */
+export interface CashflowInputs {
+  totalContributions: number; // C5
+  /** Contributor pay-out in the first tranche, 0..1 (C6). Retained = 1 - this. */
+  contributorPayoutPct: number; // C6
+  totalWorksToTitle: number; // C7 (civil + eng + soft + education)
+  saleableLots: number; // C8
+  buildStages: number; // C9 (N — the sheet's fixed grid holds only at N=5)
+  salePricePerLot: number; // C10
+  /** Selling/agent cost, % of sale price (C11). Default: DEFAULT_CONSTANTS.agentCommissionPct. */
+  sellingCostPct?: number; // C11
+  /** All-in interest rate (C12). Default: 0.12 (matches DEFAULT_EXTERNAL_QUOTES). */
+  interestRate?: number; // C12
+  stageDurationMonths: number; // C13
+}
+
+/** One stage (period) of the cashflow waterfall. Rows 24:31, one column each. */
+export interface CashflowStage {
+  /** "S1".."S{N}", tail as "S{N+1} (tail)". */
+  label: string;
+  lotsSettled: number; // row 24
+  openingBalance: number; // row 25 (= prior closing)
+  payoutDrawdown: number; // row 26 (pay-out, period 1 only)
+  worksDrawdown: number; // row 27 (works, periods 1..N)
+  interestAccrued: number; // row 28
+  netSalesRevenue: number; // row 29 (lots settled x net rev/lot)
+  /** Gross funder exposure this stage, BEFORE settlement repayment (C25+C26+C27+C28). */
+  grossExposure: number;
+  closingBalance: number; // row 30 (funder balance after repayment, floored at 0)
+  surplus: number; // row 31 (revenue beyond funder need -> retained debt then uplift)
+}
+
+export interface CashflowResult {
+  /** Derived block, workbook C16:C20 (+ the resolved shared knobs). */
+  derived: {
+    payoutAtStart: number; // C16
+    retainedContributorDebt: number; // C17
+    worksPerStage: number; // C18
+    lotsPerStage: number; // C19
+    netRevenuePerLot: number; // C20
+    rate: number; // resolved C12
+    sellingCostPct: number; // resolved C11
+  };
+  stages: CashflowStage[];
+  peakFunderExposure: number; // C34
+  totalFunderInterest: number; // C35
+  funderBalanceAtFinalStage: number; // C36
+  retainedContributorDebtToClear: number; // C37
+  totalSurplusReleased: number; // C38 (gross — retained debt + uplift)
+  /** C38 - C37: the retained-debt-first / uplift split the sheet only LABELS on row 31. */
+  netUpliftAfterRetainedDebt: number;
+  selfFundingCrossover: string; // C39 label ("by S2" | "after works complete (S6)")
+  /** 1-based stage number of the crossover, or null when it only self-funds post-works. */
+  selfFundingCrossoverStage: number | null;
+}
