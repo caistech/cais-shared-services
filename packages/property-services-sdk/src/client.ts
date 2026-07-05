@@ -2,7 +2,18 @@
  * Property Services API client.
  * Lightweight fetch-based client — no axios dependency.
  */
-import type { PropertyProfile, SuitabilityAssessment, DeriveResponse, AssessResponse, ComparablesResponse } from './types'
+import type {
+  PropertyProfile,
+  SuitabilityAssessment,
+  DeriveResponse,
+  AssessResponse,
+  ComparablesResponse,
+  DossierResponse,
+  ContributionsResponse,
+  SuggestResponse,
+  ContributeInput,
+  ContributeResponse,
+} from './types'
 
 export interface PropertyServicesConfig {
   /** Supabase project URL for property-services */
@@ -100,6 +111,62 @@ export class PropertyServicesClient {
     postcode?: string
   }): Promise<ComparablesResponse> {
     return this.request<ComparablesResponse>('/comparables', params)
+  }
+
+  /**
+   * The consolidated site dossier — ONE call returns profile + AI assessment + price
+   * position + the panel-review checklist + any prior write-backs. Every section is
+   * fail-open (a failing leg leaves its section null; the dossier still returns), so
+   * prefer this over stitching `derive` + `assess` + `comparables` yourself.
+   */
+  async dossier(params: {
+    address: string
+    lat?: number
+    lng?: number
+    suburb?: string
+    state?: string
+    postcode?: string
+    useCase?: string
+  }): Promise<DossierResponse> {
+    return this.request<DossierResponse>('/dossier', {
+      ...params,
+      product: this.product,
+    })
+  }
+
+  /**
+   * Lightweight panel-review read — the checklist (merged with write-backs → completed) + the raw
+   * contributions for a site, WITHOUT the derive/assess/AVM legs that `dossier()` runs. Prefer this
+   * over `dossier()` when you only need the panel review + write-backs (e.g. rendering a review pack
+   * or a panel UI). Pass `address` or `parcelId`.
+   */
+  async contributions(params: {
+    address?: string
+    parcelId?: string
+    lat?: number
+    lng?: number
+    state?: string
+  }): Promise<ContributionsResponse> {
+    return this.request<ContributionsResponse>('/contributions', params)
+  }
+
+  /**
+   * AU address autocomplete — up to 6 suggestions for a partial address. Wire this to
+   * any address input to kill wrong-locality geocodes at the source. Returns an empty
+   * list for queries shorter than 3 characters.
+   */
+  async suggest(query: string): Promise<SuggestResponse> {
+    return this.request<SuggestResponse>('/suggest', { q: query })
+  }
+
+  /**
+   * Professional write-back — persist a completed field (title, contamination,
+   * servicing, native title, on-site survey) or an engine-value correction to the
+   * parcel, so the next `dossier()` for that property surfaces it instead of asking
+   * again. Pass either `parcelId` or `address`.
+   */
+  async contribute(params: ContributeInput): Promise<ContributeResponse> {
+    return this.request<ContributeResponse>('/contribute', params)
   }
 
   private async request<T>(path: string, body: unknown): Promise<T> {
