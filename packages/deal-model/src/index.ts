@@ -8,4 +8,5 @@
  */
 export * from "./types.js";
 export { computeDeal, DEFAULT_CONSTANTS, DEFAULT_EXTERNAL_QUOTES } from "./model.js";
+export { runCashflow } from "./cashflow.js";
 export { assignStage, resolveStage, emptyStageGate } from "./stage-gate.js";
