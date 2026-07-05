@@ -1,6 +1,6 @@
 {
   "name": "@caistech/deal-model",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Generic Estate Deal Model (F2K), V7 + staged cashflow — the canonical, pure calculation engine that turns an ingested feasibility study into a base price, uplift split and GO/ADJUST/REJECT verdict, plus a companion staged funder-cashflow (peak exposure, funder interest, self-funding crossover). V7 recovers every party's contribution in the base; the cashflow re-times the pool (75/25) without double-counting it. Single source of truth consumed by DealFindrs (compute) and F2K-Checkpoint/F2K-Projects (read).",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
