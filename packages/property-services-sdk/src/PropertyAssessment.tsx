@@ -11,7 +11,7 @@
 "use client";
 
 import { useState } from "react";
-import type { PropertyProfile, SuitabilityAssessment } from "./types";
+import type { PropertyProfile, SuitabilityAssessment } from "./types.js";
 
 interface PropertyAssessmentProps {
   profile: PropertyProfile;

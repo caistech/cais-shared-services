@@ -13,7 +13,7 @@ import type {
   SuggestResponse,
   ContributeInput,
   ContributeResponse,
-} from './types'
+} from './types.js'
 
 export interface PropertyServicesConfig {
   /** Supabase project URL for property-services */

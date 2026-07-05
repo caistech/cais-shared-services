@@ -31,15 +31,15 @@ export type {
   ContributeInput,
   ContributionRecord,
   ContributeResponse,
-} from './types'
+} from './types.js'
 
 // Client
-export { PropertyServicesClient, PropertyServicesError, createPropertyServices } from './client'
-export type { PropertyServicesConfig } from './client'
+export { PropertyServicesClient, PropertyServicesError, createPropertyServices } from './client.js'
+export type { PropertyServicesConfig } from './client.js'
 
 // React hook
-export { usePropertyOnboarding } from './usePropertyOnboarding'
-export type { UsePropertyOnboardingReturn, OnboardingStage } from './usePropertyOnboarding'
+export { usePropertyOnboarding } from './usePropertyOnboarding.js'
+export type { UsePropertyOnboardingReturn, OnboardingStage } from './usePropertyOnboarding.js'
 
 // Components
-export { PropertyAssessment } from './PropertyAssessment'
+export { PropertyAssessment } from './PropertyAssessment.js'

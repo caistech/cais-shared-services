@@ -29,9 +29,9 @@
  *   }
  */
 import { useState, useCallback, useRef } from 'react'
-import { PropertyServicesClient } from './client'
-import type { PropertyServicesConfig } from './client'
-import type { PropertyProfile, SuitabilityAssessment, PriceComparison } from './types'
+import { PropertyServicesClient } from './client.js'
+import type { PropertyServicesConfig } from './client.js'
+import type { PropertyProfile, SuitabilityAssessment, PriceComparison } from './types.js'
 
 export type OnboardingStage =
   | 'idle'          // waiting for address
