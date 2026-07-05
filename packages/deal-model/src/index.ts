@@ -10,4 +10,6 @@ export * from "./types.js";
 export { computeDeal, DEFAULT_CONSTANTS, DEFAULT_EXTERNAL_QUOTES } from "./model.js";
 export { runCashflow } from "./cashflow.js";
 export { computeGst, DEFAULT_GST_SCHEME } from "./gst.js";
+export { npv, irr, annualToPeriodRate, periodToAnnualRate, cashflowMetrics } from "./finance.js";
+export type { CashflowMetrics } from "./finance.js";
 export { assignStage, resolveStage, emptyStageGate } from "./stage-gate.js";
