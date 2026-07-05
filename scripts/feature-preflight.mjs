@@ -116,6 +116,25 @@ if (!skipForks) {
   }
 }
 
+// ─── canonical property-feed check (runs alongside the fork check) ────────────
+// Fail if the repo sources AU property/site intelligence from anything other
+// than the single approved @caistech/property-services-sdk feed (a vendored SDK
+// copy, a local *-derive edge function, a legacy @caistech/site-intelligence
+// import, or a direct call to a legacy edge endpoint). Enforces the "one
+// canonical feed, no legacy sources" directive at the code level so a migration
+// can't be declared "done" while legacy paths still ship.
+if (!skipForks && !process.argv.includes("--skip-feed-check")) {
+  const feedCheck = fileURLToPath(new URL("./check-canonical-property-feed.mjs", import.meta.url));
+  const r = spawnSync("node", [feedCheck, ...(jsonOut ? ["--json"] : [])], {
+    cwd: projectRoot,
+    stdio: jsonOut ? "pipe" : "inherit",
+  });
+  if (r.status === 2) {
+    if (jsonOut && r.stdout) process.stdout.write(r.stdout.toString());
+    process.exit(2);
+  }
+}
+
 const manifestDir = join(projectRoot, "feature-manifests");
 
 if (!existsSync(manifestDir)) {
