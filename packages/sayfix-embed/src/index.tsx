@@ -9,6 +9,9 @@
  *   <SayFixWidget repo="f2k-projects" />
  *   → Opens SayFix at sayfix.vercel.app/welcome?product=f2k-projects
  *   → User enters name/email → enters chat workflow scoped to that product
+ *   → DYNAMIC placement: auto-avoids the host site's own chat widgets / cookie banners / CTAs and
+ *     relocates at runtime as the page changes (see ./placement + ./SayFixWidget). Opt out with
+ *     <SayFixWidget repo="…" autoPlace={false} /> for the legacy static corner.
  *
  *   <SayFixNav ticketCount={3} />
  *   → Navigation links to Report + My Requests (requires auth)
@@ -20,123 +23,40 @@
  */
 
 import type { CSSProperties } from 'react';
+import { MessageSquare, Clock, Settings, Wrench } from './icons';
 
-/* ========================= ICONS (inlined lucide, MIT) ========================= */
+/* ========================= WIDGET (client, dynamic placement) ========================= */
 
-interface IconProps {
-  size?: number;
-}
+// The floating launcher is a client component (it inspects the live DOM to place itself). It is
+// re-exported here so consumers keep importing `{ SayFixWidget }` from the package root; the
+// "use client" boundary lives in ./SayFixWidget, so server components may render it unchanged.
+export { SayFixWidget } from './SayFixWidget';
+export type { SayFixWidgetProps } from './SayFixWidget';
 
-function svgProps(size = 20) {
-  return {
-    width: size,
-    height: size,
-    viewBox: '0 0 24 24',
-    fill: 'none',
-    stroke: 'currentColor',
-    strokeWidth: 2,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-    'aria-hidden': true,
-  };
-}
-
-function MessageSquare({ size }: IconProps) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  );
-}
-
-function Clock({ size }: IconProps) {
-  return (
-    <svg {...svgProps(size)}>
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
-    </svg>
-  );
-}
-
-function Settings({ size }: IconProps) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function Wrench({ size }: IconProps) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-    </svg>
-  );
-}
-
-/* ========================= WIDGET ========================= */
-
-export interface SayFixWidgetProps {
-  /** Repo name (e.g. f2k-projects, mmcbuild) - owner is inferred from the product's GitHub account in SayFix */
-  repo: string;
-  /** Button text. Default is brand-neutral ("Report a problem"); set your own for white-label. */
-  label?: string;
-  showIcon?: boolean;
-  position?: 'bottom-right' | 'bottom-left';
-  /** Button background colour. Set to your brand accent for white-label; defaults to a neutral dark. */
-  color?: string;
-}
-
-/**
- * Floating "Report a problem" button. Opens SayFix in a new tab. Fully self-styled (inline) so it
- * renders identically in any repo regardless of CSS framework. WHITE-LABEL: the default label is
- * brand-neutral (no "SayFix" text) and the button colour is a `color` prop — pass your brand's name
- * and accent to on-sell under your own brand. The intake it opens is white-labelled server-side.
- */
-export function SayFixWidget({
-  repo,
-  label = 'Report a problem',
-  showIcon = true,
-  position = 'bottom-right',
-  color = '#1c1917',
-}: SayFixWidgetProps) {
-  const sayfixUrl = `https://sayfix.vercel.app/welcome?product=${encodeURIComponent(repo)}`;
-
-  const style: CSSProperties = {
-    position: 'fixed',
-    bottom: 24,
-    ...(position === 'bottom-left' ? { left: 24 } : { right: 24 }),
-    zIndex: 2147483000,
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 8,
-    background: color,
-    color: '#ffffff',
-    padding: '12px 18px',
-    borderRadius: 9999,
-    boxShadow: '0 8px 24px rgba(0,0,0,0.22)',
-    fontWeight: 500,
-    fontSize: 15,
-    lineHeight: 1.2,
-    fontFamily: 'inherit',
-    textDecoration: 'none',
-    cursor: 'pointer',
-  };
-
-  return (
-    <a
-      href={sayfixUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      style={style}
-      title="Report a problem — opens SayFix in a new tab"
-    >
-      {showIcon && <MessageSquare size={18} />}
-      {label}
-    </a>
-  );
-}
+// The placement engine is exported for advanced consumers (and a future vanilla-JS loader).
+export {
+  computePlacement,
+  collectObstacles,
+  scorePosition,
+  rectForPosition,
+  intersectionArea,
+  edgeGap,
+  rectArea,
+  DEFAULT_DESKTOP_CANDIDATES,
+  DEFAULT_MOBILE_CANDIDATES,
+} from './placement';
+export type {
+  Corner,
+  Position,
+  Rect,
+  Viewport,
+  Size,
+  Obstacle,
+  ObstacleKind,
+  PlacementInput,
+  PlacementScore,
+  PlacementResult,
+} from './placement';
 
 /* ========================= NAV ========================= */
 
