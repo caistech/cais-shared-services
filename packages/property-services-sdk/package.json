@@ -1,6 +1,6 @@
 {
   "name": "@caistech/property-services-sdk",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Shared property intelligence SDK — derive, assess, comparables, dossier, contributions, suggest, contribute. Wraps the property-services Supabase edge functions.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -25,6 +25,7 @@ const QUICK_OPTIONS: Record<string, string[]> = {
   f2k: [
     "Build a modular home",
     "Construct a duplex",
+    "Subdivide into single-dwelling lots",
     "Multi-unit residential development",
     "Knockdown rebuild",
   ],
