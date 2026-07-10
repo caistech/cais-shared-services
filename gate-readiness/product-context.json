@@ -1,0 +1,9 @@
+{
+  "_doc": "Optional richer per-slug hints fed to Fable by `promise-bars.mjs draft`. Keeps the automated draft as informed as a hand-driven one. Add a line when you know more about a product than its one-line promise seed conveys.",
+
+  "_dropped_2026_07_10": "universal-interviews, leadspark, aiftis, mova, storyverse were DROPPED by the operator 2026-07-10 — do not draft or offer Gate-1 promise bars for them. Removed from the proposal artifacts. If any is revived, the operator states its promise first.",
+
+  "lga-planning-db": "INFRA / shared data substrate (pre-built AU council planning rules), not an end-user product. Per the rubric, infra/engine products may never get Gate-1 bars. Consider setting needed=N unless it ships as a sellable product with a distributor.",
+
+  "preflight": "INFRA / dev tooling (feature pre-flight). Not a distributed end-user product. Likely no Gate-1 bars; consider needed=N."
+}

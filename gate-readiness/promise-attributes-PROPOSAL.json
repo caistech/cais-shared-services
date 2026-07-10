@@ -1,0 +1,161 @@
+{
+  "generated_by": "fable-5",
+  "for_review": true,
+  "products": [
+    {
+      "tab": "F2K Projects",
+      "slug": "f2k-projects",
+      "needed": "Y",
+      "promise": "Browse a land estate like a premium product, pick your lot, and walk away with a configured, priced proposal in the same session",
+      "distributor": "Land-estate developers & project marketers",
+      "attributes": [
+        {
+          "attribute": "Premium lot browse",
+          "quality_bar": "every lot on an interactive estate plan opens to its own detail card (size, frontage, orientation, price, live status) in one click - not a static masterplan PDF or an undifferentiated table of lot numbers",
+          "claude_draft": "clickable per-lot detail on an interactive plan - not a PDF masterplan",
+          "verify": "NAIVE",
+          "approved": false,
+          "notes": "This IS the reframe: raw dirt presented like a premium product. If lots are a list, the 'I want that lot' moment never happens."
+        },
+        {
+          "attribute": "'I want THAT lot' moment",
+          "quality_bar": "a specific lot feels ownable - the detail view shows what living/building THERE looks like (aspect, dimensions on the plan, what fits on it) so a viewer names a favourite lot unprompted - not interchangeable rectangles with prices",
+          "claude_draft": "viewer picks a favourite lot unprompted - not interchangeable rectangles",
+          "verify": "NAIVE/JUDGE",
+          "approved": false,
+          "notes": "The emotional core of the demand side. Testable: does a naive tester volunteer 'I'd take lot X'?"
+        },
+        {
+          "attribute": "Hot-configured proposal",
+          "quality_bar": "registering interest on a lot produces a branded proposal specific to THAT lot with real configured numbers (lot price + selected package/options) inside the session or within minutes - not a 'thanks, we'll be in touch' acknowledgement",
+          "claude_draft": "lot-specific priced proposal in-session - not 'we'll be in touch'",
+          "verify": "NAIVE",
+          "approved": false,
+          "notes": "The conversion promise: browser -> configured lead. Ties to the configurator fold-in (F2K-Contracts -> Projects). Assumed the proposal PDF path is in the slice."
+        },
+        {
+          "attribute": "Live estate truth",
+          "quality_bar": "lot availability (available/held/sold) is current and consistent everywhere it appears, and a just-registered interest visibly changes state - not stale statuses that make the estate feel abandoned",
+          "claude_draft": "live consistent availability everywhere - not stale statuses",
+          "verify": "NAIVE",
+          "approved": false,
+          "notes": "A single stale 'sold' lot shown as available destroys buyer trust in 10 seconds; it is the estate-equivalent of a broken demo."
+        },
+        {
+          "attribute": "Distributor pull (qualified leads)",
+          "quality_bar": "the developer's admin view shows leads arriving already qualified - lot chosen, configuration captured, proposal sent - under the ESTATE's brand end-to-end - not raw name+email enquiries they must re-qualify by phone",
+          "claude_draft": "leads arrive lot-chosen + configured under the estate brand - not raw enquiries",
+          "verify": "NAIVE/JUDGE",
+          "approved": false,
+          "notes": "Distributor feel: 'this sells my estate while I sleep.' Brand test: zero F2K/CAS branding visible to the buyer."
+        }
+      ],
+      "bars_filled": 5,
+      "_proposal_status": "GENERATED",
+      "_rationale": "Inferred the promise as the DEMAND side of the F2K pipeline: premium browsable estate + browser-to-configured-lead conversion, per the brief. Key assumption: the configurator/proposal flow (folded in from F2K-Contracts) is in the thin slice - if it isn't yet, the 'hot-configured proposal' bar is the one to check. Deliberately excluded delivery-side anything (Checkpoint's job) and admin depth beyond lead visibility."
+    },
+    {
+      "tab": "Lessons Learned",
+      "slug": "lessonslearned",
+      "needed": "Y",
+      "promise": "Speak a hard-won lesson in seconds and have exactly the right past lesson resurface when you next need it",
+      "distributor": "Consultancies, trade businesses & field-service teams that accumulate field knowledge",
+      "attributes": [
+        {
+          "attribute": "Frictionless voice capture",
+          "quality_bar": "tap, speak naturally, done - a usable distilled lesson exists within ~15 seconds of finishing speaking, with zero typing or transcript cleanup required - not a recording the user must title, tag, and edit",
+          "claude_draft": "speak -> distilled lesson auto-saved in seconds - not record-then-edit",
+          "verify": "NAIVE",
+          "approved": false,
+          "notes": "The capture moment happens on-site/on-the-go; any friction and the lesson is never captured. This is the top of the whole value loop."
+        },
+        {
+          "attribute": "Distillation quality",
+          "quality_bar": "the stored item is a crisp situation-plus-lesson the speaker recognises as 'yes, that's what I meant' - context preserved, rambling removed - not a raw transcript dump or an over-summarised platitude that lost the specifics",
+          "claude_draft": "crisp situation+lesson that preserves meaning - not transcript dump or platitude",
+          "verify": "JUDGE",
+          "approved": false,
+          "notes": "Both failure directions fail: raw transcripts are unrecallable, over-compression loses the detail that made the lesson worth keeping."
+        },
+        {
+          "attribute": "Semantic recall",
+          "quality_bar": "asking in COMPLETELY different words than the original capture (zero keyword overlap) surfaces the right prior lesson as the top result - not keyword search that only finds exact phrasings",
+          "claude_draft": "differently-worded query finds the right lesson - not keyword match",
+          "verify": "NAIVE/JUDGE",
+          "approved": false,
+          "notes": "The falsifiable core claim. Test protocol: capture a lesson, query it paraphrased with no shared keywords, check it ranks first. Mirrors the proven bug-memory.mjs Mnemo pattern."
+        },
+        {
+          "attribute": "Unprompted resurfacing",
+          "quality_bar": "while capturing or working on a NEW situation, a genuinely related prior lesson surfaces on its own ('you hit something like this in March...') - not a library the user must remember to search",
+          "claude_draft": "related prior lesson surfaces unprompted in context - not search-only",
+          "verify": "NAIVE",
+          "approved": false,
+          "notes": "'Actually resurfaces the right one when you need it' is the promise's adjective - a search box alone is the dumb-voice-memo-list failure the brief names."
+        },
+        {
+          "attribute": "Distributor pull (team brain)",
+          "quality_bar": "a team lead sees the team's collective lesson base compound across members - one member's field lesson recallable by another, with attribution - not per-person silos or a usage counter",
+          "claude_draft": "cross-member recall with attribution - not per-person silos",
+          "verify": "JUDGE",
+          "approved": false,
+          "notes": "Distributor feel: 'my firm stops re-learning the same lesson twice.' Cross-member recall is the experience; the org/member plumbing behind it stays post-GO (can be faked with 2 hardcoded users in the demo)."
+        }
+      ],
+      "bars_filled": 5,
+      "_proposal_status": "GENERATED",
+      "_rationale": "Inferred the promise as capture-friction-zero plus genuine semantic resurfacing - the 'voice notebook that actually resurfaces the right one.' Key judgment call: added 'unprompted resurfacing' as its own attribute distinct from search-based recall, because that is what separates this from a voice-memo app; if the operator considers search-only sufficient for Gate 1, drop that attribute. Team-brain bar is demoable with hardcoded users (no multi-tenant needed)."
+    },
+    {
+      "tab": "Storefront MCP",
+      "slug": "storefront-mcp",
+      "needed": "Y",
+      "promise": "Your product becomes a tool an AI agent can find and operate - watch an agent discover your storefront and complete a real transaction inside its own chat",
+      "distributor": "Product operators & dev shops who want their app usable inside other agents",
+      "attributes": [
+        {
+          "attribute": "Agent discovers you",
+          "quality_bar": "a fresh, unprimed agent (Claude/ChatGPT with the MCP endpoint added) lists the product's tools with descriptions accurate enough that it chooses the right tool for a natural-language ask - not a manifest that parses but describes tools so vaguely the agent guesses wrong",
+          "claude_draft": "unprimed agent picks the right tool from descriptions alone - not a technically-valid-but-vague manifest",
+          "verify": "JUDGE",
+          "approved": false,
+          "notes": "Discovery quality is legibility, not just protocol compliance. Test: give an agent the endpoint cold and a natural ask; watch which tool it reaches for."
+        },
+        {
+          "attribute": "Agent operates you end-to-end",
+          "quality_bar": "an agent completes a real multi-step transaction purely via tools - browse/search the catalog, inspect an item, place the order or enquiry - and the result lands in the real storefront - not read-only listing or a stubbed 'order received' that goes nowhere",
+          "claude_draft": "agent completes a real order via tools - not read-only or stubbed",
+          "verify": "NAIVE/JUDGE",
+          "approved": false,
+          "notes": "The 3-minute demo IS watching this happen live in a chat window. A read-only integration demonstrates nothing a scraper couldn't."
+        },
+        {
+          "attribute": "Minutes-not-a-project install",
+          "quality_bar": "an operator points the kit at their existing product/config and has live, agent-callable tools the same sitting - not a bespoke integration engagement per storefront",
+          "claude_draft": "config-in, live tools out, same sitting - not a per-store integration project",
+          "verify": "NAIVE",
+          "approved": false,
+          "notes": "The 'universal kit' claim (the @caistech/webmcp-kit promotion) is only credible if wiring is visibly trivial. Demo with the founder doing it live or a recorded before/after."
+        },
+        {
+          "attribute": "Distributor pull (new channel proof)",
+          "quality_bar": "the operator sees a real order/lead arrive attributed to the AGENT channel - 'this sale came from someone's assistant, not my website' - not a hypothetical slide about agent traffic",
+          "claude_draft": "a real order visibly attributed to an agent - not a slide about agent traffic",
+          "verify": "JUDGE",
+          "approved": false,
+          "notes": "Distributor feel: a distribution channel they don't have today. Attribution can be as thin as a 'via agent' tag on the order row - experience, not analytics infra."
+        }
+      ],
+      "bars_filled": 4,
+      "_proposal_status": "GENERATED",
+      "_rationale": "Framed the promise around the watchable moment - an agent in a chat window finding and driving the store - because that is the only way this demos as a product rather than a protocol. INFRA RISK the operator should rule on: this is being promoted to @caistech/webmcp-kit, i.e. it may really be substrate (never lane-assigned, never Gate-1-scored) with 'storefront-mcp' as merely its first consumer; if so, these bars belong to a demo consumer product, not to the kit itself."
+    }
+  ],
+  "_dropped_2026_07_10": [
+    "universal-interviews",
+    "leadspark",
+    "aiftis",
+    "mova",
+    "storyverse"
+  ]
+}
