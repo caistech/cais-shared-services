@@ -852,7 +852,7 @@
     {
       "tab": "LGA Planning DB",
       "slug": "lga-planning-db",
-      "needed": "Y",
+      "needed": "N",
       "promise": "Pre-built Australian council planning rules",
       "distributor": null,
       "attributes": [
@@ -1290,7 +1290,7 @@
     {
       "tab": "Preflight",
       "slug": "preflight",
-      "needed": "Y",
+      "needed": "N",
       "promise": "Feature pre-flight tooling",
       "distributor": null,
       "attributes": [
