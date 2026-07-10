@@ -45,6 +45,7 @@
 | `@caistech/agents` | Legacy JS: agent provisioning, prompt templates, secure gateway. |
 | `@caistech/extractors` | LLM content extractors — business profile from a website; business signals from LinkedIn/Facebook/Instagram. Inject any LLM. |
 | `@caistech/cert-extractor` | OCR + structured entity extraction for certs/licences (ISO 9001, CodeMark, JAS-ANZ, mill certs). Bilingual; inject any vision LLM. |
+| `@caistech/document-ingest` | **AU subdivision-approval / plan document-ingest engine** — Claude-direct PDF extraction (approved yield, categorised conditions register, easements/reserves, lot geometry/bands) + stage-gate / lifecycle-status rollup. `ingestApproval(pdf, kind, priorGate, {client\|apiKey\|model})` → typed `IngestResult`; Anthropic client is INJECTABLE (env `ANTHROPIC_API_KEY` fallback). App-agnostic — never touches a DB; each consumer persists to its own schema. Consumed by **DealFindrs** (→ deal viability) and **F2K-Checkpoint** (→ the 197-task project workflow: conditions drive/pre-complete pipeline tasks). Depends on `@caistech/deal-model`. **v0.1.0.** |
 | `@caistech/voice-validation-bridge` | Extracts validation-schema field suggestions from voice-interview transcripts via LLM. |
 
 ## Voice & language

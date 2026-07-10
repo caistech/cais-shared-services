@@ -1,0 +1,32 @@
+{
+  "name": "@caistech/document-ingest",
+  "version": "0.1.0",
+  "description": "Shared AU subdivision-approval / plan document-ingest engine — Claude-direct PDF extraction (yield, conditions, easements, lot geometry) + stage-gate / lifecycle rollup. Consumed by DealFindrs (viability) and F2K-Checkpoint (project workflow); each app plugs in its own persistence + Anthropic key.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
+    "@caistech/deal-model": "^0.5.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "files": [
+    "dist/"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/document-ingest"
+  },
+  "license": "PRIVATE",
+  "type": "module"
+}
