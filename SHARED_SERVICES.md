@@ -18,7 +18,7 @@
 >
 > **Install:** registry is GitHub Packages (`@caistech:registry=https://npm.pkg.github.com`, token
 > `NODE_AUTH_TOKEN`/`GITHUB_PACKAGES_TOKEN`). `npm install @caistech/<name>`. Consumers import the
-> compiled `dist/`, never source. **Last updated:** 2026-07-03 (44 packages).
+> compiled `dist/`, never source. **Last updated:** 2026-07-10 (46 packages).
 
 ---
 
@@ -53,6 +53,7 @@
 | Package | Capability |
 |---|---|
 | `@caistech/elevenlabs-convai` | **The portfolio voice stack** — ElevenLabs Conversational AI: agent provisioning, webhook routes, the **full persistent-memory loop** (`handleStartConversation` recall, `handlePostCallWebhook` with an `onConversationComplete` distil seam, `handleSaveMemory`/`handleRecallMemory`, `distillConversationToMemory`), anonymous sessions (`mintAnonSessionToken`), and a React `VoiceWidget` (`/react`). **Building a voice agent? Follow `VOICE_MEMORY_STANDARD.md` and wire ALL THREE legs of the loop** (persist+distil, recall+inject, capture-as-you-go) — mounting only some gives storage, not memory (the Morgan/SayFix failure). **v0.4.2+: `DEFAULT_AGENT_LLM` = gpt-4.1-mini** (every agent inherits it — gpt-4o-mini dropped tool calls over long calls); **one-conversation voice + text** via opt-in `textInput`; `onReady(controls)` exposes `{ sendUserMessage, sendContextualUpdate }` for timed/system turns the agent speaks. Never build a parallel voice client — consume this. |
+| `@caistech/discovery-agent` | **Config-driven voice discovery/interview agent** built ON `@caistech/elevenlabs-convai` (never re-implements voice). A product supplies only *purpose + persona + question arc + extraction schema + result sink*; the shared orchestration is the package: idempotent agent `provision()` (persona+stage-arc prompt + memory tools + per-session overrides), signed per-subject `startSession()` with a PUSHED prompt override, HMAC post-call `webhookRoutes()` (pulls the transcript via `getConversationHistory`, distils, calls the sink), and `distil()` via an **INJECTED `StructuredRunner`** (no model SDK weight — the "inject any LLM" pattern). **Model-tiered:** a cheap `interviewModel` runs the live call, a frontier `extraction.model` (e.g. `claude-fable-5`) runs the judgment (encode-once). Identity is server-derived from the signed token (`resolveSession`), never a bare client id (VOICE_MEMORY_STANDARD). React `DiscoveryWidget` (`/react`) adds staged re-grounding + the browser wrap-up timer. The extraction of the Connexions/LingoPure/Singify pattern. **v0.1.0.** |
 | `@caistech/elevenlabs-voice` | ElevenLabs TTS + STT wrappers for one-shot (non-conversational) voice ops. |
 | `@caistech/language-config` | 80+ language definitions with TTS provider mapping (ElevenLabs/Google). |
 | `@caistech/stt-noise-filter` | Strip ambient-noise descriptions from STT output (rule-based + LLM). |
