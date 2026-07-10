@@ -1,0 +1,28 @@
+{
+  "name": "@caistech/planning-memory",
+  "version": "0.1.0",
+  "description": "The experiential (Mnemo) leg of the planning-retrieval hybrid — recall + store DISTILLED, jurisdiction-general planning CONCLUSIONS in a SHARED, state-keyed scope (caistech-planning-<state>), so per-state retrieval depth compounds across every consuming product. Never the citation layer (DATA_STANDARD D1/D2 — that stays OWNED RAG); stores only distilled, non-PII interpretation (I4/S4). Zero-dep (native fetch), env-driven (MNEMO_API_KEY), fail-soft. Consumed by F2K-Checkpoint (planning review) + DealFindrs (viability).",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "files": [
+    "dist/"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/planning-memory"
+  },
+  "license": "PRIVATE",
+  "type": "module"
+}
