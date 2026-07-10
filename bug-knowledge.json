@@ -870,6 +870,25 @@
       },
       "fixed_at": "2026-06-18",
       "fixed_by": "pipeline middleware fix (commit 88e6948); portfolio sweep pending"
+    },
+    {
+      "id": "f2k-createproject-invokes-missing-edge-function-500",
+      "product": "f2k-checkpoint (any repo invoking a Supabase edge function not deployed to its project)",
+      "error_pattern": "POST .../functions/v1/<name> returns 500 on an action, but the action still succeeds (error swallowed) — a fire-and-forget supabase.functions.invoke() to an edge function that does not exist in the repo/project.",
+      "error_symptoms": [
+        "Network tab shows POST /functions/v1/send-project-creation-emails -> 500 on project create",
+        "Project is created fine anyway (call was .catch(()=>{}))",
+        "No edge function dir under supabase/functions/<name>/"
+      ],
+      "attempts": [
+        {
+          "tried": "Assumed the edge function existed and was erroring internally",
+          "failed_because": "There was no such function in the repo or on the Supabase project — the invoke 404/500s at the gateway"
+        }
+      ],
+      "solution": "Route the notification through the repo canonical email path (src/lib/services/emailService.ts sendEmail + a template) instead of a missing edge function. F2K: createProject (src/lib/actions/projects.ts) now sends a Factory2Key transactional projectCreatedEmail to the operator, non-blocking. General rule: never leave a supabase.functions.invoke() pointing at a function that is not deployed; use the canonical service or delete the call.",
+      "fixed_at": "2026-07-09",
+      "fixed_by": "commit b0ba9b81 (f2k-checkpoint)"
     }
   ],
   "usage": "Before fixing ANY bug, grep this file for matching error patterns. Also check SayFix DB for product-specific attempts.",

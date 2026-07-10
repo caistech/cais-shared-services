@@ -1,0 +1,55 @@
+{
+  "name": "@caistech/discovery-agent",
+  "version": "0.1.0",
+  "description": "Config-driven AI voice discovery/interview agent — a product supplies only purpose + persona + question arc + extraction schema + result sink; the staged conversation, context priming, memory loop, HMAC webhook and transcript→structured-output are shared. Built on @caistech/elevenlabs-convai.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "@caistech/elevenlabs-convai": ">=0.4.0",
+    "@supabase/supabase-js": ">=2.0.0",
+    "@elevenlabs/react": ">=1.0.0",
+    "react": ">=18.0.0",
+    "typescript": ">=5.0.0",
+    "zod": ">=3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@supabase/supabase-js": { "optional": true },
+    "@elevenlabs/react": { "optional": true },
+    "react": { "optional": true }
+  },
+  "devDependencies": {
+    "@caistech/elevenlabs-convai": "^0.4.9",
+    "@elevenlabs/react": "^1.6.3",
+    "@supabase/supabase-js": "^2.39.0",
+    "@types/react": "^19.2.15",
+    "vitest": "^1.6.0",
+    "zod": "^3.23.0"
+  },
+  "files": ["dist/", "README.md"],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/discovery-agent"
+  },
+  "license": "PRIVATE",
+  "type": "module"
+}
