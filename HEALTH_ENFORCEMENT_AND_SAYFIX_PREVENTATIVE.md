@@ -153,3 +153,72 @@ The foundation the product sits on — worth doing for us regardless:
   the Bug Knowledge Protocol + Mnemo (recall a prior fix onto a proactive ticket).
 - Governance context: this doc is the enforcement companion to `PRODUCT_STANDARDS.md` (definition)
   and `THIN_MVP_RUBRIC.md` §6 (gate-readiness). SayFix rollout state: memory `project_sayfix_portfolio_rollout`.
+
+---
+
+## 9. What the SayFix session should know (addendum — 2026-07-12)
+
+**This is no longer greenfield — reconcile, don't restart.** SayFix already shipped
+`3afc031` *"feat(sensors): preventative health sensors — catch outages before users, alert both
+owner + builder"* (deployed to prod). So the SayFix session's job is to make that feature (a) the
+**canonical runner** for the whole portfolio and (b) faithful to the substrate + the failure modes
+below — not to build sensors from scratch. First step: read `3afc031` and check it against §5–§7 +
+this section.
+
+### 9a. The concrete evidence base (real bugs found 2026-07-12 — the product must catch/avoid these)
+These are the exact failure modes tonight surfaced; they are the product's reason to exist and its
+own test cases:
+1. **A broken check looks identical to a real outage.** `corporate-ai`'s sensor failed every 6h for
+   days — but the *site was 200 the whole time*; the **check** was broken (ran
+   `npx --no-install portfolio-gate-smoke-*` with no checkout/install → npm 404 on the unscoped bin).
+   → The product must distinguish "sensor infra failed" from "target is down," and must **not** page
+   the customer for its own broken runner.
+2. **The correct workflow shape** (the fix): `checkout → setup-node with registry-url
+   npm.pkg.github.com + scope @caistech → install with NODE_AUTH_TOKEN → then the smoke`. Mirror
+   `gate.yml`. Ship this ONCE as a canonical template; per-repo copy-paste is what rotted.
+3. **Auth-smoke is N/A on a no-user-auth site.** `corporate-ai` is marketing/marketplace (no
+   `/login`); the shipped `auth.config.json` was the untouched template pointing at pages that 404.
+   → The product needs a **per-target check profile** (routes/uptime always; auth-smoke only where
+   user auth exists; session-smoke only where a QA account + real `session.config` exist), not a
+   one-size workflow.
+4. **An uncommitted sensor = zero monitoring, silently.** `LingoPure`'s `health-sensors.yml` was
+   scaffolded but never committed → no monitoring at all, and nothing flagged its absence.
+   → **"Watch the watchmen": a MISSING or never-running sensor must alert as loudly as a red one.**
+   This is the single highest-value thing the product adds over per-repo crons.
+
+### 9b. Don't fork the substrate (the @caistech-first rule applies here too)
+- **Checks:** `@caistech/portfolio-gate` already ships the bins (`portfolio-gate-smoke-auth`,
+  `-smoke-routes`, `-smoke-session`, + the audits). Consume them; don't reimplement smokes.
+- **Reporter:** copy the `@caistech/usage-meter` shape — fire-and-forget POST to a SayFix ingest
+  endpoint, never throws, no-op until env is set. Same ergonomics.
+- **Tickets + widget:** `@caistech/sayfix-embed` already owns the tickets table + GitHub wiring — a
+  proactive ticket is just a row beside a user-reported one.
+- **Likely-fix:** the Bug Knowledge Protocol + Mnemo — on a sustained failure, recall a prior fix and
+  attach it to the proactive ticket (the "arrives with the fix" differentiator).
+
+### 9c. "Owner + builder" — get the two recipients right (lane-aware)
+The `3afc031` commit already says "alert both owner + builder" — hold that line, and map it to the
+business model: **owner = the distributor** (whose customers feel the outage), **builder = the
+CAS/operator** (who fixes it). A **white-label** deployment alerts under the **distributor's** brand,
+never a CAS one (the "whose brand travels" gate, BUSINESS_MODEL §3). Don't leak CAS branding into a
+distributor's incident alert.
+
+### 9d. Threshold + noise discipline (so it's trusted, not muted)
+- **N sustained failures**, not one transient blip, before a page/ticket (a single 6h cron miss is
+  noise). corporate-ai proved the opposite failure — a *permanent* red that everyone learned to
+  ignore. Alert fatigue kills a monitoring product faster than a missed outage.
+- **De-dupe** proactive tickets (one open ticket per ongoing incident, not one per run).
+- **Self-heal signal:** when a target recovers, resolve the ticket + note duration (that's the
+  "we caught it and it's fixed" story the product sells).
+
+### 9e. Client-safe check tiering (what you can run against a client's site)
+- **Always safe:** route reachability / uptime / TLS / the marketing surface.
+- **Needs the client's test creds:** auth-smoke, session-smoke (their QA account, per §9.5 accounts).
+- **Needs repo access:** the gate-readiness static checks. Gate these behind explicit client opt-in.
+
+### 9f. Where the internal enforcement layer meets the product
+If SayFix's sensors become the canonical runner, the **internal** enforcement layer (§6) largely
+falls out for free: point the same runner + rollup at our own ~38 repos first (dogfood + proof), and
+the "which of our products has a green, committed, running sensor?" board is the honest portfolio
+health dashboard we currently lack. Build the customer product and the internal governance from the
+one substrate.
