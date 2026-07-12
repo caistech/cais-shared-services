@@ -226,6 +226,47 @@ export interface Contribution {
   expiresAt: string | null
 }
 
+// ─── Servicing requirement set (derived on read) ────────────────
+
+/**
+ * The servicing (utility-connection) requirement set for a lot, DERIVED ON READ from the
+ * human-attested `servicing_type` (sewered / unsewered) + the canonical `servicing_requirements`
+ * mapping in property-services. The human attests only the circumstance; property-services expands
+ * it into the authority applications the lot must lodge. Because it's derived (not snapshotted), a
+ * REGULATED lodgement requirement can never silently expire.
+ *
+ * Consumers (F2K-Checkpoint, DealFindrs) READ this — they never hardcode the sewered/unsewered ⇒
+ * authorities mapping themselves.
+ */
+export type ServicingType = 'sewered' | 'unsewered'
+export type ServicingAuthorityKind = 'state_fixed' | 'lga_env_health'
+export type ServicingCoverage = 'covered' | 'state_not_covered' | 'council_unresolved'
+
+/** One authority application a lot must lodge, resolved for the specific site. */
+export interface ServicingRequirement {
+  /** stable key, e.g. 'water_corp' | 'western_power' | 'nbn' | 'council_env_health' */
+  authority: string
+  /** state_fixed = a state-level authority; lga_env_health = resolved to the lot's council */
+  authorityKind: ServicingAuthorityKind
+  /** display label; the actual council name is substituted for lga_env_health authorities */
+  authorityLabel: string
+  applicationType: string
+  /** what the lodgement gates, e.g. 'building_permit' | 'construction' */
+  blocks: string | null
+}
+
+/** The full determination: the attested circumstance + its expanded requirement set. */
+export interface ServicingDetermination {
+  servicingType: ServicingType
+  attestedBy: string | null
+  attestedAt: string
+  state: string | null
+  requirements: ServicingRequirement[]
+  /** covered = fully resolved; state_not_covered / council_unresolved = honest degrade (see note) */
+  coverage: ServicingCoverage
+  note: string | null
+}
+
 /**
  * The consolidated site dossier — one call aggregates profile + AI assessment + price
  * position + the panel-review checklist + any prior write-backs. Every section is
@@ -239,6 +280,9 @@ export interface SiteDossier {
   price: PriceComparison | null
   plannerReview: PlannerReviewItem[]
   contributions: Contribution[]
+  /** The servicing requirement set derived from the attested servicing_type; null/absent until the
+   *  panel answers "sewered / unsewered". Present from SDK 0.8.0 + the servicing_requirements engine. */
+  servicing?: ServicingDetermination | null
   meta: {
     useCase: string | null
     sources: string[]
@@ -262,6 +306,11 @@ export interface ContributionsResponse {
   success: boolean
   plannerReview: PlannerReviewItem[]
   contributions: Contribution[]
+  /** Servicing requirement set derived on read. In this lightweight endpoint the LGA isn't
+   *  resolved, so an unsewered lot's council authority reads as "council TBD"
+   *  (coverage: 'council_unresolved'); use `dossier()` for the council-resolved determination.
+   *  Present from SDK 0.8.0 + the servicing_requirements engine. */
+  servicing?: ServicingDetermination | null
   error?: string
 }
 

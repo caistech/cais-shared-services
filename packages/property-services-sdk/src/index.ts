@@ -31,6 +31,11 @@ export type {
   ContributeInput,
   ContributionRecord,
   ContributeResponse,
+  ServicingType,
+  ServicingAuthorityKind,
+  ServicingCoverage,
+  ServicingRequirement,
+  ServicingDetermination,
 } from './types.js'
 
 // Client
