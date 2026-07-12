@@ -222,3 +222,83 @@ falls out for free: point the same runner + rollup at our own ~38 repos first (d
 the "which of our products has a green, committed, running sensor?" board is the honest portfolio
 health dashboard we currently lack. Build the customer product and the internal governance from the
 one substrate.
+
+---
+
+## 10. Field-tested failure taxonomy + 3rd-party deployment architecture (2026-07-12 sweep)
+
+On 2026-07-12 we fixed the sensor across **9 live portfolio repos** and hit, empirically, **every
+class of failure a preventative-health-check product will meet in the wild.** This is the single
+most valuable input to the SayFix session — it is the product's real test matrix. Grouped by where
+the failure lives:
+
+### 10a. CI-install failure modes (all artifacts of running *inside a repo's CI*)
+These have nothing to do with whether the target site is healthy — they're install/runner problems:
+1. **Runner not installed** — `npx --no-install <bin>` with no checkout/install step → registry 404
+   (the original bug, all 25 repos). **A broken runner fast-fails in ~9s and looks identical to a
+   real outage.**
+2. **Private-registry dependency** — the checks come from the **scoped, private
+   `@caistech/portfolio-gate`**; install needs a GitHub-Packages token. Every repo needed
+   `setup-node` with `registry-url: npm.pkg.github.com` + `scope: @caistech` +
+   `NODE_AUTH_TOKEN`. **← this is the load-bearing 3rd-party blocker, see §10c.**
+3. **Lockfile drift + strict install** — `npm ci` / `pnpm install --frozen-lockfile` FAIL on an
+   out-of-sync lockfile (F2K-Projects: `Missing @emnapi/runtime from lock file`; F2K-Checkpoint).
+   Fix: **tolerant install** (`npm install`, `pnpm install --no-frozen-lockfile`) — a sensor
+   validates the live site, not the lockfile.
+4. **pnpm ignored-builds** — pnpm 10 exits non-zero on `ERR_PNPM_IGNORED_BUILDS` (sharp/esbuild
+   native scripts). Fix: `--ignore-scripts` (a sensor needs the JS bins, not built native deps).
+5. **setup-node cache post-step** — `cache: pnpm` errors *"Path(s) for caching do not exist"* in the
+   **Post-Setup-Node** step → whole job fails on a benign optimization. Fix: **drop the `cache:` key.**
+6. **Package-manager heterogeneity** — npm vs pnpm must be detected + branched (both were present).
+
+**Every one of 1–6 disappears if the checks do NOT run inside the target's CI.** They are the tax of
+the in-repo-workflow model.
+
+### 10b. Target-side signal modes (the actual monitoring value — keep these)
+These are real signal about the deployment; the product must surface them, not mask them:
+7. **Missing/uncommitted sensor** — 17 repos had the workflow file locally but **never pushed to
+   `main`** → zero monitoring, silently. The product's **watch-the-watchmen** must alert on
+   *absent/never-run*, not only red.
+8. **Auth-surface drift** — auth checks hit `/login`,`/signup`,`/forgot-password` that **404** because
+   the target is marketing/API/parked/admin-only, or its auth lives elsewhere (property-services:
+   none; F2K-OffshoreModular & F2K-Projects: `/admin/login`; F2K-Checkpoint: all present). The
+   product must **auto-detect or client-declare the auth surface per target** — and must NOT assume
+   `/login` exists.
+9. **Wrong/stale target URL** — investorpilot's configured URL was a *dead* domain
+   (`investorpilot.vercel.app`) while the live one was `investor-pilot-pi.vercel.app`. The sensor
+   correctly went red. **Owning + validating the target URL is the product's job**; a stale URL is a
+   false red that trains users to ignore alerts.
+10. **Protected / ambiguous endpoints** — `/api/health` returned **401** (auth-protected) where the
+    config expected 200. Need **per-route expected-status**, client-declarable.
+11. **"Our probe broke" ≠ "your site is down"** — modes 1–6 must never page a client. The product
+    must self-distinguish sensor-infra failure from target failure (different severity, different
+    recipient).
+
+### 10c. THE architecture implication for 3rd-party clients (read this twice)
+The portfolio model — *a GitHub Actions workflow committed into the target repo that installs a
+private `@caistech` dep and runs smoke bins from inside CI* — **cannot ship to a 3rd-party SayFix
+client.** A client cannot install `@caistech/portfolio-gate` (private moat, §10a-2), and you cannot
+assume their package manager, lockfile state, build scripts, auth surface, or URL (§10a-3..6, §10b).
+Requiring them to add a workflow + a secret + tuned config files reproduces, on their turf, every
+failure we just spent a day fixing by hand.
+
+**→ For 3rd-party, run the checks from SayFix's OWN hosted infra as external black-box probes, NOT
+from inside the client's CI.** An external runner hits the client's live URL(s) from outside —
+route/uptime/TLS reachability, auth-page presence, expected statuses — with **zero client CI, zero
+private dep, zero lockfile/pm/build exposure.** That single decision deletes failure modes 1–6
+outright and leaves only the genuine target-side signal (7–11). Consequences to design for:
+- **The client registers targets, not workflows:** URL(s) + a **check profile** (auth surface,
+  per-route expected statuses, protected endpoints) — self-serve or auto-detected on first probe.
+  The per-repo tailoring we did by hand *is the product's onboarding wizard.*
+- **Deeper checks that truly need to be inside** (authenticated session-smoke, in-repo readiness)
+  require the client's **test creds** (session) or **repo access** (readiness) — gate behind explicit
+  opt-in, and *still* prefer SayFix-infra-with-injected-creds over asking them to wire CI.
+- **Package the checks for reuse without the private registry** — either a SayFix-hosted runner that
+  bundles `@caistech/portfolio-gate`, or a public/thin check runner. Never ask a client to auth to
+  `npm.pkg.github.com`.
+- **Own target-URL config** as first-class (clients change deploy URLs constantly — §10b-9).
+- **Tolerate everything you don't control** on the target; alert only on genuine target-side signal.
+
+**One line for the SayFix session:** *the in-repo-CI sensor is right for OUR ~38 repos (we own the
+registry token); for paying clients, flip it to an external hosted probe — targets + profiles, not
+workflows + secrets — and modes 1–6 vanish while the real signal (7–11) remains.*
