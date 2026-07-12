@@ -80,20 +80,26 @@ function Wrench({ size }: IconProps) {
 export interface SayFixWidgetProps {
   /** Repo name (e.g. f2k-projects, mmcbuild) - owner is inferred from the product's GitHub account in SayFix */
   repo: string;
+  /** Button text. Default is brand-neutral ("Report a problem"); set your own for white-label. */
   label?: string;
   showIcon?: boolean;
   position?: 'bottom-right' | 'bottom-left';
+  /** Button background colour. Set to your brand accent for white-label; defaults to a neutral dark. */
+  color?: string;
 }
 
 /**
  * Floating "Report a problem" button. Opens SayFix in a new tab. Fully self-styled (inline) so it
- * renders identically in any repo regardless of CSS framework.
+ * renders identically in any repo regardless of CSS framework. WHITE-LABEL: the default label is
+ * brand-neutral (no "SayFix" text) and the button colour is a `color` prop — pass your brand's name
+ * and accent to on-sell under your own brand. The intake it opens is white-labelled server-side.
  */
 export function SayFixWidget({
   repo,
-  label = 'Report a problem — get it SayFixed',
+  label = 'Report a problem',
   showIcon = true,
   position = 'bottom-right',
+  color = '#1c1917',
 }: SayFixWidgetProps) {
   const sayfixUrl = `https://sayfix.vercel.app/welcome?product=${encodeURIComponent(repo)}`;
 
@@ -105,7 +111,7 @@ export function SayFixWidget({
     display: 'inline-flex',
     alignItems: 'center',
     gap: 8,
-    background: '#1c1917',
+    background: color,
     color: '#ffffff',
     padding: '12px 18px',
     borderRadius: 9999,
