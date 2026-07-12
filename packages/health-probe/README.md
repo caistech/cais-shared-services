@@ -63,15 +63,18 @@ const results = await runChecks({ url: "https://acme.example" }, resolveChecks([
 - **Tier-1** — need target-side setup collected by the consumer's onboarding wizard. **`health_endpoint`
   is live** (v0.2.0): GETs `url + healthPath` (default `/api/health`) sending `token` as a Bearer header,
   expects `expectedStatus` (default 200); a **401/403 → `faultDomain: "target-config"`** (expose it or
-  supply a token — the §10b-10 case), distinct from a 5xx app fault. `auth_smoke` (needs a
-  client-provisioned probe account) is still a reserved registry slot, TBD.
+  supply a token — the §10b-10 case), distinct from a 5xx app fault. **`auth_smoke` is live** (v0.4.0):
+  POSTs a dedicated probe account's `{email,password}` to `loginPath` and treats **2xx/3xx = auth up**,
+  **4xx = an `auth` fault** (login broke / creds stale), unconfigured = a `target-config` note (opt-in,
+  degrade-don't-fake — no false alarms). v1 assumes a JSON login endpoint; Supabase-gotrue / NextAuth
+  shapes are future variants.
 
 ## Extending
 
 Add a check by implementing `Check` and registering it in `REGISTRY`. Set `tier: 1` and a `requires`
 line (the one-liner a wizard shows the target owner) for anything needing target-side setup.
 
-**Status:** v0.3.0 — Tier-0 (`reachability`, `http_status`) + Tier-1 `health_endpoint` live; the shared
-`probeOnce` transport exported. Two live consumers: **SayFix** `/api/cron/sensors` (hosted, with an owner
-wizard step registering the health path + token) and **`@caistech/portfolio-gate`** `runRouteSmoke`
-(CI, via `probeOnce`). Zero runtime deps.
+**Status:** v0.4.0 — Tier-0 (`reachability`, `http_status`) + Tier-1 (`health_endpoint`, `auth_smoke`)
+all live; the shared `probeOnce` transport (GET/POST) exported. Two live consumers: **SayFix**
+`/api/cron/sensors` (hosted, with an owner wizard step registering health path + token + a probe account)
+and **`@caistech/portfolio-gate`** `runRouteSmoke` (CI, via `probeOnce`). Zero runtime deps.

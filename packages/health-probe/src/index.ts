@@ -30,6 +30,11 @@ export interface ProbeTarget {
   /** The status a healthy health_endpoint returns. Default 200 — set it where a target's health route
    *  legitimately answers with something else (the §10b-10 protected-endpoint case). */
   expectedStatus?: number;
+  /** Tier-1 auth_smoke — a DEDICATED probe account the target owner provisioned (never a real user).
+   *  The check POSTs {email,password} to `loginPath` and treats 2xx/3xx as "auth is up". */
+  loginPath?: string;
+  probeEmail?: string;
+  probePassword?: string;
 }
 
 export type CheckKind = "reachability" | "http_status" | "health_endpoint" | "auth_smoke";
@@ -72,8 +77,12 @@ export interface ProbeOnceOptions {
   timeoutMs?: number;
   /** Follow redirects (default — hosted monitoring) or surface them as a status (CI route assertion). */
   redirect?: "follow" | "manual";
-  /** Extra request headers (e.g. an Authorization Bearer token). */
+  /** Extra request headers (e.g. an Authorization Bearer token, or a Content-Type for a POST). */
   headers?: Record<string, string>;
+  /** HTTP method. Default "GET". */
+  method?: string;
+  /** Request body (pair with a Content-Type header). */
+  body?: string;
 }
 
 export type ProbeOnceResult = { status: number } | { error: string };
@@ -92,7 +101,8 @@ export async function probeOnce(url: string, opts: ProbeOnceOptions = {}): Promi
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetchImpl(url, {
-      method: "GET",
+      method: opts.method ?? "GET",
+      body: opts.body,
       redirect: opts.redirect ?? "follow",
       signal: controller.signal,
       headers: { "User-Agent": USER_AGENT, ...(opts.headers ?? {}) },
@@ -248,13 +258,87 @@ export const healthEndpointCheck: Check = {
   },
 };
 
+/**
+ * Tier-1 · can a probe account actually authenticate right now? POSTs {email,password} (JSON) to the
+ * target's `loginPath` and treats a **2xx or 3xx** as "auth is up" (a token response, or a redirect to
+ * a signed-in page). A **4xx** is an **auth fault** (login broke, or the probe creds went stale); a 5xx
+ * is an app fault; unreachable is network. Needs a DEDICATED probe account the owner provisioned (never
+ * a real user, never a bypass) — so it degrades to a `target-config` note when unconfigured, never a
+ * false alarm. v1 assumes a JSON `{email,password}` login endpoint; provider-specific shapes
+ * (Supabase gotrue, NextAuth form+CSRF) are future variants.
+ */
+export const authSmokeCheck: Check = {
+  kind: "auth_smoke",
+  tier: 1,
+  requires:
+    "Provision a DEDICATED probe account (never a real user) and tell us the login endpoint; we POST {email,password} and expect a 2xx/3xx.",
+  async run(target, opts = {}) {
+    if (!target.loginPath || !target.probeEmail || !target.probePassword) {
+      return {
+        kind: "auth_smoke",
+        ok: false,
+        severity: "impaired",
+        faultDomain: "target-config",
+        symptom: "auth_smoke is not configured (needs a login endpoint + a probe account)",
+        detail: { unconfigured: true },
+      };
+    }
+    const url = joinUrl(target.url, target.loginPath);
+    const r = await probeOnce(url, {
+      fetchImpl: opts.fetchImpl,
+      timeoutMs: opts.timeoutMs,
+      method: "POST",
+      redirect: "manual", // a redirect to a signed-in page IS success — don't follow it
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ email: target.probeEmail, password: target.probePassword }),
+    });
+    if ("error" in r) {
+      return {
+        kind: "auth_smoke",
+        ok: false,
+        severity: "blocked",
+        faultDomain: "network",
+        symptom: `${url} is unreachable (${r.error})`,
+        detail: { unreachable: true },
+      };
+    }
+    if (r.status >= 200 && r.status < 400) {
+      return {
+        kind: "auth_smoke",
+        ok: true,
+        severity: "nice-to-have",
+        faultDomain: "auth",
+        symptom: `${url} authenticated the probe account (HTTP ${r.status})`,
+        detail: { status: r.status },
+      };
+    }
+    if (r.status >= 500) {
+      return {
+        kind: "auth_smoke",
+        ok: false,
+        severity: "blocked",
+        faultDomain: "app",
+        symptom: `${url} errored on login (HTTP ${r.status})`,
+        detail: { status: r.status },
+      };
+    }
+    return {
+      kind: "auth_smoke",
+      ok: false,
+      severity: "blocked",
+      faultDomain: "auth",
+      symptom: `${url} rejected the probe account (HTTP ${r.status}) — login may be broken, or the probe credentials are stale`,
+      detail: { status: r.status },
+    };
+  },
+};
+
 /** The catalog of built-in checks, keyed by kind. The consumer picks which to enable per target. */
 export const REGISTRY: Record<CheckKind, Check | undefined> = {
   reachability: reachabilityCheck,
   http_status: httpStatusCheck,
   health_endpoint: healthEndpointCheck,
-  // Tier-1, still TBD (needs a client-provisioned probe account):
-  auth_smoke: undefined,
+  auth_smoke: authSmokeCheck,
 };
 
 /** Resolve check kinds → Check implementations, skipping any not yet implemented. */

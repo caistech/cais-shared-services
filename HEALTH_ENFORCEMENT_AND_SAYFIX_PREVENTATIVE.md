@@ -350,6 +350,14 @@ against live URLs (passes real 200s, correctly flags an expected-status mismatch
 (a real DB-ping endpoint added + middleware-allowlisted). Triggering the cron in prod returned
 `http_status ok; health_endpoint ok` — both Tier-0 and Tier-1 checks running hosted from SayFix's infra.
 
-**Remaining (next steps, in order):** ② add `auth_smoke` (Tier-1) + probe-account provisioning. Also
-still open: the **watch-the-watchmen** roll-up (§10b-7 — 17 repos have the sensor file but never pushed)
-is an *internal* gap, separate from the client model.
+**② DONE (health-probe 0.4.0 + SayFix `31a57a9`):** `auth_smoke` (Tier-1) — the hosted probe POSTs a
+dedicated probe account's `{email,password}` to the target's login endpoint and treats 2xx/3xx = auth
+up, 4xx = an `auth` fault, unconfigured = a `target-config` note (opt-in, degrade-don't-fake, so no
+alert-fatigue false alarms — §9d). `probeOnce` gained method+body; SayFix's cron adds `auth_smoke` to the
+sweep when configured; the install-page wizard panel registers the probe account (password write-only).
+v1 assumes a JSON login endpoint (Supabase-gotrue / NextAuth shapes are future variants). **All Tier-0 +
+Tier-1 checks now built** — the check set is complete for the current model.
+
+**Remaining:** the **watch-the-watchmen** roll-up (§10b-7 — 17 repos have the sensor file but never
+pushed) is an *internal* governance gap, separate from the client model. Provider-specific `auth_smoke`
+shapes (gotrue/NextAuth) when a real client needs them.
