@@ -1,0 +1,28 @@
+{
+  "name": "@caistech/health-probe",
+  "version": "0.1.0",
+  "description": "External health-probe check ENGINE — the 'what to check and how' for hosted site monitoring. Pure, app-agnostic Check functions (Tier-0: reachability + http_status, lifted from SayFix's runHttpSensor; Tier-1 target-side checks TBD) + a runChecks runner + a REGISTRY carrying failure-domain metadata. Zero-dep (native fetch), injectable fetch, never throws (a thrown probe = an unreachable verdict). It does NOT schedule, persist, own tenancy, or create tickets — the consumer's executor does that: SayFix runs it hosted against prod on a cron; portfolio-gate runs it in CI against a preview. Consuming this from your own infra is why the in-repo-CI monitoring model (unshippable to paying clients) is replaced by hosted probes + a registered target.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "files": [
+    "dist/"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/health-probe"
+  },
+  "license": "PRIVATE",
+  "type": "module"
+}

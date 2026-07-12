@@ -18,7 +18,7 @@
 >
 > **Install:** registry is GitHub Packages (`@caistech:registry=https://npm.pkg.github.com`, token
 > `NODE_AUTH_TOKEN`/`GITHUB_PACKAGES_TOKEN`). `npm install @caistech/<name>`. Consumers import the
-> compiled `dist/`, never source. **Last updated:** 2026-07-12 (47 packages).
+> compiled `dist/`, never source. **Last updated:** 2026-07-12 (48 packages).
 
 ---
 
@@ -31,6 +31,7 @@
 | `@caistech/api-key-auth` | B2B public-API auth: opaque API keys, monthly quota + rollover, `X-RateLimit` headers, Stripe billing webhook. Deno-first (Supabase Edge) + Node. |
 | `@caistech/security` | Legacy JS: permissions, PII classification, audit logging, consent, data retention. |
 | `@caistech/portfolio-gate` | Portfolio Standard enforcement: `errorResponse` (R10), route/auth/session smoke tests, static audits (R3/R7/R8/R9/R11/R15 + responsive), a **live RLS audit** (`runRlsLiveAudit`/`audit-rls-live`, R9 — queries the running DB via the Supabase Management API and fails any public table that is RLS-off + anon-readable, so **Drizzle-push/dashboard schemas and prod drift can't hide from the static migration audit**; skips cleanly without a project ref + `SUPABASE_ACCESS_TOKEN`), and an `audit-all` runner. **v0.4.0+.** |
+| `@caistech/health-probe` | **External health-probe check ENGINE** — the "what to check and how" for hosted site monitoring, so ONE check library serves two executors: **SayFix** runs it hosted against prod on a cron; **portfolio-gate** runs it in CI against a preview. Pure, app-agnostic `Check` functions + `runChecks` + a `REGISTRY` carrying failure-domain metadata; zero-dep (native fetch), injectable fetch, never throws (a thrown probe = an `unreachable` verdict). **Tier-0** (`reachability`, `http_status` — lifted verbatim from SayFix's `runHttpSensor`: 5xx/unreachable = breach, 4xx is not) needs zero target cooperation; **Tier-1** (`health_endpoint`/`auth_smoke`, TBD) needs target-side setup a wizard collects. It does NOT schedule/persist/own-tenancy/create-tickets — the consumer does. This is why the in-repo-CI monitoring model (unshippable to paying clients — `HEALTH_ENFORCEMENT_AND_SAYFIX_PREVENTATIVE.md` §10) is replaced by **hosted probes + a registered target**. Consumed by **SayFix** (`/api/cron/sensors`). **v0.1.0.** |
 | `@caistech/sanctions-screen` | Multi-list sanctions screening (OFAC SDN, UN, AU DFAT, UK HMT, EU) — provider pattern, caching, fuzzy match. |
 | `@caistech/business-registry` | Multi-country business-registry lookup (CN/VN/MY/AU formats + pluggable live providers). |
 | `@caistech/cais-au-compliance-mcp` | MCP server exposing AU compliance tools (ABN, registry, sanctions, cert extraction). Thin adapter over the `@caistech/*` packages. |

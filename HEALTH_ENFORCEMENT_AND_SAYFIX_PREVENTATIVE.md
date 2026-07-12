@@ -302,3 +302,34 @@ outright and leaves only the genuine target-side signal (7–11). Consequences t
 **One line for the SayFix session:** *the in-repo-CI sensor is right for OUR ~38 repos (we own the
 registry token); for paying clients, flip it to an external hosted probe — targets + profiles, not
 workflows + secrets — and modes 1–6 vanish while the real signal (7–11) remains.*
+
+---
+
+## 11. Built — step 1 of the external-probe engine (2026-07-12)
+
+The §10c decision is now **partly built**, not just captured. The 3-layer split it implies (shared
+check **engine** · SayFix **hosted execution** · client **registers a target** — never autodeploy into
+the client repo) is recorded in SayFix memory `sayfix-health-probe-architecture`.
+
+**Shipped this session:**
+- **`@caistech/health-probe@0.1.0`** (published to GitHub Packages) — the shared check ENGINE. Pure,
+  app-agnostic `Check` functions + `runChecks` + a `REGISTRY`; zero-dep, injectable fetch, never throws.
+  **Tier-0** checks (`reachability`, `http_status`) are live — `http_status` is SayFix's original
+  `runHttpSensor` **lifted verbatim** (5xx/unreachable = breach, 4xx is not). `faultDomain`
+  (`network|app|auth|target-config`) is the **surviving fault taxonomy** — modes 1–6 (§10a) can't occur
+  for an external probe, so they aren't modelled; only the target-side signal (7–11) remains as
+  `faultDomain`s a check reports. Registry slots for **Tier-1** (`health_endpoint`, `auth_smoke`) are
+  reserved, implementations TBD (they need the wizard's target-side setup).
+- **SayFix consumes it** — `src/lib/sensors/http-check.ts` is now a thin adapter over the engine's
+  `http_status` check (SayFix `a40bdf3`); `raise.ts`, the `/api/cron/sensors` executor, and the tests
+  are unchanged (45/45 green). SayFix's cron is the **hosted executor** (layer 2).
+
+**The two-executor payoff (why the engine exists):** the same library will back **portfolio-gate's CI**
+executor (against a preview) and **SayFix's hosted** executor (against prod) — one check set, two
+callers. That collapses the CI-vs-hosted duplication §10 warns about.
+
+**Remaining (next steps, in order):** ① add `health_endpoint` (Tier-1) + the SayFix onboarding-wizard
+step to register a health path + scoped token; ② add `auth_smoke` (Tier-1) + probe-account
+provisioning; ③ point `portfolio-gate`'s CI at the same `REGISTRY` (second consumer). Also still open:
+the **watch-the-watchmen** roll-up (§10b-7 — 17 repos have the sensor file but never pushed) is an
+*internal* gap, separate from the client model.
