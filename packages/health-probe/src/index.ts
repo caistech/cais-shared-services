@@ -23,10 +23,13 @@
 /** What we probe. Tier-0 needs only `url`; Tier-1 checks read `healthPath` / `token`. */
 export interface ProbeTarget {
   url: string;
-  /** e.g. "/api/health" — the endpoint a Tier-1 health_endpoint check hits. */
+  /** e.g. "/api/health" — the endpoint a Tier-1 health_endpoint check hits. Default "/api/health". */
   healthPath?: string;
-  /** A read-only, health-scoped token the target owner exposed for Tier-1 checks (sent as a header). */
+  /** A read-only, health-scoped token the target owner exposed for Tier-1 checks (sent as a Bearer header). */
   token?: string;
+  /** The status a healthy health_endpoint returns. Default 200 — set it where a target's health route
+   *  legitimately answers with something else (the §10b-10 protected-endpoint case). */
+  expectedStatus?: number;
 }
 
 export type CheckKind = "reachability" | "http_status" | "health_endpoint" | "auth_smoke";
@@ -68,6 +71,7 @@ const USER_AGENT = "caistech-health-probe/0.1 (+https://sayfix.app)";
 async function getOnce(
   url: string,
   opts: RunOptions,
+  extraHeaders: Record<string, string> = {},
 ): Promise<{ status: number } | { error: string }> {
   const fetchImpl = opts.fetchImpl ?? fetch;
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -78,7 +82,7 @@ async function getOnce(
       method: "GET",
       redirect: "follow",
       signal: controller.signal,
-      headers: { "User-Agent": USER_AGENT },
+      headers: { "User-Agent": USER_AGENT, ...extraHeaders },
     });
     return { status: res.status };
   } catch (err) {
@@ -163,12 +167,80 @@ export const httpStatusCheck: Check = {
   },
 };
 
+/** Resolve base + path into an absolute URL. Paths carry a leading slash ("/api/health"). */
+function joinUrl(base: string, path: string): string {
+  try {
+    return new URL(path, base).toString();
+  } catch {
+    return `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+  }
+}
+
+/**
+ * Tier-1 · does the target's own health endpoint report healthy? GETs `url + healthPath` (default
+ * "/api/health"), sending the target owner's read-only `token` as a Bearer header when present, and
+ * expects `expectedStatus` (default 200). A 401/403 is a **target-config** fault (the endpoint needs
+ * to be exposed or a token supplied — §10b-10), distinct from a 5xx app fault or an unreachable host.
+ * Needs target-side setup, so it's Tier-1 (the consumer's onboarding wizard collects the path + token).
+ */
+export const healthEndpointCheck: Check = {
+  kind: "health_endpoint",
+  tier: 1,
+  requires:
+    "Expose a health endpoint (e.g. /api/health) that returns 200 when healthy; optionally protect it and give us a read-only health token.",
+  async run(target, opts = {}) {
+    const path = target.healthPath ?? "/api/health";
+    const url = joinUrl(target.url, path);
+    const expected = target.expectedStatus ?? 200;
+    const headers: Record<string, string> = target.token ? { Authorization: `Bearer ${target.token}` } : {};
+    const r = await getOnce(url, opts, headers);
+    if ("error" in r) {
+      return {
+        kind: "health_endpoint",
+        ok: false,
+        severity: "blocked",
+        faultDomain: "network",
+        symptom: `${url} is unreachable (${r.error})`,
+        detail: { unreachable: true },
+      };
+    }
+    if (r.status === expected) {
+      return {
+        kind: "health_endpoint",
+        ok: true,
+        severity: "nice-to-have",
+        faultDomain: "app",
+        symptom: `${url} responded HTTP ${r.status} (healthy)`,
+        detail: { status: r.status },
+      };
+    }
+    if (r.status === 401 || r.status === 403) {
+      return {
+        kind: "health_endpoint",
+        ok: false,
+        severity: "impaired",
+        faultDomain: "target-config",
+        symptom: `${url} needs auth (HTTP ${r.status}) — expose the health endpoint or provide a read-only health token`,
+        detail: { status: r.status },
+      };
+    }
+    return {
+      kind: "health_endpoint",
+      ok: false,
+      severity: r.status >= 500 ? "blocked" : "impaired",
+      faultDomain: "app",
+      symptom: `${url} returned HTTP ${r.status} (expected ${expected})`,
+      detail: { status: r.status, expected },
+    };
+  },
+};
+
 /** The catalog of built-in checks, keyed by kind. The consumer picks which to enable per target. */
 export const REGISTRY: Record<CheckKind, Check | undefined> = {
   reachability: reachabilityCheck,
   http_status: httpStatusCheck,
-  // Tier-1 (target-side setup) — added as the wizard grows:
-  health_endpoint: undefined,
+  health_endpoint: healthEndpointCheck,
+  // Tier-1, still TBD (needs a client-provisioned probe account):
   auth_smoke: undefined,
 };
 

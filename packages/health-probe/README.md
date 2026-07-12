@@ -53,13 +53,17 @@ const results = await runChecks({ url: "https://acme.example" }, resolveChecks([
 - **Tier-0** (`reachability`, `http_status`) — zero target cooperation; any public URL. *Built.*
   `http_status` is SayFix's original `runHttpSensor`, lifted verbatim: a **5xx or unreachable** host is
   a breach; **4xx is not** (a 401/403/404 on a health URL is a misconfigured target, not an outage).
-- **Tier-1** (`health_endpoint`, `auth_smoke`, …) — need target-side setup (a health path, a scoped
-  token, a probe account) collected by the consumer's onboarding wizard. *Registry slots reserved;
-  implementations TBD.*
+- **Tier-1** — need target-side setup collected by the consumer's onboarding wizard. **`health_endpoint`
+  is live** (v0.2.0): GETs `url + healthPath` (default `/api/health`) sending `token` as a Bearer header,
+  expects `expectedStatus` (default 200); a **401/403 → `faultDomain: "target-config"`** (expose it or
+  supply a token — the §10b-10 case), distinct from a 5xx app fault. `auth_smoke` (needs a
+  client-provisioned probe account) is still a reserved registry slot, TBD.
 
 ## Extending
 
 Add a check by implementing `Check` and registering it in `REGISTRY`. Set `tier: 1` and a `requires`
 line (the one-liner a wizard shows the target owner) for anything needing target-side setup.
 
-**Status:** v0.1.0 — Tier-0 checks live, consumed by SayFix's `/api/cron/sensors`. Zero runtime deps.
+**Status:** v0.2.0 — Tier-0 (`reachability`, `http_status`) + Tier-1 `health_endpoint` live, consumed
+by SayFix's `/api/cron/sensors` (with an owner wizard step registering the health path + token). Zero
+runtime deps.

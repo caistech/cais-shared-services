@@ -328,8 +328,15 @@ the client repo) is recorded in SayFix memory `sayfix-health-probe-architecture`
 executor (against a preview) and **SayFix's hosted** executor (against prod) — one check set, two
 callers. That collapses the CI-vs-hosted duplication §10 warns about.
 
-**Remaining (next steps, in order):** ① add `health_endpoint` (Tier-1) + the SayFix onboarding-wizard
-step to register a health path + scoped token; ② add `auth_smoke` (Tier-1) + probe-account
-provisioning; ③ point `portfolio-gate`'s CI at the same `REGISTRY` (second consumer). Also still open:
-the **watch-the-watchmen** roll-up (§10b-7 — 17 repos have the sensor file but never pushed) is an
+**① DONE (health-probe 0.2.0):** `health_endpoint` (Tier-1) is built + published — GET `url + healthPath`
+with an optional read-only Bearer token + `expectedStatus`; a **401/403 → a `target-config` fault**
+(§10b-10). SayFix runs it via the engine's `runChecks([http_status, health_endpoint?])`; `raise.ts` is
+now **check-agnostic** (consumes any `CheckResult`; the old `http-check.ts` adapter is deleted); and the
+SayFix onboarding wizard step (`/api/beta/health-check` + the install-page `HealthCheckSetup` panel —
+token write-only, never returned) lets the owner **register a path + token** (SayFix `0bef92f`; migration
+`repos.health_endpoint_path`/`health_token` applied to prod). 50/50 tests green.
+
+**Remaining (next steps, in order):** ② add `auth_smoke` (Tier-1) + probe-account provisioning; ③ point
+`portfolio-gate`'s CI at the same `REGISTRY` (second consumer). Also still open: the
+**watch-the-watchmen** roll-up (§10b-7 — 17 repos have the sensor file but never pushed) is an
 *internal* gap, separate from the client model.
