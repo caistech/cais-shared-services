@@ -18,7 +18,14 @@
  *   }
  *
  * See foundation/PORTFOLIO_STANDARD.md → R13 for rationale.
+ *
+ * The GET transport is the shared `probeOnce` from @caistech/health-probe (so this CI route-smoke and
+ * SayFix's hosted probes single-source the fiddly timeout/abort/never-throw fetch). The route-assertion
+ * POLICY below (manual redirect, exact/2xx-lenient, auth-lenient) stays here — it is deliberately
+ * DIFFERENT from the hosted-monitoring policy, so only the transport is shared, not the classification.
  */
+
+import { probeOnce } from '@caistech/health-probe'
 
 export interface RouteSpec {
   /** Path relative to baseUrl, e.g. '/login' or '/api/health'. */
@@ -87,24 +94,16 @@ export async function runRouteSmoke(
   for (const route of config.routes) {
     const expected = route.expectedStatus ?? 200
     const url = `${baseUrl}${route.path.startsWith('/') ? route.path : `/${route.path}`}`
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), timeoutMs)
+    const probe = await probeOnce(url, {
+      timeoutMs,
+      redirect: 'manual', // CI asserts the exact route status — a redirect must surface, not be followed
+      headers: { 'User-Agent': userAgent, Accept: 'text/html,application/json;q=0.9,*/*;q=0.8' },
+    })
 
     let status: number | null = null
     let reason = ''
-    try {
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: { 'User-Agent': userAgent, Accept: 'text/html,application/json;q=0.9,*/*;q=0.8' },
-        redirect: 'manual',
-        signal: controller.signal,
-      })
-      status = response.status
-    } catch (err) {
-      reason = err instanceof Error ? err.message : String(err)
-    } finally {
-      clearTimeout(timeout)
-    }
+    if ('error' in probe) reason = probe.error
+    else status = probe.status
 
     if (status === null) {
       failures.push({

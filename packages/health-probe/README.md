@@ -21,6 +21,13 @@ check library that makes that possible — consumed by two executors:
 
 The client only **registers a target** (a URL + a check profile) — nothing is deployed into their repo.
 
+**Shared transport, separate policy.** Both executors single-source the fiddly GET (`probeOnce` — timeout,
+abort, never-throw, injectable fetch, follow-or-manual redirect, custom headers) but keep their **own**
+classification policy — hosted monitoring (5xx-only, follow, 401 = target-config) is deliberately
+different from CI route-assertion (exact/2xx-lenient, manual redirect, auth-lenient). Only the transport
+is merged; the check *semantics* stay where they belong. `runRouteSmoke` in `@caistech/portfolio-gate`
+(v0.5.0) consumes `probeOnce` as its GET.
+
 ## Install
 
 ```bash
@@ -64,6 +71,7 @@ const results = await runChecks({ url: "https://acme.example" }, resolveChecks([
 Add a check by implementing `Check` and registering it in `REGISTRY`. Set `tier: 1` and a `requires`
 line (the one-liner a wizard shows the target owner) for anything needing target-side setup.
 
-**Status:** v0.2.0 — Tier-0 (`reachability`, `http_status`) + Tier-1 `health_endpoint` live, consumed
-by SayFix's `/api/cron/sensors` (with an owner wizard step registering the health path + token). Zero
-runtime deps.
+**Status:** v0.3.0 — Tier-0 (`reachability`, `http_status`) + Tier-1 `health_endpoint` live; the shared
+`probeOnce` transport exported. Two live consumers: **SayFix** `/api/cron/sensors` (hosted, with an owner
+wizard step registering the health path + token) and **`@caistech/portfolio-gate`** `runRouteSmoke`
+(CI, via `probeOnce`). Zero runtime deps.

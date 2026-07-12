@@ -336,7 +336,20 @@ SayFix onboarding wizard step (`/api/beta/health-check` + the install-page `Heal
 token write-only, never returned) lets the owner **register a path + token** (SayFix `0bef92f`; migration
 `repos.health_endpoint_path`/`health_token` applied to prod). 50/50 tests green.
 
-**Remaining (next steps, in order):** ② add `auth_smoke` (Tier-1) + probe-account provisioning; ③ point
-`portfolio-gate`'s CI at the same `REGISTRY` (second consumer). Also still open: the
-**watch-the-watchmen** roll-up (§10b-7 — 17 repos have the sensor file but never pushed) is an
-*internal* gap, separate from the client model.
+**③ DONE (health-probe 0.3.0 + portfolio-gate 0.5.0):** the second consumer is wired. The engine now
+exports **`probeOnce`** — the shared GET transport (timeout/abort/never-throw/injectable-fetch/
+follow-or-manual-redirect/headers) — and `@caistech/portfolio-gate`'s `runRouteSmoke` GETs through it
+instead of its own inline fetch. Key judgement: **only the transport is shared, not the classification.**
+CI route-assertion (exact/2xx-lenient, manual redirect, auth-lenient) is deliberately a DIFFERENT policy
+from hosted monitoring (5xx-only, follow, 401=target-config), so merging the policies would have changed
+portfolio-gate's CI behavior (it gates real repos, no unit tests) — a regression risk avoided. The fiddly,
+easy-to-get-wrong fetch is single-sourced; each executor keeps its own semantics. Functionally verified
+against live URLs (passes real 200s, correctly flags an expected-status mismatch).
+
+**Live-loop proof (2026-07-12):** the dogfood (`caistech/sayfix`) now has `health_endpoint_path=/api/health`
+(a real DB-ping endpoint added + middleware-allowlisted). Triggering the cron in prod returned
+`http_status ok; health_endpoint ok` — both Tier-0 and Tier-1 checks running hosted from SayFix's infra.
+
+**Remaining (next steps, in order):** ② add `auth_smoke` (Tier-1) + probe-account provisioning. Also
+still open: the **watch-the-watchmen** roll-up (§10b-7 — 17 repos have the sensor file but never pushed)
+is an *internal* gap, separate from the client model.

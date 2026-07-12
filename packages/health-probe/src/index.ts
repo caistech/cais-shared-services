@@ -67,12 +67,25 @@ export interface Check {
 const DEFAULT_TIMEOUT_MS = 10_000;
 const USER_AGENT = "caistech-health-probe/0.1 (+https://sayfix.app)";
 
-/** One GET with a hard timeout. Resolves to a status, or an `error` string on throw/abort. Never throws. */
-async function getOnce(
-  url: string,
-  opts: RunOptions,
-  extraHeaders: Record<string, string> = {},
-): Promise<{ status: number } | { error: string }> {
+export interface ProbeOnceOptions {
+  fetchImpl?: typeof fetch;
+  timeoutMs?: number;
+  /** Follow redirects (default — hosted monitoring) or surface them as a status (CI route assertion). */
+  redirect?: "follow" | "manual";
+  /** Extra request headers (e.g. an Authorization Bearer token). */
+  headers?: Record<string, string>;
+}
+
+export type ProbeOnceResult = { status: number } | { error: string };
+
+/**
+ * One GET with a hard timeout — the **shared transport** both executors build on: SayFix's hosted
+ * checks AND @caistech/portfolio-gate's CI route-smoke. Resolves to a status, or an `error` string on
+ * throw/abort; NEVER throws. Injectable fetch for tests. The two callers keep their OWN classification
+ * policy (hosted: 5xx-only/follow/401=target-config · CI: exact/2xx-lenient/manual/auth-lenient) — only
+ * this fiddly, easy-to-get-wrong transport is single-sourced.
+ */
+export async function probeOnce(url: string, opts: ProbeOnceOptions = {}): Promise<ProbeOnceResult> {
   const fetchImpl = opts.fetchImpl ?? fetch;
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const controller = new AbortController();
@@ -80,9 +93,9 @@ async function getOnce(
   try {
     const res = await fetchImpl(url, {
       method: "GET",
-      redirect: "follow",
+      redirect: opts.redirect ?? "follow",
       signal: controller.signal,
-      headers: { "User-Agent": USER_AGENT, ...extraHeaders },
+      headers: { "User-Agent": USER_AGENT, ...(opts.headers ?? {}) },
     });
     return { status: res.status };
   } catch (err) {
@@ -104,7 +117,7 @@ export const reachabilityCheck: Check = {
   kind: "reachability",
   tier: 0,
   async run(target, opts = {}) {
-    const r = await getOnce(target.url, opts);
+    const r = await probeOnce(target.url, opts);
     if ("error" in r) {
       return {
         kind: "reachability",
@@ -135,7 +148,7 @@ export const httpStatusCheck: Check = {
   kind: "http_status",
   tier: 0,
   async run(target, opts = {}) {
-    const r = await getOnce(target.url, opts);
+    const r = await probeOnce(target.url, opts);
     if ("error" in r) {
       return {
         kind: "http_status",
@@ -193,7 +206,7 @@ export const healthEndpointCheck: Check = {
     const url = joinUrl(target.url, path);
     const expected = target.expectedStatus ?? 200;
     const headers: Record<string, string> = target.token ? { Authorization: `Bearer ${target.token}` } : {};
-    const r = await getOnce(url, opts, headers);
+    const r = await probeOnce(url, { ...opts, headers });
     if ("error" in r) {
       return {
         kind: "health_endpoint",
