@@ -1,6 +1,6 @@
 {
   "name": "@caistech/dataroom-core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Tier-gated RAG-over-documents engine (extracted from the LingoPure investor dataroom): ingest → embed → tier-filtered retrieve → cited answer / multi-section report → branded, watermarked PDF. App-agnostic — the LLM (chat) and the DB (retrieve) are injected, so the package never touches a DB or pins a model SDK; the tier filter stays inside the consumer's SECURITY DEFINER RPC. v0.1.0 = the runtime engine (retrieve/answer/report/pdf/tier); the Node-only ingest pipeline is a planned /ingest subpath.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -10,11 +10,14 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "pdf-lib": "^1.17.1",
-    "zod": "^3.23.0"
+    "pdf-lib": "^1.17.1"
   },
   "peerDependencies": {
-    "typescript": ">=5.0.0"
+    "typescript": ">=5.0.0",
+    "zod": "^3.23.0 || ^4.0.0"
+  },
+  "devDependencies": {
+    "zod": "^3.23.0"
   },
   "files": [
     "dist/"
