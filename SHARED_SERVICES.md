@@ -16,6 +16,18 @@
 > one-line and capability-focused. Source of truth for each line is the package's own
 > `package.json` description; regenerate the bulk of this file from those descriptions if it drifts.
 >
+> **Standing rule — convergent shape, then extract (the "build-alike" rule) [non-negotiable].** When
+> you build a capability a SIBLING product already has and **no `@caistech/*` package exists yet**,
+> build the new one to the **SAME SHAPE** as the existing implementation — mirror its exported types,
+> field names, function signatures, and UX — rather than a divergent design. The **2nd occurrence is
+> the extraction trigger** (`BUSINESS_MODEL.md` §6); this rule is its *precondition*: convergent
+> implementations make the eventual `@caistech` extraction a **lift**, divergent ones force a
+> **rewrite** and quietly defeat the extraction detector + the fork-check. Applies to engines, data
+> shapes, **and UI components** (e.g. a product's cost dashboard mirrors the cockpit's
+> `UsageAnalytics` shape so the two can later collapse into ONE shared component). Consume-first (the
+> `@caistech`-first rule) still wins whenever the package already exists; this governs the case where
+> it does **not** yet — build it *alignable*, so bringing it in as canonical is mechanical.
+>
 > **Install:** registry is GitHub Packages (`@caistech:registry=https://npm.pkg.github.com`, token
 > `NODE_AUTH_TOKEN`/`GITHUB_PACKAGES_TOKEN`). `npm install @caistech/<name>`. Consumers import the
 > compiled `dist/`, never source. **Last updated:** 2026-07-12 (48 packages).
