@@ -8,6 +8,55 @@ interface MarkdownProps {
   brand: ReportBrand;
 }
 
+// react-pdf's built-in Helvetica renders WinAnsi/Latin-1 only, and marked
+// HTML-escapes text-token content (' -> &#39;, & -> &amp;, etc.). Left as-is,
+// the PDF shows literal "&#39;" and drops glyphs the base font lacks (arrows).
+// cleanText() decodes the entities marked emits and swaps those few glyphs for
+// ASCII so body text renders cleanly. Applied at every leaf text node.
+const NAMED_ENTITIES: Record<string, string> = {
+  "&amp;": "&",
+  "&lt;": "<",
+  "&gt;": ">",
+  "&quot;": '"',
+  "&#39;": "'",
+  "&#x27;": "'",
+  "&#x2F;": "/",
+  "&#47;": "/",
+  "&nbsp;": " ",
+};
+
+// Glyphs outside the base-font (WinAnsi) range → safe equivalents. Dashes
+// (en/em) and the bullet ARE in WinAnsi, so they are intentionally left alone.
+const GLYPH_FALLBACK: Record<string, string> = {
+  "→": "->", // →
+  "←": "<-", // ←
+  "↔": "<->", // ↔
+  "⇒": "=>", // ⇒
+  "⇐": "<=", // ⇐
+  "‘": "'", // ‘
+  "’": "'", // ’
+  "“": '"', // “
+  "”": '"', // ”
+  "…": "...", // …
+  " ": " ", // nbsp
+};
+
+function cleanText(input: string | undefined): string {
+  if (!input) return "";
+  let s = input;
+  s = s.replace(/&(amp|lt|gt|quot|#39|#x27|#x2F|#47|nbsp);/g, (m) => NAMED_ENTITIES[m] ?? m);
+  s = s.replace(/&#(\d+);/g, (_m, n: string) => {
+    const code = parseInt(n, 10);
+    return Number.isFinite(code) ? String.fromCodePoint(code) : _m;
+  });
+  s = s.replace(/&#x([0-9a-fA-F]+);/g, (_m, n: string) => {
+    const code = parseInt(n, 16);
+    return Number.isFinite(code) ? String.fromCodePoint(code) : _m;
+  });
+  s = s.replace(/[→←↔⇒⇐‘’“”… ]/g, (c) => GLYPH_FALLBACK[c] ?? c);
+  return s;
+}
+
 type InlineToken = Tokens.Text | Tokens.Strong | Tokens.Em | Tokens.Codespan | Tokens.Link | Tokens.Br | Tokens.Escape;
 
 const renderInline = (tokens: InlineToken[] | undefined, brand: ReportBrand, keyPrefix: string): React.ReactNode => {
@@ -30,7 +79,7 @@ const renderInline = (tokens: InlineToken[] | undefined, brand: ReportBrand, key
       case "codespan":
         return (
           <Text key={key} style={{ fontFamily: "Courier", fontSize: 10 }}>
-            {(t as Tokens.Codespan).text}
+            {cleanText((t as Tokens.Codespan).text)}
           </Text>
         );
       case "link":
@@ -44,7 +93,7 @@ const renderInline = (tokens: InlineToken[] | undefined, brand: ReportBrand, key
       case "escape":
       case "text":
       default:
-        return <Text key={key}>{(t as { text: string }).text ?? ""}</Text>;
+        return <Text key={key}>{cleanText((t as { text: string }).text)}</Text>;
     }
   });
 };
@@ -95,7 +144,7 @@ export const Markdown: React.FC<MarkdownProps> = ({ source, brand }) => {
             return (
               <View key={key} style={{ marginBottom: 8 }}>
                 {list.items.map((item, i) => (
-                  <View key={`${key}-${i}`} style={{ flexDirection: "row", marginBottom: 4 }}>
+                  <View key={`${key}-${i}`} wrap={false} style={{ flexDirection: "row", marginBottom: 4 }}>
                     <Text style={{ fontSize: 11, color: bodyColor, width: 16 }}>
                       {list.ordered ? `${i + 1}.` : "\u2022"}
                     </Text>
@@ -160,7 +209,7 @@ export const Markdown: React.FC<MarkdownProps> = ({ source, brand }) => {
                   marginBottom: 8,
                 }}
               >
-                {c.text}
+                {cleanText(c.text)}
               </Text>
             );
           }
