@@ -889,6 +889,105 @@
       "solution": "Route the notification through the repo canonical email path (src/lib/services/emailService.ts sendEmail + a template) instead of a missing edge function. F2K: createProject (src/lib/actions/projects.ts) now sends a Factory2Key transactional projectCreatedEmail to the operator, non-blocking. General rule: never leave a supabase.functions.invoke() pointing at a function that is not deployed; use the canonical service or delete the call.",
       "fixed_at": "2026-07-09",
       "fixed_by": "commit b0ba9b81 (f2k-checkpoint)"
+    },
+    {
+      "id": "supabase-sql-insert-authusers-null-token-cols",
+      "product": "shared / any Supabase project (auth.users provisioning)",
+      "error_pattern": "Supabase password grant returns 'Database error querying schema' after creating a user via direct SQL INSERT into auth.users",
+      "error_symptoms": [
+        "POST /auth/v1/token?grant_type=password returns {error:'Database error querying schema'} (or 500)",
+        "the auth.users row exists, is email-confirmed, and has an encrypted_password, yet login still fails",
+        "a pre-existing user that was only UPDATEd for its password logs in fine — only freshly SQL-inserted users break",
+        "happens when provisioning QA/test accounts via the Management API SQL query endpoint (no service-role key handy)"
+      ],
+      "attempts": [
+        {
+          "tried": "Assumed the password hash or email_confirmed_at was wrong",
+          "result": "wrong — both were correct; the pre-existing user with the same setup logged in fine"
+        },
+        {
+          "tried": "Compared a working (pre-existing) user vs the broken (SQL-inserted) one",
+          "result": "the inserted user had NULL in GoTrue string/token columns that GoTrue expects to be empty string"
+        }
+      ],
+      "solution": {
+        "approach": "GoTrue's login query chokes on NULL in several auth.users string columns; a bare INSERT leaves them NULL. Set them to '' (and add a matching auth.identities row for provider=email).",
+        "answer": "UPDATE auth.users SET confirmation_token=COALESCE(confirmation_token,''), recovery_token=COALESCE(recovery_token,''), email_change_token_new=COALESCE(email_change_token_new,''), email_change=COALESCE(email_change,''), email_change_token_current=COALESCE(email_change_token_current,''), phone_change=COALESCE(phone_change,''), phone_change_token=COALESCE(phone_change_token,''), reauthentication_token=COALESCE(reauthentication_token,'') WHERE email=...;  plus INSERT INTO auth.identities(id,user_id,identity_data,provider,provider_id,...) VALUES(gen_random_uuid(),uid,jsonb_build_object('sub',uid::text,'email',e,'email_verified',true),'email',uid::text,...). BETTER: use the GoTrue admin API POST {url}/auth/v1/admin/users with the service-role key + email_confirm:true — it sets these correctly and avoids the class.",
+        "code_path": "provisioned easy-claude-code QA accounts (fsdtcrfsymsrvpkwjiln), 2026-07-13"
+      },
+      "fixed_at": "2026-07-13",
+      "fixed_by": "claude"
+    },
+    {
+      "id": "retired-dated-anthropic-model-id-404-no-results",
+      "product": "prelabzai (RaiseReady) — any repo pinning a DATED Anthropic model id",
+      "error_pattern": "AI feature silently returns no results / 500; Anthropic 404 not_found_error from a RETIRED dated model id (e.g. claude-sonnet-4-20250514)",
+      "error_symptoms": [
+        "deck analysis / coaching returns nothing; deck row left stuck at status 'processing'",
+        "Anthropic API returns 404 not_found_error (NotFoundError) at request time",
+        "worked fine for weeks then broke on a specific date with NO code change",
+        "the model id is a dated snapshot like claude-sonnet-4-YYYYMMDD rather than an alias"
+      ],
+      "attempts": [
+        {
+          "tried": "Suspected missing ANTHROPIC_API_KEY / env, and max_tokens truncation of the large JSON",
+          "result": "Not the cause — key present; root cause was the retired dated model id"
+        }
+      ],
+      "solution": {
+        "approach": "Anthropic retires DATED model snapshots on a published schedule (claude-sonnet-4-20250514 retired 2026-06-15). After retirement every call 404s and any try/catch surfaces it as a generic failure, so features go silent. Fix: swap to an ACTIVE model id — prefer unversioned aliases (claude-sonnet-4-5) or current-gen. CAVEAT: Sonnet 5 / Opus 4.7+ REJECT non-default temperature/top_p/top_k and budget_tokens with a 400, so a code base that passes temperature:0 needs those stripped; claude-sonnet-4-5 still accepts them and is a true drop-in.",
+        "answer": "Replaced claude-sonnet-4-20250514 with claude-sonnet-4-5 across the repo (drop-in: keeps temperature settings, same $3/$15 pricing). Also hardened the analyze route to mark the deck failed on any error instead of leaving it stuck at processing.",
+        "code_path": "lib/ai/anthropic.ts DEFAULT_MODEL + ~13 call sites (scoring/extraction/research libs, coaching/investor/founder-discovery routes, proxy pricing map)"
+      },
+      "fixed_at": "2026-07-17",
+      "fixed_by": "claude-code (prelabzai deck-analysis no-results)"
+    },
+    {
+      "id": "caistech-report-generator-esm-extensionless-import-next-build-fail",
+      "product": "@caistech/report-generator consumers (Next.js) — first hit in prelabzai /api/deck/report",
+      "error_pattern": "Next build ERR_MODULE_NOT_FOUND 'Cannot find module .../@caistech/report-generator/dist/render' imported from dist/index.js; fails at 'Collecting page data' AFTER 'Compiled successfully'",
+      "error_symptoms": [
+        "webpack '✓ Compiled successfully' then the Vercel build ERRORs at page-data collection for the route that imports report-generator",
+        "ERR_MODULE_NOT_FOUND for an extensionless relative import (export ... from './render') inside the package's own dist",
+        "only triggers when the package is placed in next.config serverComponentsExternalPackages"
+      ],
+      "attempts": [
+        {
+          "tried": "Added @caistech/report-generator to serverComponentsExternalPackages alongside @react-pdf/renderer (to keep native deps out of the bundle)",
+          "result": "Made it WORSE — Node's native ESM loader then resolves the package and rejects the extensionless './render' import (ESM fullySpecified)"
+        }
+      ],
+      "solution": {
+        "approach": "report-generator ships ESM (\"type\":\"module\") with extensionless relative imports, which neither Node's native ESM loader (when externalized) nor webpack's fullySpecified ESM resolver accept. Do NOT externalize it; transpilePackages it so Next/SWC bundles it and relaxes fullySpecified. Keep @react-pdf/renderer externalized (native fontkit deps) — it stays external transitively even though its importer is bundled.",
+        "answer": "next.config.js: transpilePackages: ['@caistech/report-generator']; serverComponentsExternalPackages keeps '@react-pdf/renderer' (NOT report-generator). Route runtime='nodejs'. Smoke test: an unauthenticated POST returns 401 (not 500) => the module + react-pdf loaded at runtime.",
+        "code_path": "next.config.js (transpilePackages + serverComponentsExternalPackages); app/api/deck/report/route.ts"
+      },
+      "fixed_at": "2026-07-18",
+      "fixed_by": "claude-code (prelabzai branded-PDF download)"
+    },
+    {
+      "id": "caistech-report-generator-pdf-literal-html-entities-and-glyphs",
+      "product": "@caistech/report-generator (all branded-PDF consumers) — found via prelabzai readiness report",
+      "error_pattern": "Branded PDF shows literal HTML entities (&#39; for apostrophe, &amp; for &), drops/mis-renders non-Latin1 glyphs (arrow -> shows as stray quote/blank), and orphans list bullets (lone bullet at page bottom, its text on the next page)",
+      "error_symptoms": [
+        "every apostrophe/quote in the PDF body renders as the literal string &#39;",
+        "ampersands render as &amp;",
+        "unicode arrows (U+2192) render as a stray quote or blank — em-dash and bullet render fine (they are WinAnsi)",
+        "a bullet appears at the bottom of a page with its text pushed to the top of the next page"
+      ],
+      "attempts": [
+        {
+          "tried": "Assumed the analysis TEXT stored in the DB was HTML-escaped",
+          "result": "No — the DB holds clean text and the on-screen (browser) rendering is fine; the escaping is introduced by the PDF renderer"
+        }
+      ],
+      "solution": {
+        "approach": "The package's Markdown component fed marked.lexer's token.text (which marked HTML-ESCAPES: ' -> &#39;, & -> &amp;) straight into react-pdf <Text>, which renders the literal string (react-pdf does NOT decode HTML entities). react-pdf's built-in Helvetica is WinAnsi-only so glyphs like the arrow drop. And list items were plain Views that split across page breaks. Fix is IN THE PACKAGE (v0.1.1): cleanText() decodes marked's named+numeric entities and swaps out-of-WinAnsi glyphs (arrows/smart-quotes/ellipsis) to ASCII (leave dashes + bullet), applied at every leaf text node; wrap={false} on the list-item View.",
+        "answer": "Published @caistech/report-generator@0.1.1 (cleanText + wrap=false); consumers bump to >=0.1.1. Verified against the exact failing strings.",
+        "code_path": "packages/report-generator/src/components/Markdown.tsx (cleanText + list-item wrap={false})"
+      },
+      "fixed_at": "2026-07-18",
+      "fixed_by": "claude-code (prelabzai readiness PDF)"
     }
   ],
   "usage": "Before fixing ANY bug, grep this file for matching error patterns. Also check SayFix DB for product-specific attempts.",
