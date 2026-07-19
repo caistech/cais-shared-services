@@ -1,0 +1,30 @@
+{
+  "name": "@caistech/beta-gate",
+  "version": "0.1.0",
+  "description": "Reusable beta trial-clock (14-day, extendable) + per-day/total usage caps. Supabase-injected, framework-agnostic. Extracted from the SayFix beta model.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "migration.sql",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "@supabase/supabase-js": ">=2.0.0",
+    "typescript": ">=5.0.0"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/beta-gate"
+  }
+}
