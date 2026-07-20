@@ -58,3 +58,16 @@ Deferred work captured during reviews. Each item has enough context to be picked
 - **Priority:** **cais-starter needs NO change** — it's already on the safe `getAll/setAll` pattern (the prior "do cais-starter first" instruction was based on the bad count triage; applying the reference diff to it would be a no-op/regression). Fix only the 5 buggy repos, revenue/case-study first: **DealFindrs → Tenderwatch → Corporate-AI-Solutions (source) → LongtailAIVentureStudio → F2K-OffshoreModular.** Verify each: type-check + a real authed refresh holds the session. Per-repo it needs the edit + build + deploy.
 - **Context / detail:** Full root-cause + detection + fix logged in `bug-knowledge.json` (`id: supabase-ssr-middleware-recreates-response-logout-on-refresh`).
 - **Depends on / blocked by:** Nothing — independent per repo. Each user may need ONE more sign-in after the fix deploys (their current cookie is already in the partial state).
+
+---
+
+## 5. Inbound asks from Kira — 3 package changes (see `KIRA_INBOUND_ASKS.md`)
+
+- **What:** Three changes requested by Kira's voice-memory branch (PR caistech/Kira#2). Full spec + acceptance criteria in **`KIRA_INBOUND_ASKS.md`** (repo root).
+  1. `@caistech/elevenlabs-convai` hub `VoiceWidget`: add consumer `dynamicVariables` + `signedUrl` (unblocks Kira migrating `/start` + chat onto the hub widget).
+  2. `@caistech/elevenlabs-convai` **tool webhooks fail OPEN** — no auth on `start_conversation`/`save_message`/`recall_memory`/`save_memory`/`update_topic`; a public `agent_id` grants identity → read/poison a victim's memory. **Live security hole**; fail-closed at the package (Kira shipped an interim local guard). **Highest priority.**
+  3. `@caistech/corporate-components` `AuthForm`: a native "confirmation-required after signup" state (pending panel + resend + `type=signup` callback + "Email not confirmed" mapping) so any product can run `mailer_autoconfirm: OFF` safely. Portfolio-wide; Kira is the 1st occurrence + reference impl.
+  5. `@caistech/elevenlabs-convai`: **own the `get_conversation_context` recall** instead of delegating to a consumer-provided RPC with an unstated "no `status='active'` filter" contract. Kira's hand-rolled RPC filtered `status='active'`, so welcome-back recall silently never fired (finished convos are `completed`) — on both the chat greeting and the in-call recall. Ship the correct RPC in the package schema, or always use the built-in (already-correct) query.
+- **Why:** #2 is a live confidentiality hole across every convai consumer; #1 unblocks retiring Kira's forked voice surfaces; #3 stops every product re-discovering the autoconfirm-off gotcha.
+- **Context:** Reply to this repo's `HANDOFF.md`; origin context in Kira repo `HANDOFF_RESPONSE.md`.
+- **Depends on / blocked by:** Nothing. #2 first (security), then #1 + #3.
