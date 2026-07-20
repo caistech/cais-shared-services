@@ -51,7 +51,22 @@
  * env, never hard-coded.
  */
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve as resolvePath } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// Canonical QA credential source: cais-shared-services/.secrets/qa-secrets.json (gitignored) — the
+// SAME file sync-qa-secrets.mjs reads. So a tester never needs the QA password in a product's
+// .env.local; it's drawn from the one central place. `--admin` selects the admin-agent identity.
+const HUB_QA_SECRETS = resolvePath(dirname(fileURLToPath(import.meta.url)), "..", ".secrets", "qa-secrets.json");
+function centralQaCreds(role) {
+  try {
+    const j = JSON.parse(readFileSync(HUB_QA_SECRETS, "utf8"));
+    const p = role === "admin" ? "ADMIN" : "USER";
+    return { email: j[`QA_TEST_${p}_EMAIL`], password: j[`QA_TEST_${p}_PASSWORD`] };
+  } catch {
+    return {};
+  }
+}
 
 function arg(name, fallback) {
   const i = process.argv.indexOf("--" + name);
@@ -82,8 +97,10 @@ const MODE = hasFlag("magic-link") ? "magic-link" : "password";
 const SUPA = pick("NEXT_PUBLIC_SUPABASE_URL");
 const ANON = pick("NEXT_PUBLIC_SUPABASE_ANON_KEY");
 const SERVICE = pick("SUPABASE_SERVICE_ROLE_KEY");
-const email = process.env.QA_TEST_EMAIL;
-const password = process.env.QA_TEST_PASSWORD;
+// Creds: env override first, then the canonical central .secrets/qa-secrets.json (never per-product).
+const central = centralQaCreds(hasFlag("admin") ? "admin" : "user");
+const email = process.env.QA_TEST_EMAIL || central.email;
+const password = process.env.QA_TEST_PASSWORD || central.password;
 
 if (!SUPA || !ANON) {
   console.error("Missing NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY (env or <root>/.env.local).");
