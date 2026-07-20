@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { VoiceAgent } from '@/components/VoiceAgent';
 
 // Base URL for absolute OG/Twitter image + canonical URLs. Set NEXT_PUBLIC_SITE_URL per product
 // (e.g. https://my-product.vercel.app). Falls back to '/' so the build never breaks if unset.
@@ -44,7 +45,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* Chrome-level voice agent. Renders nothing until an agent is provisioned
+            (voice.config.ts placeholder → live id). Move inside your authenticated
+            layout if you only want voice behind auth. */}
+        <VoiceAgent />
+      </body>
     </html>
   );
 }

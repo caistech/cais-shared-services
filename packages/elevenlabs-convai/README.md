@@ -177,6 +177,13 @@ it provisions and writes the same `voice.config.ts` artifact (it does **not** se
 agent-id env). Both paths share this package's `provisionVoiceAgent` + `renderVoiceConfigModule`;
 neither forks the provisioner.
 
+**Full cycle — the template ships the mount pre-wired.** `templates/cais-build-template-v2` ships
+`components/VoiceAgent.tsx` (mounted in `app/layout.tsx`) + a placeholder `voice.config.ts`. So a
+new product is voice-*mounted* from day one: while `voice.config.ts` holds the placeholder id,
+`<VoiceAgent/>` renders nothing (degrade-don't-fake) and the build is unaffected; the instant
+provisioning overwrites `voice.config.ts` with a real id, the launcher appears — no code change.
+`provision → voice.config.ts → rendered surface` is the whole loop, closed.
+
 **Documented divergence — SayFix.** `scripts/provision-sayfix-agent.mjs` writes the provisioned
 id to a **tenant DB column** (`repos.voice_agent_id`) instead of a build-time `voice.config.ts`,
 because SayFix renders a *different* per-repo agent at runtime from that table — there is no single
