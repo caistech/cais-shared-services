@@ -50,14 +50,31 @@ secrets + the discovery-agent id. Per-product prefix (e.g. `REVERSE_SCOUT_`) dis
 
 | Var | Source | Set as |
 |---|---|---|
-| `ELEVENLABS_API_KEY` | operator (ElevenLabs account) | Vercel **sensitive**, prod+preview |
-| `VOICE_SESSION_SECRET` | operator (random 32+ bytes) | Vercel **sensitive**, prod+preview |
+| `ELEVENLABS_API_KEY` | operator (ElevenLabs account) — the canonical `$secret:elevenlabs_api_key` | **Operator shell / central `.secrets` ONLY — NEVER a product Vercel** (see the BYOK rule below) |
+| `VOICE_SESSION_SECRET` | operator (random 32+ bytes) | Vercel **sensitive**, prod+preview (a signing secret, not a vendor key) |
 | `<PREFIX>_VOICE_POSTCALL_SECRET` | **provision() output** (the webhook HMAC secret) | Vercel **sensitive**, prod+preview |
 | `<PREFIX>_VOICE_AGENT_ID` | provision() output — **discovery agent ONLY** | Vercel prod+preview |
 
 The post-call secret is **extracted at provisioning — never invented, never a phantom
 `ELEVENLABS_WEBHOOK_SECRET`.** HMAC verification happens INSIDE the `@caistech` webhook handlers
 using this value (do not hand-roll a signature check).
+
+### The ElevenLabs-key BYOK rule (RATIFIED 2026-07-20)
+
+`ELEVENLABS_API_KEY` is the operator's cost-bearing vendor key. Per **MONETISATION_RULES R10** ("every
+key user-provided; zero CAS exposure to per-user vendor cost") + **PRODUCT_STANDARDS §6** (BYOK), it is
+**provisioning-only and MUST NEVER be pushed to a product's Vercel** — the manifest already says so.
+
+- **Guide agent** — needs NO server ElevenLabs key at all. `<VoiceWidget>` fetches the ElevenLabs
+  conversation token from the PUBLIC endpoint using only the public agent id in `voice.config.ts`. So a
+  product running only the guide agent needs zero ElevenLabs secret on its Vercel. *(Verified live on
+  LaunchReady 2026-07-20 — token endpoint returns 200 with no server key.)*
+- **Discovery agent** — its server-side session-minting reads `ELEVENLABS_API_KEY` at runtime. Do NOT
+  satisfy that by putting the operator key on the product Vercel (violates R10). When a product
+  activates a discovery agent, route the minting through a **shared, cap-gated session-minting service**
+  that holds the key centrally, OR run it BYOK on the end-user's key. Until that exists, the discovery
+  agent stays gated off (`voiceCoachEnabled()` false) rather than shipping the operator key to a product
+  runtime. Provisioning itself (a one-time operator action) uses the operator's shell-exported key — fine.
 
 ---
 
