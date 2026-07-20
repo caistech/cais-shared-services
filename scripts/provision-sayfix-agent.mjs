@@ -13,6 +13,11 @@
  * Consumes @caistech/elevenlabs-convai (local workspace — no GITHUB_PACKAGES_TOKEN needed
  * here), honoring the @caistech-first / fork rules.
  *
+ * Documented divergence: unlike voice-init.mjs / new-product.mjs (which write the id into a
+ * build-time voice.config.ts per PRODUCT_STANDARDS §6), SayFix renders a DIFFERENT per-repo
+ * agent at runtime from repos.voice_agent_id, so the id sink is that tenant column — by design.
+ * See the package README "Provisioning + scaffold — the single entry point".
+ *
  * Usage:  node scripts/provision-sayfix-agent.mjs <github_owner> <github_repo>
  * Env:    ELEVENLABS_API_KEY (or in sayfix/.env.local). gh must be authed.
  */

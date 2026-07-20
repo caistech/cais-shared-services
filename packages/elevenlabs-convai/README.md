@@ -152,17 +152,36 @@ the text fallback when there's no mic (degrade-don't-fake) → no console errors
 `<elevenlabs-convai>` is a false negative against this widget (it cost the Pipeline-Gate
 cockpit a bogus voice ❌ on 2026-05-27).
 
-## Scaffold wizard
+## Provisioning + scaffold — the single entry point
 
-From the `cais-shared-services` repo (after `npm run build` on the package):
+`scripts/voice-init.mjs` (in `cais-shared-services`, after `npm run build` on the package)
+is the canonical way to put a voice agent on a product. It both **provisions the agent** and
+**writes `voice.config.ts` with the real agent id** — one command, no id hand-carrying.
 
 ```bash
+# scaffold-only (placeholder id + next-steps):
 node scripts/voice-init.mjs --target ../my-product
+
+# provision + scaffold (fills the REAL agent id):  requires ELEVENLABS_API_KEY
+node scripts/voice-init.mjs --target ../my-product --provision \
+     --name "My Product" --base-url https://my-product.vercel.app
 ```
 
-Asks 5 questions (placement / mode / text-fallback / clarifier fields / persona-confirm),
-reads the canonical persona from `voice-config.json`, and emits `voice.config.ts` into the
-target project, then prints the provisioning next-steps.
+It reads the canonical persona from `voice-config.json`, asks 5 questions (placement / mode /
+text-fallback / clarifier fields / persona-confirm), calls `provisionVoiceAgent()` when
+`--provision` is passed, and emits `voice.config.ts` into the target project.
+
+**The agent id lives in `voice.config.ts`, never a hand-set `NEXT_PUBLIC_*` env** (PRODUCT_STANDARDS
+§6). `scripts/new-product.mjs` is the non-interactive equivalent for a freshly-generated product —
+it provisions and writes the same `voice.config.ts` artifact (it does **not** set a `NEXT_PUBLIC`
+agent-id env). Both paths share this package's `provisionVoiceAgent` + `renderVoiceConfigModule`;
+neither forks the provisioner.
+
+**Documented divergence — SayFix.** `scripts/provision-sayfix-agent.mjs` writes the provisioned
+id to a **tenant DB column** (`repos.voice_agent_id`) instead of a build-time `voice.config.ts`,
+because SayFix renders a *different* per-repo agent at runtime from that table — there is no single
+compile-time config to write. It still consumes `provisionVoiceAgent` (no forked provisioner); only
+the id *sink* differs, by design.
 
 ## Custom table names
 

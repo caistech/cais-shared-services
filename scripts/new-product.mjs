@@ -557,10 +557,18 @@ async function stepVoice(prodUrl) {
   step("ElevenLabs voice agent");
   if (DRY) { info("DRY: provisionVoiceAgent via @caistech/elevenlabs-convai"); return; }
 
-  // Consume the hub's idempotent provisioner (allowlist + workspace webhook bind).
-  // NEVER the deprecated platform_settings.webhook shape (CLAUDE.md VOICE AI failure modes).
-  let provision;
-  try { provision = (await import("@caistech/elevenlabs-convai")).provisionVoiceAgent; }
+  // Consume the hub's idempotent provisioner + config renderer (allowlist + workspace
+  // webhook bind). NEVER the deprecated platform_settings.webhook shape, and NEVER a
+  // hand-set NEXT_PUBLIC_* agent id — the id is written into voice.config.ts, the §6
+  // artifact <VoiceWidget {...voiceConfig} /> consumes (same path as scripts/voice-init.mjs,
+  // the canonical single entry point; this is its non-interactive equivalent).
+  let provision, buildVoiceConfig, renderVoiceConfigModule;
+  try {
+    const hub = await import("@caistech/elevenlabs-convai");
+    provision = hub.provisionVoiceAgent;
+    buildVoiceConfig = hub.buildVoiceConfig;
+    renderVoiceConfigModule = hub.renderVoiceConfigModule;
+  }
   catch (e) { warn(`@caistech/elevenlabs-convai not importable (${e.message}). Install it in cais-shared-services + rerun, or provision later. Skipping.`); return; }
   if (typeof provision !== "function") { warn("provisionVoiceAgent not exported by the hub â€” skipping."); return; }
 
@@ -579,10 +587,16 @@ async function stepVoice(prodUrl) {
     });
     const agentId = result?.agentId || result?.agent_id;
     if (!agentId) { warn("provision returned no agentId â€” check the hub package."); return; }
-    setEnv("NEXT_PUBLIC_ELEVENLABS_AGENT_ID", agentId);
-    const teamQ = `?teamId=${CONFIG.vercelTeam}`;
-    await api(`https://api.vercel.com/v10/projects/${SLUG}/env${teamQ}`, { token: VERCEL_TOKEN, method: "POST", mutating: true, body: { key: "NEXT_PUBLIC_ELEVENLABS_AGENT_ID", value: agentId, type: "plain", target: ["production", "preview"] } });
-    ok(`agent provisioned: ${agentId} (NEXT_PUBLIC_ELEVENLABS_AGENT_ID set + pushed to Vercel)`);
+    // §6: write the id into voice.config.ts (the artifact <VoiceWidget/> consumes),
+    // NOT a hand-set NEXT_PUBLIC_* env. Degrade gracefully if the renderer is absent.
+    if (typeof buildVoiceConfig === "function" && typeof renderVoiceConfigModule === "function") {
+      const config = buildVoiceConfig(agentId, { placement: "floating", mode: "greeting", textFallback: true });
+      const outPath = join(PORTFOLIO_BASE, SLUG, "voice.config.ts");
+      writeFileSync(outPath, renderVoiceConfigModule(config));
+      ok(`agent provisioned: ${agentId} â€” written to voice.config.ts (mount <VoiceWidget {...voiceConfig} />)`);
+    } else {
+      warn(`agent provisioned: ${agentId}, but buildVoiceConfig/renderVoiceConfigModule not exported â€” update the hub package, then re-run to emit voice.config.ts.`);
+    }
   } catch (e) {
     warn(`voice provisioning failed (non-fatal): ${e.message}`);
   }
