@@ -87,3 +87,25 @@ as a stopgap, but a bottom-corner pill still collides with modal action rows.
   so it never covers a modal's action buttons.
 
 **Acceptance:** on a phone, the pill never overlaps a modal's buttons or a full-width bottom CTA.
+
+---
+
+## 5. `@caistech/elevenlabs-convai` — own the `get_conversation_context` recall, don't trust a consumer RPC
+
+**Why:** `handleStartConversation` delegates recall to a **consumer-provided** `get_conversation_context`
+RPC (`supabase.rpc('get_conversation_context', …)`), falling back to its own query "no status filter,
+matching the RPC." That's an **unstated contract**: the consumer's RPC must NOT filter
+`status = 'active'`. Kira's hand-rolled RPC did exactly that — so recall returned `has_history: false`
+on every return visit even with completed conversations full of messages (the welcome-back never
+fired), on BOTH the chat-page greeting AND the in-call voice recall (both hit the same RPC). It was
+silent (the storage≠memory trap). Any product that hand-rolls this RPC can re-introduce it.
+
+**Ask:** the package should **own the recall query** so consumers can't get it wrong:
+- ship the canonical `get_conversation_context` SQL as part of the package's migration/schema (so it's
+  correct + rich — memories, summary, time-gap — and consistent across products), OR
+- drop the RPC dependency and always use the package's built-in query (which is already correct — no
+  status filter) for the base case, keeping the RPC purely optional/additive.
+
+**Acceptance:** a consumer that adopts the loop gets a working welcome-back recall with **zero
+hand-rolled SQL** — the "finished conversations are `completed`, not `active`" trap is impossible to
+hit. *(Kira reference: `20260720600000_fix_welcome_back_recall.sql` — `status IN ('active','completed')`.)*
