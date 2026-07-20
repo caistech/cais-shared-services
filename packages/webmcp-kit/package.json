@@ -1,0 +1,55 @@
+{
+  "name": "@caistech/webmcp-kit",
+  "version": "0.1.0",
+  "description": "Agent-readiness kit — one-install llms.txt + schema.org JSON-LD + /.well-known agent manifest so any portfolio product is discoverable and legible to AI search + browser agents (PRODUCT_STANDARDS §11 Layer 1). Layers 2 (WebMCP operability) + 3 (remote MCP) are planned subpaths.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/react": "^18",
+    "typescript": "^5"
+  },
+  "files": [
+    "dist/"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services"
+  },
+  "keywords": [
+    "agent-readiness",
+    "llms-txt",
+    "json-ld",
+    "schema-org",
+    "webmcp",
+    "ai-discoverability"
+  ],
+  "author": "Corporate AI Solutions",
+  "license": "MIT"
+}
