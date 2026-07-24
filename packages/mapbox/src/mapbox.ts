@@ -25,22 +25,45 @@ export async function forwardSearch(query: string): Promise<MapboxFeature[]> {
   return (data.features ?? []) as MapboxFeature[];
 }
 
-/** Extract postcode from Mapbox feature context */
+/**
+ * The feature's OWN granularity (its place_type), e.g. "place", "locality",
+ * "address", "postcode", "region". Mapbox `context` holds only the feature's
+ * broader PARENTS — never the feature itself — so a suburb-level pick (a
+ * "place"/"locality" feature) has no place/locality entry in its context and
+ * the extractors must read the feature's own `text`. Falls back to the id
+ * prefix (e.g. "place.123" → "place") when `place_type` is absent.
+ */
+function featureType(feature: MapboxFeature): string {
+  return feature.place_type?.[0] ?? feature.id?.split(".")[0] ?? "";
+}
+
+/** Extract postcode from a Mapbox feature (self first, then parent context) */
 export function extractPostcode(feature: MapboxFeature): string | null {
+  if (featureType(feature) === "postcode") return feature.text ?? null;
   const ctx = feature.context?.find((c) => c.id.startsWith("postcode"));
   return ctx?.text ?? null;
 }
 
-/** Extract suburb/locality from Mapbox feature context */
+/** Extract suburb/locality from a Mapbox feature (self first, then parent context) */
 export function extractSuburb(feature: MapboxFeature): string | null {
+  // A picked suburb/town/locality IS the suburb — its own text, not a context parent
+  // (whose nearest place/locality would be the parent town, e.g. picking a locality
+  // would otherwise return its parent place).
+  const t = featureType(feature);
+  if (t === "place" || t === "locality") return feature.text ?? null;
+  // A full street address carries the suburb as its nearest locality/place parent.
   const ctx = feature.context?.find(
     (c) => c.id.startsWith("locality") || c.id.startsWith("place")
   );
   return ctx?.text ?? null;
 }
 
-/** Extract state from Mapbox feature context */
+/** Extract state from a Mapbox feature (self first, then parent context) */
 export function extractState(feature: MapboxFeature): string | null {
+  if (featureType(feature) === "region") {
+    const sc = (feature.properties as { short_code?: string } | undefined)?.short_code;
+    return sc?.replace("AU-", "") ?? feature.text ?? null;
+  }
   const ctx = feature.context?.find((c) => c.id.startsWith("region"));
   return ctx?.short_code?.replace("AU-", "") ?? ctx?.text ?? null;
 }

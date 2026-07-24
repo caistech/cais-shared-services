@@ -1,7 +1,79 @@
 import { describe, it, expect } from "vitest";
-import { getStaticMapUrl } from "../src/mapbox";
+import {
+  getStaticMapUrl,
+  extractSuburb,
+  extractPostcode,
+  extractState,
+  featureToGeocodedAddress,
+} from "../src/mapbox";
+import type { MapboxFeature } from "../src/mapbox-types";
 
 const TOKEN = "pk.test_token_for_unit_tests";
+
+// Fixtures mirror real AU Mapbox v5 responses (verified live 2026-07-09).
+// A suburb comes back as a `place` feature whose context is ONLY [region, country] —
+// the pre-fix extractors searched context for a place/locality and returned null.
+const suburbFeature: MapboxFeature = {
+  id: "place.123",
+  type: "Feature",
+  place_type: ["place"],
+  text: "Geraldton",
+  place_name: "Geraldton, Western Australia, Australia",
+  center: [114.61, -28.77],
+  geometry: { type: "Point", coordinates: [114.61, -28.77] },
+  context: [
+    { id: "region.1", text: "Western Australia", short_code: "AU-WA" },
+    { id: "country.1", text: "Australia" },
+  ],
+  properties: {},
+};
+
+const addressFeature: MapboxFeature = {
+  id: "address.456",
+  type: "Feature",
+  place_type: ["address"],
+  text: "Marine Terrace",
+  place_name: "12 Marine Terrace, Geraldton Western Australia 6530, Australia",
+  center: [114.6, -28.78],
+  geometry: { type: "Point", coordinates: [114.6, -28.78] },
+  context: [
+    { id: "postcode.1", text: "6530" },
+    { id: "place.1", text: "Geraldton" },
+    { id: "region.1", text: "Western Australia", short_code: "AU-WA" },
+    { id: "country.1", text: "Australia" },
+  ],
+  properties: {},
+};
+
+describe("address extractors", () => {
+  it("suburb pick (place feature) → its own text, not null (the bug)", () => {
+    expect(extractSuburb(suburbFeature)).toBe("Geraldton");
+  });
+
+  it("suburb pick has no single postcode (inherent) but resolves state", () => {
+    expect(extractPostcode(suburbFeature)).toBeNull();
+    expect(extractState(suburbFeature)).toBe("WA");
+  });
+
+  it("street-address pick → suburb + postcode + state from context", () => {
+    expect(extractSuburb(addressFeature)).toBe("Geraldton");
+    expect(extractPostcode(addressFeature)).toBe("6530");
+    expect(extractState(addressFeature)).toBe("WA");
+  });
+
+  it("featureToGeocodedAddress fills every field for a suburb pick", () => {
+    const a = featureToGeocodedAddress(suburbFeature);
+    expect(a.suburb).toBe("Geraldton");
+    expect(a.state).toBe("WA");
+    expect(a.latitude).toBe(-28.77);
+    expect(a.longitude).toBe(114.61);
+  });
+
+  it("falls back to the id prefix when place_type is absent", () => {
+    const noType = { ...suburbFeature, place_type: undefined } as unknown as MapboxFeature;
+    expect(extractSuburb(noType)).toBe("Geraldton");
+  });
+});
 
 describe("getStaticMapUrl", () => {
   it("returns empty string when no token resolves", () => {
