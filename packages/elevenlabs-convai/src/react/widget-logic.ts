@@ -8,7 +8,10 @@ import type { VoiceWidgetProps, VoiceMode, VoicePlacement, VoiceConnectionStatus
 /** Options object passed to useConversation().startSession(). A structural subset of the
  *  SDK's HookOptions — the .tsx casts it at the call site. */
 export interface StartOptions {
-  agentId: string;
+  /** Present in the public-agent path; omitted when connecting via `signedUrl`. */
+  agentId?: string;
+  /** Present when connecting to a private, owner-gated agent via a signed URL. */
+  signedUrl?: string;
   overrides?: {
     agent?: { prompt?: { prompt: string }; firstMessage?: string };
   };
@@ -18,10 +21,12 @@ export interface StartOptions {
 
 /**
  * Build the startSession options from widget props. Only includes keys that are present,
- * so we never send empty overrides/tools that could confuse the agent.
+ * so we never send empty overrides/tools that could confuse the agent. The connect path in
+ * VoiceWidget adds `signedUrl` (and omits `agentId`) when the consumer supplies one.
  */
 export function buildStartOptions(props: VoiceWidgetProps): StartOptions {
-  const opts: StartOptions = { agentId: props.agentId };
+  const opts: StartOptions = {};
+  if (props.agentId) opts.agentId = props.agentId;
 
   if (props.overrides && Object.keys(props.overrides).length > 0) {
     opts.overrides = props.overrides;
@@ -67,7 +72,9 @@ export function panelHeader(props: VoiceWidgetProps): string {
  */
 export function shouldUseTextFallback(props: VoiceWidgetProps, status: VoiceConnectionStatus): boolean {
   if (!props.textFallback) return false;
-  return !props.agentId || status === 'error';
+  // Voice can run if there is any connect source: a public agentId, a signed URL, or a resolver.
+  const canConnect = Boolean(props.agentId || props.signedUrl || props.getSignedUrl);
+  return !canConnect || status === 'error';
 }
 
 /** CSS class for the launcher container, by placement. */

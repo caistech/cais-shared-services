@@ -79,11 +79,23 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
-  function connect() {
+  async function connect() {
     if (fallback || startedRef.current || status === 'connected') return;
     startedRef.current = true;
     try {
-      convo.startSession({ ...buildStartOptions(props), connectionType: 'webrtc' } as HookOptions);
+      const opts = buildStartOptions(props);
+      // Private, owner-gated agents connect via a signed URL (authorized server-side) rather than a
+      // public agentId. `getSignedUrl` is resolved fresh at connect time so an expiring URL can't go
+      // stale before the tap. When a signed URL is used, agentId is omitted (the URL identifies the agent).
+      if (props.signedUrl || props.getSignedUrl) {
+        const signedUrl = props.signedUrl ?? (await props.getSignedUrl!());
+        delete opts.agentId;
+        // Signed-URL sessions connect over WebSocket (the URL is the ws endpoint); the public
+        // agentId path uses WebRTC. Mixing them is a type error in the SDK's HookOptions.
+        convo.startSession({ ...opts, signedUrl, connectionType: 'websocket' } as HookOptions);
+      } else {
+        convo.startSession({ ...opts, connectionType: 'webrtc' } as HookOptions);
+      }
     } catch (e) {
       startedRef.current = false;
       props.onError?.(String(e));

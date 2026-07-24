@@ -253,7 +253,16 @@ export interface VoiceConfig extends VoiceConfigBase {
 }
 
 /** Runtime props for the React VoiceWidget (PR2). Extends the shared base. */
-export interface VoiceWidgetProps extends VoiceConfigBase {
+export interface VoiceWidgetProps extends Omit<VoiceConfigBase, 'agentId'> {
+  /** Public agent id — the default connect path. OPTIONAL when `signedUrl`/`getSignedUrl` is
+   *  supplied (a private, owner-gated agent whose access is authorized server-side). */
+  agentId?: string;
+  /** Start from a pre-issued ElevenLabs signed URL instead of a public `agentId` — for private,
+   *  owner-gated agents. Prefer `getSignedUrl` when the URL may expire before the user connects. */
+  signedUrl?: string;
+  /** Async source for a fresh signed URL, resolved at connect time; takes precedence over
+   *  `agentId`. Use for owner-gated private agents: your route checks auth, then returns the URL. */
+  getSignedUrl?: () => Promise<string>;
   userId?: string;
   sessionId?: string;
 

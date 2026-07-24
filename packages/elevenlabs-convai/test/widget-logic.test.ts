@@ -39,6 +39,14 @@ describe('buildStartOptions', () => {
     // never a top-level userId the agent could relay as identity
     expect((opts as Record<string, unknown>).userId).toBeUndefined();
   });
+
+  it('omits agentId when none is supplied (signed-URL / owner-gated path)', () => {
+    // A private agent supplies getSignedUrl instead of a public agentId; buildStartOptions
+    // must not emit an agentId key (the VoiceWidget connect path adds signedUrl).
+    const opts = buildStartOptions({ getSignedUrl: async () => 'wss://signed' });
+    expect(opts.agentId).toBeUndefined();
+    expect('agentId' in opts).toBe(false);
+  });
 });
 
 describe('launcherLabel / panelHeader', () => {
@@ -71,6 +79,12 @@ describe('shouldUseTextFallback', () => {
 
   it('is false when enabled, agent present, and connected', () => {
     expect(shouldUseTextFallback({ ...base, textFallback: true }, 'connected')).toBe(false);
+  });
+
+  it('is false with no agentId but a signed-URL resolver (voice can still run)', () => {
+    expect(
+      shouldUseTextFallback({ getSignedUrl: async () => 'wss://signed', textFallback: true }, 'disconnected'),
+    ).toBe(false);
   });
 });
 
