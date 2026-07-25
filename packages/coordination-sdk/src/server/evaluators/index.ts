@@ -1,12 +1,12 @@
 // Coordination nudge evaluator registry
 import type { EvaluatorFn, NudgeChannel } from "@caistech/nudge-core";
-import type { CoordNudgeType, CoordEvaluatorContext } from "./types";
-import { evaluateOverdue } from "./coord-01-overdue";
-import { evaluateStale } from "./coord-02-stale";
-import { evaluateDocumentPending } from "./coord-03-document-pending";
-import { evaluateDeadlineApproaching } from "./coord-04-deadline";
-import { evaluateCommentAwaiting } from "./coord-05-comment-awaiting";
-import { evaluateBlockedCascade } from "./coord-06-blocked";
+import type { CoordNudgeType, CoordEvaluatorContext } from "./types.js";
+import { evaluateOverdue } from "./coord-01-overdue.js";
+import { evaluateStale } from "./coord-02-stale.js";
+import { evaluateDocumentPending } from "./coord-03-document-pending.js";
+import { evaluateDeadlineApproaching } from "./coord-04-deadline.js";
+import { evaluateCommentAwaiting } from "./coord-05-comment-awaiting.js";
+import { evaluateBlockedCascade } from "./coord-06-blocked.js";
 
 export const coordEvaluatorRegistry: Record<
   CoordNudgeType,
@@ -31,4 +31,4 @@ export const COORD_CHANNELS: Record<CoordNudgeType, NudgeChannel[]> = {
 
 export const COORD_FREQUENCY_CAP_BYPASS: CoordNudgeType[] = ["COORD-04"];
 
-export type { CoordNudgeType, CoordEvaluatorContext } from "./types";
+export type { CoordNudgeType, CoordEvaluatorContext } from "./types.js";

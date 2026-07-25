@@ -1,7 +1,7 @@
 // COORD-06: Blocked cascade
 // Fires when issue is marked blocked and the blocking party hasn't responded in 24h+
 import type { NudgeResult, NudgeTarget } from "@caistech/nudge-core";
-import type { CoordEvaluatorContext } from "./types";
+import type { CoordEvaluatorContext } from "./types.js";
 
 const BLOCKED_THRESHOLD_HOURS = 24;
 

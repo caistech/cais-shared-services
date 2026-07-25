@@ -1,7 +1,7 @@
 // COORD-04: Deadline approaching
 // Fires at 48h mark before due date. Bypasses frequency cap.
 import type { NudgeResult, NudgeTarget } from "@caistech/nudge-core";
-import type { CoordEvaluatorContext } from "./types";
+import type { CoordEvaluatorContext } from "./types.js";
 
 const THRESHOLD_HOURS = 48;
 

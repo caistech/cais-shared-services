@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { getCoordinationClient } from "../client";
-import type { Issue, IssueStatus, DashboardStats } from "../types";
+import { getCoordinationClient } from "../client.js";
+import type { Issue, IssueStatus, DashboardStats } from "../types/index.js";
 
 interface DashboardState {
   issues: Issue[];

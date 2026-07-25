@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { getCoordinationClient } from "../client";
+import { getCoordinationClient } from "../client.js";
 import type {
   Issue,
   IssueComment,
   IssueActivityLog,
   IssueDocument,
   Participant,
-} from "../types";
+} from "../types/index.js";
 
 interface IssueDetailState {
   issue: Issue | null;

@@ -1,7 +1,7 @@
 // COORD-03: Document pending
 // Fires when next_action mentions upload/document and no doc uploaded in 24h+
 import type { NudgeResult, NudgeTarget } from "@caistech/nudge-core";
-import type { CoordEvaluatorContext } from "./types";
+import type { CoordEvaluatorContext } from "./types.js";
 
 const UPLOAD_KEYWORDS = ["upload", "provide", "submit", "send", "certificate", "report", "document"];
 

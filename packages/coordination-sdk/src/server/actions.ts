@@ -1,7 +1,7 @@
 // @caistech/coordination-sdk — Server-side actions (run in consuming project's Next.js runtime)
 // All mutations go through service role client
 
-import { getCoordinationServiceClient } from "../client";
+import { getCoordinationServiceClient } from "../client.js";
 import type {
   Issue,
   IssueComment,
@@ -12,8 +12,8 @@ import type {
   UpdateIssueInput,
   IssueStatus,
   VALID_STATUS_TRANSITIONS,
-} from "../types";
-import { VALID_STATUS_TRANSITIONS as transitions } from "../types";
+} from "../types/index.js";
+import { VALID_STATUS_TRANSITIONS as transitions } from "../types/index.js";
 
 const db = () => getCoordinationServiceClient();
 

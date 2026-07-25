@@ -2,9 +2,9 @@
 // Generates role-specific emails per participant using Claude
 // Parallel calls, retry with fallback to generic template
 
-import { getCoordinationServiceClient } from "../client";
-import type { Issue, Participant, ParticipantRole, IssueComment, IssueActivityLog } from "../types";
-import { createMagicLink } from "./magic-links";
+import { getCoordinationServiceClient } from "../client.js";
+import type { Issue, Participant, ParticipantRole, IssueComment, IssueActivityLog } from "../types/index.js";
+import { createMagicLink } from "./magic-links.js";
 
 const db = () => getCoordinationServiceClient();
 

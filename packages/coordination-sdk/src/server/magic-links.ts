@@ -1,7 +1,7 @@
 // @caistech/coordination-sdk — Magic link management
 import { createHash, randomBytes } from "crypto";
-import { getCoordinationServiceClient } from "../client";
-import type { MagicLink, Participant, Issue, ParticipantRole } from "../types";
+import { getCoordinationServiceClient } from "../client.js";
+import type { MagicLink, Participant, Issue, ParticipantRole } from "../types/index.js";
 
 const db = () => getCoordinationServiceClient();
 

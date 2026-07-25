@@ -1,7 +1,7 @@
 // COORD-05: Comment awaiting response
 // Fires when the last comment was from a different party and no reply in 48h+
 import type { NudgeResult, NudgeTarget } from "@caistech/nudge-core";
-import type { CoordEvaluatorContext } from "./types";
+import type { CoordEvaluatorContext } from "./types.js";
 
 const RESPONSE_THRESHOLD_HOURS = 48;
 

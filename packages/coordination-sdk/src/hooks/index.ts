@@ -1,2 +1,2 @@
-export { useCoordinationDashboard } from "./use-coordination-dashboard";
-export { useRealtimeIssue } from "./use-realtime-issue";
+export { useCoordinationDashboard } from "./use-coordination-dashboard.js";
+export { useRealtimeIssue } from "./use-realtime-issue.js";

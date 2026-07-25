@@ -1,7 +1,7 @@
 // COORD-01: Overdue action
 // Fires immediately when due date has passed and no activity since
 import type { NudgeResult, NudgeTarget } from "@caistech/nudge-core";
-import type { CoordEvaluatorContext } from "./types";
+import type { CoordEvaluatorContext } from "./types.js";
 
 export async function evaluateOverdue(
   ctx: CoordEvaluatorContext

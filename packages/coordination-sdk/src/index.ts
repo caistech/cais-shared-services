@@ -19,14 +19,14 @@ export type {
   CreateIssueInput,
   UpdateIssueInput,
   MagicLink,
-} from "./types";
+} from "./types/index.js";
 
 // Constants
-export { VALID_STATUS_TRANSITIONS } from "./types";
+export { VALID_STATUS_TRANSITIONS } from "./types/index.js";
 
 // Client
-export { getCoordinationClient, getCoordinationServiceClient } from "./client";
+export { getCoordinationClient, getCoordinationServiceClient } from "./client.js";
 
 // Hooks (client-side)
-export { useCoordinationDashboard } from "./hooks/use-coordination-dashboard";
-export { useRealtimeIssue } from "./hooks/use-realtime-issue";
+export { useCoordinationDashboard } from "./hooks/use-coordination-dashboard.js";
+export { useRealtimeIssue } from "./hooks/use-realtime-issue.js";

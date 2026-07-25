@@ -1,7 +1,7 @@
 // COORD-02: Stale issue
 // Fires when no activity for 5+ days on an open issue
 import type { NudgeResult, NudgeTarget } from "@caistech/nudge-core";
-import type { CoordEvaluatorContext } from "./types";
+import type { CoordEvaluatorContext } from "./types.js";
 
 const STALE_THRESHOLD_DAYS = 5;
 

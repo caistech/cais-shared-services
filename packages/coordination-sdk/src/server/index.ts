@@ -12,7 +12,7 @@ export {
   addComment,
   uploadDocument,
   getDocumentUrl,
-} from "./actions";
+} from "./actions.js";
 
 export {
   ROLE_ACTIONS,
@@ -21,13 +21,13 @@ export {
   createMagicLink,
   resolveToken,
   revokeMagicLinks,
-} from "./magic-links";
+} from "./magic-links.js";
 
-export { sendTailoredUpdate } from "./ai-pipeline";
+export { sendTailoredUpdate } from "./ai-pipeline.js";
 
 export {
   coordEvaluatorRegistry,
   COORD_CHANNELS,
   COORD_FREQUENCY_CAP_BYPASS,
-} from "./evaluators";
-export type { CoordNudgeType, CoordEvaluatorContext } from "./evaluators";
+} from "./evaluators/index.js";
+export type { CoordNudgeType, CoordEvaluatorContext } from "./evaluators/index.js";

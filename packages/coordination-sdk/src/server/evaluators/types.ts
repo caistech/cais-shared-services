@@ -1,6 +1,6 @@
 // Coordination-specific evaluator context and types
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Issue, Participant } from "../../types";
+import type { Issue, Participant } from "../../types/index.js";
 
 export type CoordNudgeType =
   | "COORD-01"  // Overdue action
