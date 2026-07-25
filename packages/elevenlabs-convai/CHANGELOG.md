@@ -1,5 +1,56 @@
 # @caistech/elevenlabs-convai — Changelog
 
+## 0.7.3 — 2026-07-26
+
+Publishes a check that was written, committed, and never shipped.
+
+### ⚠️ Why this release exists at all
+
+`0.7.2` was published to the registry, and then MORE source was committed under the same version
+number and never republished. Git's `0.7.2` and the registry's `0.7.2` were different code — the
+continuity check below existed only in git. Anyone installing `0.7.2` got a four-check probe and
+had no way to know a fifth existed. **A same-version divergence is worse than an unfixed bug: npm
+will never resolve it, because nobody reinstalls a version they already have.** Hence 0.7.3.
+
+### Added
+- **`probeMemoryLoop` now asserts CONTINUITY** — that a NEW conversation sees the previous one.
+  This is the failure a user actually notices: they come back, and the agent greets them as a
+  stranger while their memory rows sit in the database. **Every other check can pass while this is
+  broken**, because save→recall inside one session says nothing about the next connect. Adds
+  `expectContinuity` (default **TRUE**) and `startRoute` (default `'start_conversation'`).
+
+### ⚠️ Behaviour change for existing `probeMemoryLoop` consumers
+`expectContinuity` defaults to **true**, so a consumer that does not mount a start route will start
+**failing** rather than quietly skipping. That is deliberate — a silently-skipped continuity check
+is precisely how this class of bug shipped in the first place — but it means a portfolio-wide
+rollout should expect red in repos without a start route, and decide whether to fix the repo or
+pass `expectContinuity: false`. Choose before the rollout, not after.
+
+## 0.7.2 — 2026-07-25
+
+*(Backfilled 2026-07-26 — shipped without a changelog entry.)*
+
+### Fixed
+- **`ensureUserAgent` now scopes the agent NAME per user itself.** `provisionVoiceAgent` is
+  idempotent BY NAME (`findAgentsByName`), so a consumer passing one constant `agentName` — the
+  obvious thing to do — is handed user #1's agent for user #2, and the binding insert then dies on
+  the unique `elevenlabs_agent_id`. Seen in BucketLyst production: the second buyer's dashboard
+  logged `duplicate key value violates unique constraint convai_agents_elevenlabs_agent_id_key`
+  and fell back to **no voice agent at all, silently**. The name is now derived inside the package,
+  because a rule a consumer has to remember is not a mechanism.
+
+## 0.7.1 — 2026-07-25
+
+*(Backfilled 2026-07-26 — shipped without a changelog entry.)*
+
+### Added
+- **`ensureUserAgent()`** — the one-agent-per-user orchestration, made canonical. The primitives
+  already existed, but the loop around them (look up the binding → provision if absent → bake
+  `?uid=` + secret into the tools → write the `convai_agents` row) was hand-rolled per product, so
+  every new memory-bearing product re-forked it. Now one idempotent call, safe on every page load.
+  Throws loudly if the agent provisions but the binding row fails, because identity cannot resolve
+  without it.
+
 ## 0.7.0 — 2026-07-25
 
 The two 0.6.0 follow-ups: a reusable CI guard, and config that actually propagates.

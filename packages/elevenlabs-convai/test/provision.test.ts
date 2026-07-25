@@ -38,6 +38,7 @@ interface FetchLog {
   wsCreateBody?: any;
   toolList: number;
   toolCreate: number;
+  toolPatch: { url: string; body: Record<string, unknown> }[];
   createdToolIds: string[];
   agentToolIds?: string[];   // tool_ids actually set on the agent (created OR reused)
   boundWebhookId?: string;
@@ -51,7 +52,7 @@ function installFetch(opts: {
 }): FetchLog {
   const log: FetchLog = {
     createAgent: 0, getAgent: 0, listAgents: 0, patchAgent: [],
-    wsList: 0, wsCreate: 0, toolList: 0, toolCreate: 0, createdToolIds: [],
+    wsList: 0, wsCreate: 0, toolList: 0, toolCreate: 0, toolPatch: [], createdToolIds: [],
   };
   const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body, text: async () => '' }) as unknown as Response;
 
@@ -76,6 +77,14 @@ function installFetch(opts: {
       log.toolList++;
       const tools = (opts.existingTools || []).map((t) => ({ id: t.id, tool_config: { name: t.name, api_schema: { url: t.url } } }));
       return ok({ tools });
+    }
+    // 0.7.0 made ensureWorkspaceTools UPDATE a matched tool rather than reuse it as-is, so a
+    // changed secret/schema propagates on re-provision. The mock never gained a handler for that
+    // PATCH, so the reuse test below died on `unmatched fetch` — a stale test asserting pre-0.7.0
+    // behaviour, not a regression.
+    if (method === 'PATCH' && url.includes('/convai/tools/')) {
+      log.toolPatch.push({ url, body });
+      return ok({});
     }
 
     // agents
@@ -163,7 +172,7 @@ describe('provisionVoiceAgent — tools (workspace entities + tool_ids)', () => 
     expect(log.createAgentBody.conversation_config.agent.tools).toBeUndefined();
   });
 
-  it('reuses an existing workspace tool matching BOTH name AND url (no duplicate create)', async () => {
+  it('reuses an existing workspace tool matching BOTH name AND url, and UPDATES its config', async () => {
     const log = installFetch({
       nameMatches: [],
       existingTools: [{ id: 'tool_existing', name: 'recall_memory', url: 'https://app.example.com/api/convai/webhooks/recall_memory' }],
@@ -171,6 +180,11 @@ describe('provisionVoiceAgent — tools (workspace entities + tool_ids)', () => 
     await provisionVoiceAgent('key', { ...baseOpts, tools: [tool] });
     expect(log.toolCreate).toBe(0);
     expect(log.createAgentBody.conversation_config.agent.prompt.tool_ids).toEqual(['tool_existing']);
+    // 0.7.0: the matched tool is PATCHed rather than reused as-is, so a rotated secret or a changed
+    // request schema actually propagates. Without this assertion the reuse path could silently
+    // regress to the pre-0.7.0 no-op and every test here would still pass.
+    expect(log.toolPatch).toHaveLength(1);
+    expect(log.toolPatch[0].url).toContain('tool_existing');
   });
 
   it('does NOT reuse a same-named tool with a different url (product isolation)', async () => {
