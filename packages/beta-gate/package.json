@@ -1,7 +1,7 @@
 {
   "name": "@caistech/beta-gate",
-  "version": "0.1.0",
-  "description": "Reusable beta trial-clock (14-day, extendable) + per-day/total usage caps. Supabase-injected, framework-agnostic. Extracted from the SayFix beta model.",
+  "version": "0.2.0",
+  "description": "Reusable trial-clock (N-day, extendable) + usage caps — per-day/total COUNTS and a $-denominated cost cap, with a soft-warn band (pctUsed/warn) so products warn before the ceiling. Supabase-injected, framework-agnostic.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

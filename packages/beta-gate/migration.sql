@@ -21,7 +21,10 @@ CREATE TABLE IF NOT EXISTS beta_usage (
     subject_id UUID NOT NULL,
     action     TEXT NOT NULL,                                -- e.g. 'asset', 'stage1', 'verticals'
     day        DATE NOT NULL DEFAULT CURRENT_DATE,           -- per-day cap bucket (UTC)
+    cost_usd   NUMERIC NOT NULL DEFAULT 0,                   -- accrues against a CapRule.costCap ($-cap)
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- Additive for existing installs (count-cap consumers created beta_usage without cost_usd).
+ALTER TABLE beta_usage ADD COLUMN IF NOT EXISTS cost_usd NUMERIC NOT NULL DEFAULT 0;
 CREATE INDEX IF NOT EXISTS beta_usage_lookup_idx ON beta_usage(subject_id, action, day);
 ALTER TABLE beta_usage ENABLE ROW LEVEL SECURITY;
