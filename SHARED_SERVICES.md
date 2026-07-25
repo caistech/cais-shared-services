@@ -30,7 +30,7 @@
 >
 > **Install:** registry is GitHub Packages (`@caistech:registry=https://npm.pkg.github.com`, token
 > `NODE_AUTH_TOKEN`/`GITHUB_PACKAGES_TOKEN`). `npm install @caistech/<name>`. Consumers import the
-> compiled `dist/`, never source. **Last updated:** 2026-07-25 (51 packages).
+> compiled `dist/`, never source. **Last updated:** 2026-07-25 (52 packages).
 
 ---
 
@@ -82,6 +82,7 @@
 | `@caistech/unipile-channels` | Unipile wrapper — LinkedIn (search/profile/posts/DM/connect), Gmail/Outlook send, hosted OAuth, account mgmt. |
 | `@caistech/ghl-client` | Go High Level (GHL) CRM client — contacts, opportunities, workflows (native fetch). |
 | `@caistech/nudge-core` | Generic nudge/notification infra — evaluator registry, frequency caps, email builder, cron handler. |
+| `@caistech/email-send` | **The portfolio's Resend transport — the missing middle piece.** `nudge-core` defines an `EmailTransport` interface with no implementation and `email-compliance` produces the Spam Act footer but can't deliver, so every product hand-rolled its own Resend call (Kira: SDK + 3 local templates; raiseready-core: raw fetch deriving `noreply@<slug>`) with divergent from-domains and divergent-or-absent footers — a deliverability + compliance risk for a resold channel. `createEmailSender({sender, from, apiKey})` → `send()` (composes `complianceFooterHtml/Text` per send: `{transactional:true}` = identification only, commercial = `unsubscribeUrl`+`reason`; **`compliance.sender` overrides per send so a white-label product carries the DISTRIBUTOR's ABN**) + `.transport` (already `EmailTransport`-shaped for `nudge-core`). **Sending + the footer live here; TEMPLATES stay in the product** — they're its voice. Defaults `from` to the ONLY Resend-verified subdomain (`noreply@updates.corporateaisolutions.com`; the bare apex is not verified — that's how Kira sent every transactional email to nowhere for months), resolves `RESEND_API_KEY` at SEND time (module-scope construction is what broke Next build-time page-data collection), always emits a text alternative, and surfaces **Resend's own error text** (`"domain is not verified"` is unrecognisable behind a generic failure). Zero deps beyond `email-compliance` (native fetch). 11 tests. **v0.1.0.** |
 | `@caistech/cais-interview-agent` | MCP funnel interview — single-page form capturing email + triage outcome → `mcp_engagement` rows. |
 
 ## Data & geography

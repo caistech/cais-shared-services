@@ -1,0 +1,35 @@
+{
+  "name": "@caistech/email-send",
+  "version": "0.1.0",
+  "description": "Resend transport for the portfolio — fulfils @caistech/nudge-core's EmailTransport interface and composes @caistech/email-compliance's Spam Act footer. Zero deps (native fetch). Products keep their own templates.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@caistech/email-compliance": "^0.2.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.0"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/email-send"
+  }
+}
