@@ -1,0 +1,34 @@
+{
+  "name": "@caistech/attribution",
+  "version": "0.1.0",
+  "description": "First-touch referral attribution for commission-bearing referrals — HMAC-signed HttpOnly cookie, scoped, windowed, first-touch-wins, plus a DB trigger that makes the attribution immutable once written. Extracted from F2K-Projects.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "migration.sql",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "vitest": "^1.6.0"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/attribution"
+  }
+}

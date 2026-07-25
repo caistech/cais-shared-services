@@ -1,12 +1,26 @@
 // @caistech/coordination-sdk — Core Types
 
+/**
+ * Who a participant is on a subject, and therefore what they may do.
+ *
+ * `introducer` / `broker` are the REFERRING-PARTY roles: someone who introduced the subject and has
+ * a continuing commercial interest in its progress, but no business seeing its contents. They are
+ * the only roles whose action set excludes `view` — see ROLE_ACTIONS in server/magic-links, where
+ * they get `view_status` alone. That distinction is the content wall, expressed once in the shared
+ * role model instead of re-derived (and eventually got wrong) per product.
+ *
+ * The two are synonyms kept separate so a product can use the word its market uses — "introducer"
+ * in advisory/broking, "broker" in insurance/finance. Identical permissions.
+ */
 export type ParticipantRole =
   | "admin"
   | "internal"
   | "engineer"
   | "certifier"
   | "supplier"
-  | "client";
+  | "client"
+  | "introducer"
+  | "broker";
 
 export type IssueCriticality = "high" | "medium" | "low";
 

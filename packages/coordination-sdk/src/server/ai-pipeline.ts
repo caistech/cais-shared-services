@@ -13,6 +13,11 @@ const db = () => getCoordinationServiceClient();
 const ROLE_PROMPTS: Record<ParticipantRole, string> = {
   admin: "", // admin doesn't receive tailored emails
   internal: "", // internal doesn't receive tailored emails
+  // Referring parties get no AI-drafted update: an email written from the subject's contents would
+  // walk straight through the content wall their role exists to enforce. Any update to an
+  // introducer is composed from STATUS by the product that owns the relationship.
+  introducer: "",
+  broker: "",
   engineer: `You are writing an email update to an independent structural engineer involved in a construction project.
 Frame the communication technically: reference relevant Australian Standards (AS 4100, NCC/BCA), specific structural findings, required calculations, and sign-off requirements.
 Be precise about what engineering review or action is needed. Use professional engineering language.`,
@@ -106,7 +111,7 @@ async function generateAndSendEmail(
 ): Promise<TailoredEmail> {
   const rolePrompt = ROLE_PROMPTS[participant.role];
 
-  // Admin and internal don't get AI-tailored emails
+  // Admin, internal, and the referring-party roles don't get AI-tailored emails
   if (!rolePrompt) {
     return {
       participantId: participant.id,

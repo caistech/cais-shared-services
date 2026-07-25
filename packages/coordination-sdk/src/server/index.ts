@@ -15,6 +15,9 @@ export {
 } from "./actions";
 
 export {
+  ROLE_ACTIONS,
+  allowedActionsFor,
+  canViewContent,
   createMagicLink,
   resolveToken,
   revokeMagicLinks,

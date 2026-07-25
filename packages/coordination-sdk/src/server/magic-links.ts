@@ -7,14 +7,41 @@ const db = () => getCoordinationServiceClient();
 
 const MAGIC_LINK_EXPIRY_DAYS = 7;
 
-const ROLE_ACTIONS: Record<ParticipantRole, string[]> = {
+/**
+ * The permission model, exported so a consumer can enforce it server-side rather than re-deriving
+ * it (and eventually disagreeing with the magic link it issued).
+ */
+export const ROLE_ACTIONS: Record<ParticipantRole, string[]> = {
   admin: ["comment", "upload", "approve", "reject", "view"],
   internal: ["comment", "upload", "view"],
   engineer: ["comment", "upload", "approve", "reject", "view"],
   certifier: ["comment", "upload", "approve", "reject", "view"],
   supplier: ["comment", "upload", "view"],
   client: ["comment", "view"],
+  // The referring party. `view_status` WITHOUT `view` is deliberate and load-bearing: an introducer
+  // sees that their referral is progressing — status, stage, score movement — and never its
+  // contents. Granting `view` here would hand a commercial third party the subject's material.
+  // Enforce it server-side too; an allowed_actions list is a statement of intent, not a boundary.
+  introducer: ["view_status"],
+  broker: ["view_status"],
 };
+
+/** What this role may do. Unknown roles fall back to `view` only. */
+export function allowedActionsFor(role: ParticipantRole): string[] {
+  return ROLE_ACTIONS[role] ?? ["view"];
+}
+
+/**
+ * May this role see the subject's CONTENTS (documents, comments, transcripts), as opposed to just
+ * its status?
+ *
+ * Call this at every content-serving boundary. A referring party — introducer, broker — returns
+ * false: they see that things are moving, never what was said. Deny-by-default: a role that somehow
+ * has neither `view` nor `view_status` gets nothing.
+ */
+export function canViewContent(role: ParticipantRole): boolean {
+  return allowedActionsFor(role).includes("view");
+}
 
 function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
