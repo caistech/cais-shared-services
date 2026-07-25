@@ -93,6 +93,7 @@ export type {
   ConvaiWebhookRoutes,
   CreateConvaiWebhookRoutesOptions,
   ConvaiRouteContext,
+  ConvaiToolIdentity,
 } from './routes.js';
 
 // Anonymous-session tokens (ephemeral; server-side)
@@ -107,6 +108,7 @@ export type { AnonSessionClaims, MintAnonSessionOptions } from './session.js';
 export {
   createConversationTools,
   conversationContinuityPrompt,
+  CONVAI_TOOL_SECRET_HEADER,
 } from './conversation-tools.js';
 
 // Scaffold-wizard helpers (pure; the wizard in scripts/ does the I/O)

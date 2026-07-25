@@ -9,6 +9,9 @@
 
 import type { ConvAITool } from './types.js';
 
+// The header the tools carry when a secret is baked in — the same constant the routes verify against.
+export const CONVAI_TOOL_SECRET_HEADER = 'x-convai-tool-secret';
+
 // =============================================================================
 // TOOL FACTORY
 // =============================================================================
@@ -23,10 +26,19 @@ import type { ConvAITool } from './types.js';
  *                  Required. Throws if missing/empty so BYOK consumers never
  *                  accidentally point at a default host.
  * @param webhookBasePath — base path for webhook routes (default: '/api/convai/webhooks')
+ * @param opts — optional:
+ *   - `secret`: baked as the `x-convai-tool-secret` header on every tool, so your route's
+ *     `toolSecret` guard (createConvaiWebhookRoutes) accepts only your provisioned agents.
+ *   - `identity`: SERVER-BAKED owner identity appended as a query param (`?uid=<value>`) to the
+ *     recall/save/start URLs. This is how those tools know WHOSE memory to touch — ElevenLabs does
+ *     not pass the conversation id to server-tool webhooks, so relying on the agent to supply it
+ *     fails. Your route reads it back via `resolveToolIdentity`. Use when you know the owner at
+ *     provision (one-agent-per-user). `param` defaults to `uid`.
  */
 export function createConversationTools(
   baseUrl: string,
-  webhookBasePath: string = '/api/convai/webhooks'
+  webhookBasePath: string = '/api/convai/webhooks',
+  opts?: { secret?: string; identity?: { param?: string; value: string } }
 ): ConvAITool[] {
   if (!baseUrl || typeof baseUrl !== 'string' || baseUrl.trim() === '') {
     throw new Error(
@@ -36,15 +48,23 @@ export function createConversationTools(
       'host — BYOK consumers must point the conversation webhooks at their own infrastructure.'
     );
   }
-  const url = (path: string) => `${baseUrl}${webhookBasePath}/${path}`;
-  const headers = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (opts?.secret) headers[CONVAI_TOOL_SECRET_HEADER] = opts.secret;
+
+  // Identity-bearing tools (start/recall/save) carry ?uid=<value> so the route can resolve the owner
+  // without a conversation binding. The conversation-scoped tools (save_message/update_topic) don't.
+  const idQuery = opts?.identity
+    ? `?${opts.identity.param || 'uid'}=${encodeURIComponent(opts.identity.value)}`
+    : '';
+  const url = (path: string, withIdentity = false) =>
+    `${baseUrl}${webhookBasePath}/${path}${withIdentity ? idQuery : ''}`;
 
   return [
-    getConversationContextTool(url('start_conversation'), headers),
+    getConversationContextTool(url('start_conversation', true), headers),
     saveMessageTool(url('save_message'), headers),
     updateTopicTool(url('update_topic'), headers),
-    recallMemoryTool(url('recall_memory'), headers),
-    saveMemoryTool(url('save_memory'), headers),
+    recallMemoryTool(url('recall_memory', true), headers),
+    saveMemoryTool(url('save_memory', true), headers),
   ];
 }
 

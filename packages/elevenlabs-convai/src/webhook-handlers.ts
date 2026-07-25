@@ -305,6 +305,14 @@ export interface RecallMemoryParams {
   elevenlabsConversationId: string;
   query: string;
   memoryType?: MemoryType | 'all';
+  /**
+   * SERVER-BAKED identity override. ElevenLabs does NOT pass the conversation id to server-tool
+   * webhooks, so a tool that only receives `{query}` cannot bind a conversation. When the consumer
+   * knows the owner at provision time (e.g. one-agent-per-user, uid baked into the tool URL), it
+   * passes the identity here and recall resolves by user directly — no conversation binding needed.
+   * agentId is optional: when null, recall is scoped to the whole user (across their agents).
+   */
+  identity?: { userId: string; agentId?: string | null };
 }
 
 export async function handleRecallMemory(
@@ -312,22 +320,29 @@ export async function handleRecallMemory(
   params: RecallMemoryParams,
   tables: TableNames = DEFAULT_TABLES
 ) {
-  const { elevenlabsConversationId, query, memoryType } = params;
+  const { elevenlabsConversationId, query, memoryType, identity } = params;
 
-  const binding = await getConversationBinding(supabase, tables, elevenlabsConversationId);
-  if (!binding) {
+  const resolved = identity
+    ? { userId: identity.userId, agentId: identity.agentId ?? null }
+    : await getConversationBinding(supabase, tables, elevenlabsConversationId);
+  if (!resolved) {
     return { success: false, error: 'Conversation not found' };
   }
 
   let dbQuery = supabase
     .from(tables.memory)
     .select('*')
-    .eq('user_id', binding.userId)
-    .eq('agent_id', binding.agentId)
+    .eq('user_id', resolved.userId)
     .eq('active', true)
     .order('importance', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(10);
+
+  // Scope to a single agent only when we know it (conversation binding, or an explicit agentId).
+  // With a user-only identity, recall spans the user's whole memory.
+  if (resolved.agentId) {
+    dbQuery = dbQuery.eq('agent_id', resolved.agentId);
+  }
 
   if (memoryType && memoryType !== 'all') {
     dbQuery = dbQuery.eq('memory_type', memoryType);
@@ -387,6 +402,9 @@ export interface SaveMemoryParams {
   memoryType: MemoryType;
   importance?: number;
   tags?: string[];
+  /** Server-baked identity override — see RecallMemoryParams.identity. When set, the fact is saved
+   *  against the user directly (no conversation binding required). */
+  identity?: { userId: string; agentId?: string | null };
 }
 
 const VALID_MEMORY_TYPES: MemoryType[] = [
@@ -398,13 +416,15 @@ export async function handleSaveMemory(
   params: SaveMemoryParams,
   tables: TableNames = DEFAULT_TABLES
 ) {
-  const { elevenlabsConversationId, content, memoryType, importance = 5, tags = [] } = params;
+  const { elevenlabsConversationId, content, memoryType, importance = 5, tags = [], identity } = params;
 
   if (!VALID_MEMORY_TYPES.includes(memoryType)) {
     return { success: false, error: `Invalid memory type. Use: ${VALID_MEMORY_TYPES.join(', ')}` };
   }
 
-  const binding = await getConversationBinding(supabase, tables, elevenlabsConversationId);
+  const binding = identity
+    ? { userId: identity.userId, agentId: identity.agentId ?? null, id: null, anonSessionId: null }
+    : await getConversationBinding(supabase, tables, elevenlabsConversationId);
   if (!binding) {
     return { success: false, error: 'Conversation not found' };
   }

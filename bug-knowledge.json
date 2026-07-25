@@ -988,6 +988,223 @@
       },
       "fixed_at": "2026-07-18",
       "fixed_by": "claude-code (prelabzai readiness PDF)"
+    },
+    {
+      "id": "convai-voice-memory-loop-chain-fixed-one-link-at-a-time-never-e2e-tested",
+      "product": "Kira (4 rounds) + @caistech/elevenlabs-convai — pattern applies to EVERY convai memory consumer",
+      "error_pattern": "Voice agent does not remember a prior conversation. User briefs the agent at length, reconnects, and it has no recall (\"I don't have access to past conversations\" / greets on a stale objective). Memory was \"fixed\" 4+ separate times over 6 months and stayed broken each time.",
+      "error_symptoms": [
+        "agent greets with a stale/first-ever objective instead of recent context",
+        "agent says it cannot access past conversations despite a wired memory loop",
+        "kira_memory / memory table is empty or only holds seed rows",
+        "no error anywhere — tool webhooks 200 or are simply never called; the failure is SILENT in every layer",
+        "each fix round's commit message independently asserts \"memory never actually worked\""
+      ],
+      "attempts": [
+        {
+          "tried": "Bind the post-call webhook (2026-05-25) — per-agent platform_settings.webhook → workspace-scoped bindWorkspaceWebhook",
+          "result": "Correct fix for link 1. Memory still broken — link 4 was also broken."
+        },
+        {
+          "tried": "Remove hardcoded webhook-secret fallback + adopt hub HMAC verifier (2026-05-25)",
+          "result": "Correct fix for link 2. Memory still broken."
+        },
+        {
+          "tried": "Correct tool-router auth to header-secret, not post-call HMAC (2026-05-25)",
+          "result": "Correct fix for link 4. Memory still broken — link 7 was broken."
+        },
+        {
+          "tried": "Adopt the canonical @caistech/elevenlabs-convai loop wholesale (2026-07-20)",
+          "result": "Correct architecture. Memory still broken — links 6 and 7 broken."
+        },
+        {
+          "tried": "Fix get_conversation_context status filter — \"welcome-back recall never fired\" (2026-07-20)",
+          "result": "Correct fix for link 7. Memory still broken — link 6 (distil) was broken."
+        },
+        {
+          "tried": "Wire post-call distillation — \"kira_memory was never filling\" (2026-07-20)",
+          "result": "Correct fix for link 6. Memory still broken — link 5 (agent never CALLS the tool) was broken."
+        },
+        {
+          "tried": "Create the kira_logs table its writers assumed (2026-07-20)",
+          "result": "Removed a silent-fail residual that had been HIDING the breaks above."
+        }
+      ],
+      "solution": {
+        "approach": "The loop is a CHAIN of 7 independent links, and a break in ANY one produces the identical, silent \"agent has no memory\" symptom: (1) post-call webhook bound at workspace scope; (2) post-call HMAC verifies; (3) memory tools ATTACHED to the agent (tool_ids); (4) tool-webhook auth header matches (re-provision required whenever the secret changes); (5) the agent MODEL actually emits the tool call; (6) post-call distil writes durable memory rows; (7) recall reads them back with the right filters. Every round above correctly fixed one link while another was still broken, so each fix was real AND the system stayed broken. The root cause of the RECURRENCE is not any single link — it is that no test ever exercised the whole chain (talk → disconnect → reconnect → assert recall), so \"fixed\" was always inferred from code, never observed from behaviour.",
+        "answer": "Do not debug links individually. Add ONE end-to-end behavioural test as the definition of done: hold a real conversation, disconnect, reconnect, assert the agent names a specific fact from the prior call. Run it in CI against prod. Any of the 4 rounds above would have failed it on day one. Treat a green unit/route test as evidence of NOTHING for this subsystem.",
+        "code_path": "kira: lib/kira/convai.ts (loop mount), app/api/kira/create/route.ts (provisioning), app/api/kira/webhooks/* (7 routes), scripts/reprovision-kira-agents.mjs. hub: @caistech/elevenlabs-convai createConvaiWebhookRoutes / createConversationTools / distillConversationToMemory."
+      },
+      "fixed_at": "2026-07-25",
+      "fixed_by": "claude-code (kira business-owner live test — memory-loop audit)"
+    },
+    {
+      "id": "convai-gpt-4o-mini-drops-tool-calls-hardcoded-model-bypasses-hub-default",
+      "product": "Kira — applies to any repo that hardcodes the agent LLM instead of taking DEFAULT_AGENT_LLM",
+      "error_pattern": "Voice agent with a correctly-wired memory loop still never remembers, because the agent MODEL silently stops emitting tool calls. Every route, table, secret and webhook is correct; the tools are simply never invoked.",
+      "error_symptoms": [
+        "memory tables stay empty but no route ever 4xx/5xx — because no request arrives",
+        "recall works in a short test call and degrades as the conversation lengthens",
+        "agent verbally claims it cannot access memory/documents rather than erroring",
+        "the repo pins a recent @caistech/elevenlabs-convai yet passes its own `llm:` value"
+      ],
+      "attempts": [
+        {
+          "tried": "Audited webhook binding, HMAC, tool attachment, tool auth header, table columns, RLS",
+          "result": "All correct — the wiring was not the fault."
+        }
+      ],
+      "solution": {
+        "approach": "@caistech/elevenlabs-convai sets DEFAULT_AGENT_LLM = gpt-4.1-mini (v0.4.2, commit c408d98) SPECIFICALLY because gpt-4o-mini drops tool calls over long conversations. Kira provisions agents through a raw ElevenLabs POST that hardcodes `llm: gpt-4o-mini`, bypassing the hub default entirely — so the one repo that mounted the full loop correctly overrode the one setting that makes it fire. Memory that is never CALLED is indistinguishable from memory that does not exist.",
+        "answer": "Never hardcode the agent LLM. Take DEFAULT_AGENT_LLM from the hub package, or route provisioning through the hub createAgent(). When auditing a \"memory does not work\" report, check the MODEL before the plumbing — it is the cheapest check and it produces zero error signal.",
+        "code_path": "kira: app/api/kira/create/route.ts:35 (ELEVENLABS_CONFIG.llm), lib/kira/elevenlabs.ts:68,144, lib/kira/index.ts:127. hub: node_modules/@caistech/elevenlabs-convai/dist/agent-client.js:21"
+      },
+      "fixed_at": "2026-07-25",
+      "fixed_by": "claude-code (kira business-owner live test — memory-loop audit)"
+    },
+    {
+      "id": "caistech-package-installed-is-not-loop-mounted-rollout-overclaim",
+      "product": "portfolio-wide — @caistech/elevenlabs-convai (audit 2026-07-25), pattern applies to any shared-service rollout claim",
+      "error_pattern": "A shared capability is reported as \"rolled out to every repo\" when only the PACKAGE was installed. Consuming repos get the widget and none of the behaviour, so the capability is believed live portfolio-wide while working in exactly one repo.",
+      "error_symptoms": [
+        "package.json shows the dependency in N repos — used as the rollout evidence",
+        "the behaviour fails in a repo everyone believed was covered",
+        "no repo-level check distinguishes \"imports the package\" from \"mounts its routes\"",
+        "version drift across consumers goes unnoticed (0.1.6 → 0.5.0 in the same portfolio)"
+      ],
+      "attempts": [
+        {
+          "tried": "Grepping package.json for the dependency across repos to confirm rollout",
+          "result": "FALSE POSITIVE — proves installation, not integration. This is the check that produced the overclaim."
+        }
+      ],
+      "solution": {
+        "approach": "Measured 2026-07-25 across 20 repos depending on @caistech/elevenlabs-convai: exactly ONE (Kira) mounts all three legs (start_conversation + recall_memory + distil). Mova + PrelabzAI mount recall/start but no distil (storage, not memory). Corporate-AI-Solutions + LingoPureAI + pipeline distil but expose no recall route (writes nobody reads). The remaining 14 mount none of it — widget only. Version spread 0.1.6 (MMCBuild) → 0.5.0 (Kira).",
+        "answer": "Verify rollout by ROUTE PRESENCE, never by dependency presence. The mechanical check: for each consumer assert the existence of the recall route dir, the start_conversation route dir, and a distillConversationToMemory reference. Add it to feature-preflight / check-shared-forks so an unmounted consumer fails CI instead of being counted as covered. Record per-consumer mount status in SHARED_SERVICES.md so the next session cannot re-infer coverage from package.json.",
+        "code_path": "audit: find <repo> -type d -name recall_memory / -name start_conversation; grep -rl distillConversationToMemory. Guard belongs in cais-shared-services/scripts/."
+      },
+      "fixed_at": "2026-07-25",
+      "fixed_by": "claude-code (kira business-owner live test — memory-loop audit)"
+    },
+    {
+      "id": "agent-prompt-claims-tools-that-are-not-attached-capability-lie",
+      "product": "Kira — class applies to every prompted agent across the portfolio",
+      "error_pattern": "The system prompt lists tools the agent does not have. The agent, behaving correctly, tells the user it \"cannot access\" the capability — which reads to the user as a broken product rather than an unbuilt one. The upstream half of the feature (ingestion/UI) ships and the retrieval half never does.",
+      "error_symptoms": [
+        "agent says \"I can't access that document\" / \"I can't access URLs\" for a documented feature",
+        "an upload UI and ingest route exist and write rows successfully",
+        "no retrieval route exists for the agent to call — the store is write-only",
+        "the prompt enumerates the tool by name, so the agent believes it should work"
+      ],
+      "attempts": [
+        {
+          "tried": "Attaching the named tools to close the gap",
+          "result": "Correct instinct, but attaching a tool whose route does not exist makes the agent call a 404 — a worse failure. The route must be built first."
+        }
+      ],
+      "solution": {
+        "approach": "Kira built the whole ingestion half on 2026-01-19..21 — kira_knowledge table, /api/kira/knowledge/upload, /api/kira/knowledge/url, embeddings, Jina reranking, hybrid semantic search in lib/kira/knowledge-search.ts. The retrieval webhook route the voice agent would call was never created. lib/kira/convai.ts:113-115 documents this honestly (\"their routes do not exist yet\"), while lib/kira/prompts.ts:404-417 has advertised search_knowledge / search_web / start_research_session / save_finding to the agent for six months. Unlike the memory loop this was never re-built — it was built halfway ONCE and asserted complete ever since, which feels identical from the user's seat.",
+        "answer": "The prompt's tool list must be GENERATED from the attached tool set, never hand-written — a hand-written list drifts into a lie the moment attachment changes. Until then, add a provisioning-time assertion that every tool named in the prompt exists in the agent's tool_ids and every attached tool resolves to a live route. A capability the agent claims and lacks is a product defect, not a prompt nit.",
+        "code_path": "kira: lib/kira/prompts.ts:404-417 (the claim), lib/kira/convai.ts:113-115 (the honest comment), lib/kira/knowledge-search.ts (built, unreachable), app/api/kira/knowledge/* (ingest half only)."
+      },
+      "fixed_at": "2026-07-25",
+      "fixed_by": "claude-code (kira business-owner live test — memory-loop audit)"
+    },
+    {
+      "id": "duplicate-provisioning-path-drifts-into-a-landmine",
+      "product": "Kira — class applies to any repo with more than one way to create the same resource",
+      "error_pattern": "A second, older code path that provisions the same resource (agent/account/tenant) is left in place when the canonical path is modernised. It stops being exercised, so it silently rots — and then fires on a rare trigger (first real payment, first invite, first import) and mints a broken resource nobody is looking for.",
+      "error_symptoms": [
+        "two functions with the same job in different files, one obviously older",
+        "the stale path is never hit in testing because its trigger is rare (a real paid checkout)",
+        "the stale copy accumulates every fix the canonical path received and it did not: no tools attached, no model pinned, deprecated API shapes, hardcoded secret fallbacks",
+        "DB rows created by the two paths differ in shape (one sets agent_name, the other sets name)"
+      ],
+      "attempts": [
+        {
+          "tried": "Patching the stale path to match the canonical one",
+          "result": "Rejected — it just recreates the divergence with a fresh timestamp. Two paths means the next fix lands in one of them again."
+        }
+      ],
+      "solution": {
+        "approach": "Kira's Stripe webhook carried its own createElevenLabsAgent() frozen at Jan-2026: no memory tools attached (zero memory loop), no llm pinned, the deprecated platform_settings.webhook shape ElevenLabs silently ignores, a hardcoded `|| 'kira-webhook-secret'` fallback, no origin allowlist, a 4th copy of the system prompt, and it wrote kira_agents.name where canonical writes agent_name. It ALSO inserted a bare public.users row with no auth_user_id — an orphan account with no possible login. Proof it had never fired: every agent row in prod carries a draft_id, i.e. all came from /api/kira/create. It was a landmine awaiting the first real paid checkout.",
+        "answer": "DELETE the duplicate rather than repair it — there must be exactly one provisioning path. Here the webhook had no business minting agents at all: accounts belong to /api/onboarding/complete (which creates a real confirmed auth.users and lets the trigger link the app row) and agents belong to /api/kira/create (the only path that attaches tools + continuity prompt + allowlist + post-call webhook). A payment webhook records SUBSCRIPTION STATE and nothing else. Also handle the race: the webhook often arrives before the buyer sets their password, so it must no-op when the account is absent, never create one.",
+        "code_path": "kira: app/api/stripe/webhook/route.ts (removed handleCheckoutComplete provisioning + createElevenLabsAgent + generateKiraPrompt + sendWelcomeEmail), canonical paths app/api/kira/create/route.ts + app/api/onboarding/complete/route.ts"
+      },
+      "fixed_at": "2026-07-25",
+      "fixed_by": "claude-code (kira stripe-path audit)"
+    },
+    {
+      "id": "placeholder-fallback-env-default-silently-live-in-production",
+      "product": "Kira (email sender) — class applies portfolio-wide to every `process.env.X || <literal>` default",
+      "error_pattern": "A scaffold placeholder left as the `||` fallback of an env var becomes the LIVE production value because the env var was never actually set anywhere. Nothing errors at boot; the feature just silently fails at the far end (rejected email, wrong host, wrong sender).",
+      "error_symptoms": [
+        "transactional email 'sends' with no thrown error but never arrives",
+        "a literal placeholder domain/host (yourdomain.com, example.com, localhost:3000) in a `||` default",
+        "the env var is documented in README/.env.example but present in no real environment",
+        "the failure is invisible because the send path try/catches and logs"
+      ],
+      "attempts": [
+        {
+          "tried": "Checking the Resend API key and dashboard",
+          "result": "Key was valid — the FROM address was the fault, not auth."
+        }
+      ],
+      "solution": {
+        "approach": "lib/email/resend.ts had `const FROM_EMAIL = process.env.EMAIL_FROM || 'Kira <kira@yourdomain.com>'`. EMAIL_FROM was set in no environment, so every transactional email Kira ever sent was addressed from an unverified placeholder domain and rejected by Resend. The removed Stripe welcome email carried the same literal inline.",
+        "answer": "A `||` fallback must be the correct PRODUCTION value, never a placeholder — if there is no safe default, throw at startup instead. Portfolio rule: the only Resend-verified sending subdomain is updates.corporateaisolutions.com (the bare apex is NOT verified), so that is the default. Grep any repo for placeholder literals (yourdomain.com / example.com / localhost) sitting in `||` defaults; each one is a silently-live production value.",
+        "code_path": "kira: lib/email/resend.ts:19"
+      },
+      "fixed_at": "2026-07-25",
+      "fixed_by": "claude-code (kira stripe-path audit)"
+    },
+    {
+      "id": "convai-memory-tool-routes-unauthenticated-cross-tenant-read",
+      "product": "@caistech/elevenlabs-convai consumers — verified exposed: singify-platform; gated: prelabzai, sayfix; fixed: kira",
+      "error_pattern": "Voice-agent memory tool routes (recall_memory/save_memory/start_conversation) accept unauthenticated POSTs. Where start_conversation is NOT session-gated, a public agent id (readable from the client bundle) mints a conversation bound to the agent owner, and recall then returns that owner's memory — a cross-tenant read/write.",
+      "error_symptoms": [
+        "tool webhook request_headers is Content-Type only — no shared-secret or HMAC",
+        "start_conversation returns 200 \"Agent not found\" for a synthetic agent id (no session gate) instead of 401",
+        "recall_memory / save_memory return 200 and derive identity from conversation_id with no auth",
+        "the agent id is NEXT_PUBLIC / present in the client bundle"
+      ],
+      "attempts": [
+        {
+          "tried": "Probing with synthetic agent/conversation ids to read the auth model without exfiltrating any real memory",
+          "result": "Established: singify start has no session gate (exposed); prelabz + sayfix return 401 Unauthorized session (gated at the door); all three leave recall/save unauthenticated"
+        }
+      ],
+      "solution": {
+        "approach": "Two-tier reality: repos that session-gate start_conversation (prelabz, sayfix) are protected because the identity-binding conversation row can only be created by a verified session; a repo that does NOT session-gate it (singify) is exposed via the public agent id — the same hole Kira had. Kira patched it with a shared-secret header (x-kira-tool-secret) on the tool webhooks plus a toolSecretOk() route guard, but that is a per-repo workaround because createConversationTools hardcodes Content-Type and offers no auth hook.",
+        "answer": "Durable fix belongs in @caistech/elevenlabs-convai: createConversationTools must accept a shared secret and the route handlers must fail-closed without it (HANDOFF_RESPONSE P1). Until then, patch each exposed repo workspace tools in place with the header (scripts/patch-tool-secret-headers.mjs pattern) AND ensure start_conversation is session-gated. Verify rollout by probing start_conversation with a synthetic agent id: a 200 \"Agent not found\" means no session gate = exposed; a 401 means gated.",
+        "code_path": "@caistech/elevenlabs-convai createConversationTools (no auth hook) + webhook-handlers.handleStartConversation; kira reference fix lib/kira/convai.ts toolSecretOk + scripts/patch-tool-secret-headers.mjs"
+      },
+      "fixed_at": "2026-07-25",
+      "fixed_by": "claude-code (kira session — cross-repo memory-auth probe)"
+    },
+    {
+      "id": "convai-tool-conversation-id-llm-filled-not-system-injected",
+      "product": "@caistech/elevenlabs-convai (createConversationTools) + every consumer — Kira, likely Singify (same pattern)",
+      "error_pattern": "A voice agent CALLS its memory/knowledge tools (tool_calls fire) but they always return \"first chat\" / \"conversation not found\" / empty — so memory and document retrieval never work in a REAL voice call, even though the webhooks work when called directly.",
+      "error_symptoms": [
+        "agent audibly says \"this is our first chat\" / \"I do not have that saved\" despite real history",
+        "simulate-conversation shows the tool_calls firing, yet responses are empty",
+        "direct POST to the webhook with the correct conversation_id works perfectly (so the route + DB are fine)",
+        "the tool parameter conversation_id / elevenlabs_conversation_id has is_system_provided=false and dynamic_variable=\"\""
+      ],
+      "attempts": [
+        {
+          "tried": "Checked model (gpt-4.1-mini), tool attachment (tool_ids present), tool-secret header, HMAC, RLS — all correct",
+          "result": "None was the fault; the agent was calling the tools but they could not identify the conversation"
+        }
+      ],
+      "solution": {
+        "approach": "The tool id parameters (conversation_id, elevenlabs_conversation_id, elevenlabs_agent_id) were LLM-FILLED — the model cannot know ElevenLabs' real conversation id, so it passed a placeholder/garbage, the webhook could not bind the conversation, and identity resolution failed. This is the true bottom of the \"memory never worked\" onion: link 5 (agent emits the call) actually worked; the CALL PAYLOAD was unusable. A direct-call E2E test hides it because the test supplies the id.",
+        "answer": "Bind the id params to ElevenLabs SYSTEM DYNAMIC VARIABLES so ElevenLabs injects the real values into the webhook body: conversation_id/elevenlabs_conversation_id -> dynamic_variable \"system__conversation_id\"; elevenlabs_agent_id -> \"system__agent_id\". These are auto-populated on ALL channels (web/WebRTC/widget included; only caller_id/called_number are voice-only). A param bound this way must set ONLY dynamic_variable among {description,dynamic_variable,is_system_provided,constant_value,is_omitted} (API 422s otherwise). Workspace tools are shared across agents and ensureWorkspaceTools never overwrites config, so patching the workspace tools once fixes all agents; the DURABLE fix is to build the tools with these bindings in createConversationTools (canonical).",
+        "code_path": "kira: scripts/patch-tool-system-vars.mjs (the patch); canonical fix belongs in @caistech/elevenlabs-convai createConversationTools/toWorkspaceToolConfig so fresh tools carry the bindings. Verify with the simulate-conversation API (it flags missing system dynamic variables)."
+      },
+      "fixed_at": "2026-07-25",
+      "fixed_by": "claude-code (kira live voice-memory diagnosis)"
     }
   ],
   "usage": "Before fixing ANY bug, grep this file for matching error patterns. Also check SayFix DB for product-specific attempts.",

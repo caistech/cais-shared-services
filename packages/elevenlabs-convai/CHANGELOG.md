@@ -1,5 +1,42 @@
 # @caistech/elevenlabs-convai — Changelog
 
+## 0.6.0 — 2026-07-25
+
+Memory that works in a REAL voice call — server-baked identity + tool-webhook auth. This closes the
+class of bug where an agent calls its memory tools but they always return "Conversation not found",
+because ElevenLabs does NOT pass the conversation id to server-tool webhooks (the agent sends only
+the LLM-filled params). Proven end-to-end in Kira; promoted here so every consumer is safe.
+
+### Added
+- **`createConvaiWebhookRoutes({ resolveToolIdentity })`** — resolve the owner of a recall/save call
+  WITHOUT a conversation binding. When you know the owner at provision (one-agent-per-user, uid baked
+  into the tool URL), return `{ userId, agentId? }` and recall/save resolve by user directly.
+  `recall_memory` / `save_memory` no longer require `conversation_id` in the body when identity
+  resolves. Falls back to the conversation binding for legacy callers. `handleRecallMemory` /
+  `handleSaveMemory` accept an `identity` override; recall scopes to the whole user when `agentId`
+  is null.
+- **`createConvaiWebhookRoutes({ toolSecret })` + `createConversationTools(baseUrl, path, { secret })`**
+  — tool-webhook auth (fail-closed only when set). Closes the P1 hole where an unauthenticated caller
+  could POST recall/save against a victim (identity from a public agent id). Header:
+  `x-convai-tool-secret` (exported as `CONVAI_TOOL_SECRET_HEADER`).
+- **`createConversationTools(baseUrl, path, { identity: { param?, value } })`** — bakes `?uid=<value>`
+  into the start/recall/save tool URLs so the route reads the owner back via `resolveToolIdentity`.
+
+### Why
+ElevenLabs server-tool webhooks receive only the LLM-filled parameters — never the real
+conversation/agent id. Relying on the agent to supply `conversation_id` fails silently: the model
+passes a placeholder ("current"/"default"), the webhook can't bind, and recall/save return
+"Conversation not found". A direct-call test hides it because the test supplies the id. The fix is
+to derive identity server-side (baked per-agent) instead of from the call payload.
+
+### Backward-compatible
+All additions are opt-in. Unset `resolveToolIdentity`/`toolSecret`/`identity` ⇒ exact prior behavior.
+
+### Known limitation
+`ensureWorkspaceTools` still matches an existing workspace tool by name+url and reuses it WITHOUT
+updating config — so changing a tool's secret/identity requires deleting+recreating the workspace
+tool (or a patch script), not just re-provisioning. Tracked for a follow-up.
+
 ## 0.4.7 — 2026-06-10
 
 A face for the coach — the standard portfolio voice surface.
