@@ -119,3 +119,6 @@ export {
   MODES,
 } from './voice-init.js';
 export type { VoiceInitAnswers } from './voice-init.js';
+
+export { ensureUserAgent } from './ensure-user-agent.js';
+export type { EnsureUserAgentOptions, EnsureUserAgentResult } from './ensure-user-agent.js';
