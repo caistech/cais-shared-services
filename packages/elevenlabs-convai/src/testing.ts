@@ -52,6 +52,21 @@ export interface ProbeMemoryLoopOptions {
   fetchImpl?: typeof fetch;
   /** Unique-ish run id for the sentinel (default from the clock). Pass to avoid clock use. */
   runId?: string;
+  /**
+   * Also assert CONTINUITY: that a NEW conversation sees the previous one.
+   *
+   * This is the check that catches the failure a user actually notices — reconnecting and being
+   * greeted with "this is our first chat here" while the memory rows sit in the database. Every
+   * other check here can pass while this is broken, because save→recall within one session says
+   * nothing about what happens on the next connect.
+   *
+   * Default TRUE. Set false only if the consumer genuinely does not mount a start route; the check
+   * fails loudly rather than skipping quietly, because a silently-skipped continuity check is how
+   * this bug shipped in the first place.
+   */
+  expectContinuity?: boolean;
+  /** The connect route, relative to baseUrl. Default 'start_conversation'. */
+  startRoute?: string;
 }
 
 /**
@@ -66,6 +81,8 @@ export async function probeMemoryLoop(opts: ProbeMemoryLoopOptions): Promise<Mem
     supabase,
     memoryTable = 'convai_memory',
     fetchImpl = fetch,
+    expectContinuity = true,
+    startRoute = 'start_conversation',
     runId = `probe_${Date.now()}`,
   } = opts;
 
@@ -111,6 +128,36 @@ export async function probeMemoryLoop(opts: ProbeMemoryLoopOptions): Promise<Mem
     const foreignUid = `${uid}-probe-nonexistent`;
     const foreign = await post('recall_memory', `?uid=${encodeURIComponent(foreignUid)}`, { query: sentinel }, toolSecret);
     check('recall under a different uid does not leak the fact', !JSON.stringify(foreign.json ?? {}).includes(sentinel), `found=${foreign.json?.found}`);
+
+    // 5. CONTINUITY — the check that catches what a user actually notices.
+    //
+    // Every check above can pass while this fails: save→recall inside one session says nothing
+    // about the NEXT connect. The symptom is the agent opening with "this is our first chat here"
+    // while the memory rows sit right there in the database. Assert that a fresh conversation
+    // reports prior history and can surface the fact saved before it.
+    if (expectContinuity) {
+      const start = await post(
+        startRoute,
+        `?uid=${encodeURIComponent(uid)}`,
+        { elevenlabs_conversation_id: `${sentinel}-conv2` },
+        toolSecret,
+      );
+      const payload = JSON.stringify(start.json ?? {});
+      // Consumers name this differently (has_history / hasHistory / returning); accept any truthy
+      // signal, and also accept the prior fact appearing in the injected context.
+      const signalsHistory =
+        start.json?.has_history === true ||
+        start.json?.hasHistory === true ||
+        start.json?.returning === true ||
+        payload.includes(sentinel);
+      check(
+        'a NEW conversation sees the previous one (no "first chat here")',
+        start.status === 200 && signalsHistory,
+        start.status === 200
+          ? `no history signal in ${startRoute} response`
+          : `status ${start.status} from ${startRoute} — is the route mounted?`,
+      );
+    }
   } catch (err) {
     check('probe completed without throwing', false, err instanceof Error ? err.message : String(err));
   } finally {

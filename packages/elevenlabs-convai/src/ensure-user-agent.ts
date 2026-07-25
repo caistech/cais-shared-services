@@ -102,8 +102,23 @@ export async function ensureUserAgent(
     return { agentId: existingAgentId, created: false };
   }
 
+  // THE AGENT NAME MUST BE UNIQUE PER USER.
+  //
+  // provisionVoiceAgent is idempotent BY NAME (findAgentsByName). If every user
+  // is provisioned under the same constant name — the obvious thing for a
+  // consumer to pass — then user #2 gets handed user #1's agent, and the
+  // binding insert then fails on the unique elevenlabs_agent_id. Observed in
+  // BucketLyst production: the second buyer's dashboard logged "duplicate key
+  // value violates unique constraint convai_agents_elevenlabs_agent_id_key"
+  // and silently fell back to no voice agent at all.
+  //
+  // Scoping the name here rather than documenting it means a consumer cannot
+  // get this wrong.
+  const perUserAgentName = `${agent.config.agentName} · ${userId.slice(0, 8)}`;
+
   const result: ProvisionResult = await provisionVoiceAgent(apiKey, {
     ...agent,
+    config: { ...agent.config, agentName: perUserAgentName },
     baseUrl,
     tools,
   });
