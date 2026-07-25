@@ -18,8 +18,11 @@
 import {
   complianceFooterHtml,
   complianceFooterText,
+  listUnsubscribeHeaders,
+  normaliseEmail,
   type ConsentBasis,
   type SenderIdentity,
+  type SuppressionStore,
 } from '@caistech/email-compliance'
 
 /**
@@ -62,6 +65,8 @@ export interface ComplianceOptions {
 
 export interface SendResult {
   id: string | null
+  /** True when the send was skipped because the recipient is suppressed. `id` is null. */
+  suppressed?: boolean
 }
 
 export interface EmailSender {
@@ -83,6 +88,15 @@ export interface CreateEmailSenderOptions {
    * DISTRIBUTOR's identity + ABN here, never a CAS one — "whose brand travels" is the gate.
    */
   sender?: SenderIdentity
+  /**
+   * The opt-out list. When provided, every COMMERCIAL send checks it first and is skipped if the
+   * recipient has unsubscribed.
+   *
+   * Wire this. An unsubscribe link that renders but isn't enforced is a documented promise you are
+   * visibly not keeping — worse than no link at all. Transactional mail is exempt by design: a
+   * receipt or a password reset is not something you opt out of.
+   */
+  suppressions?: SuppressionStore
   /** Injectable for tests. Defaults to global fetch. */
   fetchImpl?: typeof fetch
 }
@@ -124,6 +138,24 @@ export function createEmailSender(options: CreateEmailSenderOptions = {}): Email
   const doFetch = options.fetchImpl ?? fetch
 
   async function send(params: SendEmailParams): Promise<SendResult> {
+    const recipients = Array.isArray(params.to) ? params.to : [params.to]
+
+    // Commercial mail to someone who opted out must not go. Transactional is exempt — you don't
+    // unsubscribe from a receipt. Checked BEFORE anything else so a suppressed address never even
+    // reaches the provider.
+    const isCommercial = Boolean(params.compliance) && !params.compliance?.transactional
+    if (isCommercial && options.suppressions) {
+      const allowed: string[] = []
+      for (const recipient of recipients) {
+        // Throws on a store failure — see SuppressionStore: not being able to tell whether someone
+        // opted out means you must not send, not that it's probably fine.
+        if (!(await options.suppressions.isSuppressed(recipient))) allowed.push(recipient)
+      }
+      if (allowed.length === 0) return { id: null, suppressed: true }
+      recipients.length = 0
+      recipients.push(...allowed)
+    }
+
     let html = params.html
     let text = params.text ?? htmlToText(params.html)
 
@@ -146,11 +178,16 @@ export function createEmailSender(options: CreateEmailSenderOptions = {}): Email
       },
       body: JSON.stringify({
         from: params.from ?? defaultFrom,
-        to: Array.isArray(params.to) ? params.to : [params.to],
+        to: recipients,
         subject: params.subject,
         html,
         text,
         ...(params.replyTo ? { reply_to: params.replyTo } : {}),
+        // Gmail and Outlook surface a native unsubscribe control from these, and increasingly
+        // penalise bulk senders that omit them — deliverability as much as compliance.
+        ...(params.compliance?.unsubscribeUrl
+          ? { headers: listUnsubscribeHeaders(params.compliance.unsubscribeUrl) }
+          : {}),
       }),
     })
 

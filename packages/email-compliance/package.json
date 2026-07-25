@@ -1,19 +1,22 @@
 {
   "name": "@caistech/email-compliance",
-  "version": "0.2.0",
-  "description": "Australian Spam Act 2003 email compliance — brand-configurable sender identity, consent-basis labelling, and a prominent unsubscribe footer (HTML + text), plus guards that block non-compliant commercial sends and email outreach to non-AU jurisdictions until their compliance is configured. Consume in every repo that sends email.",
+  "version": "0.3.0",
+  "description": "Australian Spam Act 2003 email compliance — sender identity + consent-basis footer, assertCompliant/assertJurisdictionAllowed guards, AND the runtime opt-out layer: signed unsubscribe links, a framework-agnostic unsubscribe route, List-Unsubscribe headers, and a durable suppression store the send path must consult.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "lint": "tsc --noEmit",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "test": "vitest run"
   },
   "peerDependencies": {
     "typescript": ">=5.0.0"
   },
   "files": [
-    "dist/"
+    "dist/",
+    "migration.sql",
+    "README.md"
   ],
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
@@ -24,5 +27,8 @@
     "directory": "packages/email-compliance"
   },
   "license": "PRIVATE",
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "vitest": "^1.6.0"
+  }
 }

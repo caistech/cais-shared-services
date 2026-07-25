@@ -1,6 +1,6 @@
 {
   "name": "@caistech/email-send",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Resend transport for the portfolio — fulfils @caistech/nudge-core's EmailTransport interface and composes @caistech/email-compliance's Spam Act footer. Zero deps (native fetch). Products keep their own templates.",
   "type": "module",
   "main": "dist/index.js",
@@ -16,7 +16,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@caistech/email-compliance": "^0.2.0"
+    "@caistech/email-compliance": "^0.3.0"
   },
   "peerDependencies": {
     "typescript": ">=5.0.0"

@@ -123,6 +123,16 @@ export interface AuthExtraField {
   autoComplete?: string;
   /** Custom control. When provided, overrides the default input for this field. */
   render?: (props: ExtraFieldRenderProps) => React.ReactNode;
+  /**
+   * A CONSTANT written straight to user_metadata, with no input rendered.
+   *
+   * For context the account needs but the user doesn't type — the version of the terms they
+   * accepted, a plan slug, a campaign id. Without this, a product recording "they agreed" cannot
+   * record WHAT they agreed to, which is the half that makes the record worth keeping.
+   *
+   * Ignored when `render` is set; a field with `value` is never displayed.
+   */
+  value?: string;
 }
 
 /**
@@ -985,12 +995,11 @@ function SignupPanel({
   >({});
   const setField = (name: string, v: string | boolean) =>
     setFieldValues((prev) => ({ ...prev, [name]: v }));
-  const leadingFields = (extraFields ?? []).filter(
-    (f) => f.type !== 'checkbox'
-  );
-  const checkboxFields = (extraFields ?? []).filter(
-    (f) => f.type === 'checkbox'
-  );
+  // Constant fields (`value` set) are metadata only — never rendered, and never able to block
+  // submission by looking "required but untouched".
+  const renderedFields = (extraFields ?? []).filter((f) => f.value === undefined);
+  const leadingFields = renderedFields.filter((f) => f.type !== 'checkbox');
+  const checkboxFields = renderedFields.filter((f) => f.type === 'checkbox');
   const [submitting, setSubmitting] = useState(false);
   const [magicSubmitting, setMagicSubmitting] = useState(false);
   const [magicSent, setMagicSent] = useState(false);
@@ -1024,6 +1033,12 @@ function SignupPanel({
       // Collect extra-field values into user_metadata (checkbox → "true"/"false").
       const metadata: Record<string, unknown> = {};
       for (const f of extraFields ?? []) {
+        // Constant fields carry context the user never types (e.g. which terms version they
+        // accepted) and are always written, since there is no input for them to have touched.
+        if (f.value !== undefined) {
+          metadata[f.name] = f.value;
+          continue;
+        }
         const v = fieldValues[f.name];
         if (v === undefined) continue;
         metadata[f.name] = typeof v === 'boolean' ? (v ? 'true' : 'false') : v;

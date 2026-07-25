@@ -124,6 +124,113 @@ describe('compliance footer', () => {
   })
 })
 
+describe('suppression enforcement', () => {
+  function store(suppressed: string[] = []) {
+    const set = new Set(suppressed.map((e) => e.toLowerCase()))
+    return {
+      set,
+      store: {
+        isSuppressed: vi.fn(async (email: string) => set.has(email.toLowerCase())),
+        suppress: vi.fn(async (email: string) => void set.add(email.toLowerCase())),
+      },
+    }
+  }
+
+  it('refuses to send COMMERCIAL mail to someone who unsubscribed', async () => {
+    // The whole point: a footer link that renders but isn't enforced is a documented promise
+    // you're visibly not keeping.
+    const fetchImpl = okFetch()
+    const { store: suppressions } = store(['gone@example.com'])
+    const sender = createEmailSender({ apiKey: 'rk_test', sender: SENDER, suppressions, fetchImpl: fetchImpl as never })
+
+    const result = await sender.send({
+      to: 'gone@example.com',
+      subject: 'News',
+      html: '<p>News</p>',
+      compliance: { unsubscribeUrl: 'https://kira.app/unsubscribe?t=x', reason: 'express' },
+    })
+
+    expect(result.suppressed).toBe(true)
+    expect(result.id).toBeNull()
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('still sends TRANSACTIONAL mail to a suppressed address', async () => {
+    // You do not unsubscribe from a receipt or a notice that your card is about to be charged.
+    const fetchImpl = okFetch()
+    const { store: suppressions } = store(['gone@example.com'])
+    const sender = createEmailSender({ apiKey: 'rk_test', sender: SENDER, suppressions, fetchImpl: fetchImpl as never })
+
+    const result = await sender.send({
+      to: 'gone@example.com',
+      subject: 'Your payment',
+      html: '<p>Friday</p>',
+      compliance: { transactional: true },
+    })
+
+    expect(result.suppressed).toBeUndefined()
+    expect(fetchImpl).toHaveBeenCalled()
+  })
+
+  it('drops only the suppressed recipients from a multi-address send', async () => {
+    const fetchImpl = okFetch()
+    const { store: suppressions } = store(['gone@example.com'])
+    const sender = createEmailSender({ apiKey: 'rk_test', sender: SENDER, suppressions, fetchImpl: fetchImpl as never })
+
+    await sender.send({
+      to: ['keep@example.com', 'gone@example.com'],
+      subject: 'News',
+      html: '<p>News</p>',
+      compliance: { unsubscribeUrl: 'https://kira.app/u', reason: 'express' },
+    })
+
+    expect(JSON.parse(String(fetchImpl.mock.calls[0][1]!.body)).to).toEqual(['keep@example.com'])
+  })
+
+  it('propagates a store failure rather than mailing anyway', async () => {
+    // Not being able to tell whether someone opted out means you must NOT send — treating an
+    // outage as "probably fine" is how a breach happens quietly.
+    const fetchImpl = okFetch()
+    const sender = createEmailSender({
+      apiKey: 'rk_test',
+      sender: SENDER,
+      suppressions: {
+        isSuppressed: async () => {
+          throw new Error('suppression lookup failed: connection reset')
+        },
+        suppress: async () => {},
+      },
+      fetchImpl: fetchImpl as never,
+    })
+
+    await expect(
+      sender.send({
+        to: 'someone@example.com',
+        subject: 'News',
+        html: '<p>News</p>',
+        compliance: { unsubscribeUrl: 'https://kira.app/u', reason: 'express' },
+      }),
+    ).rejects.toThrow(/suppression lookup failed/)
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('attaches List-Unsubscribe headers when an unsubscribe URL is present', async () => {
+    const fetchImpl = okFetch()
+    const sender = createEmailSender({ apiKey: 'rk_test', sender: SENDER, fetchImpl: fetchImpl as never })
+
+    await sender.send({
+      to: 'owner@example.com',
+      subject: 'News',
+      html: '<p>News</p>',
+      compliance: { unsubscribeUrl: 'https://kira.app/unsubscribe?t=abc', reason: 'express' },
+    })
+
+    const headers = JSON.parse(String(fetchImpl.mock.calls[0][1]!.body)).headers
+    expect(headers['List-Unsubscribe']).toBe('<https://kira.app/unsubscribe?t=abc>')
+    expect(headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click')
+  })
+})
+
 describe('nudge-core transport', () => {
   it('exposes an EmailTransport-shaped adapter that resolves void', async () => {
     const fetchImpl = okFetch()
