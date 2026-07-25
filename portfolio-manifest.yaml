@@ -81,6 +81,31 @@ shared:
   STRIPE_SECRET_KEY: { ref: "$secret:stripe_secret_key", targets: ["production", "preview"] }
   STRIPE_WEBHOOK_SECRET: { ref: "$secret:stripe_webhook_secret", targets: ["production", "preview"] }
 
+  # ─────────────────────────────────────────────────────────────────────────
+  # CANONICAL SENDER IDENTITY (Australian Spam Act 2003, pillar 2)
+  #
+  # The legal entity behind every email the PORTFOLIO sends. Consumed by
+  # @caistech/email-compliance (senderFromEnv → the identification footer) and
+  # pushed to every project by @caistech/portfolio-env-sync.
+  #
+  # NOT secrets — these are printed at the bottom of emails on purpose, so they
+  # are literal values here rather than $secret refs. Still production+preview
+  # only, per the Vercel env rule.
+  #
+  # ⚠️ WHITE-LABEL GATE: a distributor / white-label product must send under the
+  # DISTRIBUTOR's name and ABN, NOT these. Override per-send with
+  # `compliance.sender` (see @caistech/email-send) rather than inheriting these.
+  # This is the "whose brand travels" rule — getting it wrong puts our ABN on
+  # someone else's marketing.
+  #
+  # Locked 2026-07-26 by the operator. ACN 672 395 685; the ABN embeds it.
+  # ─────────────────────────────────────────────────────────────────────────
+  EMAIL_SENDER_NAME: { value: "Global Buildtech Australia Pty Ltd", targets: ["production", "preview"] }
+  EMAIL_SENDER_EMAIL: { value: "dennis@corporateaisolutions.com", targets: ["production", "preview"] }
+  EMAIL_SENDER_ABN: { value: "54 672 395 685", targets: ["production", "preview"] }
+  EMAIL_SENDER_POSTAL: { value: "76-84 Brunswick Street, Fortitude Valley QLD 4006", targets: ["production", "preview"] }
+  EMAIL_SENDER_PHONE: { value: "+61402612471", targets: ["production", "preview"] }
+
   # Standard accounts — created in every product's Supabase project by
   # scripts/provision-qa-accounts.mjs. See PRODUCT_STANDARDS.md §9.5.
   # Standard set (2026-06-08): the two human operators + a dedicated admin-AGENT
