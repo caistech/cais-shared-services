@@ -30,7 +30,7 @@
 >
 > **Install:** registry is GitHub Packages (`@caistech:registry=https://npm.pkg.github.com`, token
 > `NODE_AUTH_TOKEN`/`GITHUB_PACKAGES_TOKEN`). `npm install @caistech/<name>`. Consumers import the
-> compiled `dist/`, never source. **Last updated:** 2026-07-19 (50 packages).
+> compiled `dist/`, never source. **Last updated:** 2026-07-25 (51 packages).
 
 ---
 
@@ -90,6 +90,12 @@
 | `@caistech/abn-lookup` | ABN validation, formatting, ABR lookup. Use for any AU business field. |
 | `@caistech/mapbox` | Mapbox Geocoding v5 — forward/reverse, coordinate parsing, static maps (incl. satellite). AU-biased. Use for any address field. |
 | `@caistech/db-schema` | Shared Supabase schema fragments (multi-tenancy, agents, audit, consent, storefront). ⚠️ not-yet-publishable (no migrations dir yet). |
+
+## Billing & monetisation
+| Package | Capability |
+|---|---|
+| `@caistech/subscription-billing` | **Stripe subscription lifecycle** — the mechanics every product repeats, extracted so the PRICE and the TABLE stay product-local. `createSubscriptionCheckoutSession` (fixed `priceId` **or** dynamic `price_data` for server-computed pricing; `trialDays`; **`cardAtSignup` defaults TRUE** — with a trial + `if_required` Stripe creates the subscription with NO card and the first charge silently fails 30 days later) + `createBillingPortalSession`. `handleSubscriptionWebhook` = verify → **claim on `event.id`** → **out-of-order guard on `event.created`** vs the row's `last_stripe_event_at` → normalize → apply, returning a named `outcome` (`applied`/`duplicate`/`stale`/`subscriber_missing`/`ignored_type`/…) so "why didn't the subscription update?" is a one-line log answer. Handles checkout-completed (**retrieves the subscription so a trial records as `trialing`, not a flat `active`**), subscription created/updated/deleted, and invoice payment failed/succeeded; tolerates both pre- and post-2025-03 API shapes (`current_period_end` on the item, invoice→subscription under `parent.subscription_details`) so consumers needn't align SDK majors. **One deliberate departure from `api-key-auth`'s model: a failed apply RELEASES the claim** before returning 500 — otherwise Stripe's retry is answered "duplicate" and one transient DB error permanently drops the event. Products converge by CONFIG, not a second handler: `createSupabaseSubscriptionAdapter` is a column map + `extraColumns` projection (Kira `users.subscription_status` and LaunchReady `profiles.plan`/`stripe_subscription_status` are the same call with different maps); implement `SubscriptionAdapter` directly for anything the map can't express. Normalizes Stripe's `canceled` → the portfolio's **`cancelled`**. Ships `migration.sql` (`stripe_webhook_events`, RLS-on service-role-only) + 28 tests. **Built because the two pre-existing forks (Kira, LaunchReady) were BOTH non-idempotent and ordering-unsafe** — one redelivery from double-applying, one out-of-order event from resurrecting cancelled state. **v0.1.0.** |
+| `@caistech/beta-gate` | Trial clock + usage caps — see *Trust, security & compliance* above. Pairs with `subscription-billing`: beta-gate bounds what a *free* month may consume, subscription-billing runs the *paid* lifecycle. |
 
 ## Domain SDKs
 | Package | Capability |

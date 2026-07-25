@@ -1,0 +1,42 @@
+{
+  "name": "@caistech/subscription-billing",
+  "version": "0.1.0",
+  "description": "Stripe subscription lifecycle for the portfolio: a checkout-session builder (fixed price OR dynamic price_data, trial + card-on-file) and an idempotent, out-of-order-safe webhook reducer that writes normalized subscription state through a caller-supplied table adapter. Product keeps its own pricing and its own table shape.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "migration.sql",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "@supabase/supabase-js": ">=2.0.0",
+    "stripe": ">=17.0.0",
+    "typescript": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@supabase/supabase-js": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/subscription-billing"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "stripe": "^17.7.0",
+    "vitest": "^1.6.0"
+  }
+}
