@@ -65,3 +65,6 @@ export { runCommitmentPanelAudit } from './audit/commitment-panel.js'
 export { runVoiceAgentAudit } from './audit/voice-agent.js'
 export { formatAuditResult } from './audit/shared.js'
 export type { AuditResult, AuditFinding } from './audit/shared.js'
+
+export { runMemoryLoopGate, formatMemoryLoopResult } from './smoke/memory-loop.js'
+export type { MemoryLoopConfig, MemoryLoopGateResult } from './smoke/memory-loop.js'

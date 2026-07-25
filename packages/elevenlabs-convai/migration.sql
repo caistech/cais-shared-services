@@ -189,7 +189,13 @@ CREATE TABLE IF NOT EXISTS convai_memory (
 
   -- Owner
   user_id UUID NOT NULL,
-  agent_id UUID NOT NULL REFERENCES convai_agents(id) ON DELETE CASCADE,
+  -- NULLABLE, and deliberately so. `resolveToolIdentity` returns { userId, agentId? } and omits
+  -- agentId on purpose, so recall scopes to the USER and survives the agent being re-provisioned.
+  -- ElevenLabs never passes an agent id to a tool webhook either. This column was NOT NULL while
+  -- the package's own documented behaviour made it optional — the package contradicted itself, and
+  -- the result was that every memory write failed the constraint and the handler swallowed it
+  -- behind a 200. Green status, nothing stored, for as long as nobody looked in the table.
+  agent_id UUID REFERENCES convai_agents(id) ON DELETE CASCADE,
 
   -- Anonymous-session linkage (NULL for authed). CASCADE purges anon memory.
   -- Authed memory persists across sessions; anon memory is single-call only.
@@ -437,6 +443,26 @@ CREATE POLICY "Users see own memories" ON convai_memory
 ALTER TABLE convai_conversations ADD COLUMN IF NOT EXISTS anon_session_id UUID REFERENCES convai_anon_sessions(id) ON DELETE CASCADE;
 ALTER TABLE convai_conversations ADD COLUMN IF NOT EXISTS processed_at TIMESTAMPTZ;
 ALTER TABLE convai_memory       ADD COLUMN IF NOT EXISTS anon_session_id UUID REFERENCES convai_anon_sessions(id) ON DELETE CASCADE;
+
+-- convai_memory.agent_id: DROP NOT NULL.
+--
+-- THIS LINE IS THE FIX, not the CREATE TABLE change above. Fixing only the CREATE helps new
+-- installs; every database already on this schema — Kira prod, BucketLyst prod, any kira_* clone —
+-- keeps failing every memory write against the constraint and keeps swallowing it behind a 200.
+-- A fix that doesn't reach existing databases doesn't fix the bug that is actually running.
+--
+-- Idempotent: DROP NOT NULL on an already-nullable column is a no-op, so installs that patched
+-- this locally (BucketLyst migration 0014) are unaffected.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'convai_memory' AND column_name = 'agent_id' AND is_nullable = 'NO'
+  ) THEN
+    ALTER TABLE convai_memory ALTER COLUMN agent_id DROP NOT NULL;
+    RAISE NOTICE 'convai_memory.agent_id: dropped NOT NULL (memory writes were failing the constraint)';
+  END IF;
+END $$;
 
 -- message_index: backfill any NULLs with a per-conversation ordinal, then enforce
 -- NOT NULL so the dedup unique index is meaningful. Recomputing all rows keeps the

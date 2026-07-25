@@ -67,6 +67,15 @@ export interface ProbeMemoryLoopOptions {
   expectContinuity?: boolean;
   /** The connect route, relative to baseUrl. Default 'start_conversation'. */
   startRoute?: string;
+  /**
+   * The header the consumer's routes read the tool secret from. Default `x-convai-tool-secret`.
+   *
+   * `createConvaiWebhookRoutes` already lets a consumer name this header (CONVAI_TOOL_SECRET_HEADER),
+   * and several do — so hardcoding it here made the probe 401 against exactly the products that had
+   * bothered to guard their routes. The guard being unusable by hardened consumers is a large part
+   * of why it ran in zero repos.
+   */
+  toolSecretHeader?: string;
 }
 
 /**
@@ -83,6 +92,7 @@ export async function probeMemoryLoop(opts: ProbeMemoryLoopOptions): Promise<Mem
     fetchImpl = fetch,
     expectContinuity = true,
     startRoute = 'start_conversation',
+    toolSecretHeader = 'x-convai-tool-secret',
     runId = `probe_${Date.now()}`,
   } = opts;
 
@@ -93,7 +103,7 @@ export async function probeMemoryLoop(opts: ProbeMemoryLoopOptions): Promise<Mem
 
   const headers = (secret?: string): Record<string, string> => ({
     'Content-Type': 'application/json',
-    ...(secret ? { 'x-convai-tool-secret': secret } : {}),
+    ...(secret ? { [toolSecretHeader]: secret } : {}),
   });
 
   const post = async (route: string, query: string, body: unknown, secret?: string) => {
@@ -127,7 +137,15 @@ export async function probeMemoryLoop(opts: ProbeMemoryLoopOptions): Promise<Mem
     // 4. identity isolation — a different uid must NOT see this user's sentinel.
     const foreignUid = `${uid}-probe-nonexistent`;
     const foreign = await post('recall_memory', `?uid=${encodeURIComponent(foreignUid)}`, { query: sentinel }, toolSecret);
-    check('recall under a different uid does not leak the fact', !JSON.stringify(foreign.json ?? {}).includes(sentinel), `found=${foreign.json?.found}`);
+    // Inspect the RETURNED MEMORIES, not the whole envelope. Many routes echo the query back, and
+    // the query IS the sentinel — grepping the envelope makes a correctly-isolating product fail
+    // its own isolation check. A guard that cries wolf gets ignored, which is how we got here.
+    const foreignMemories = JSON.stringify(foreign.json?.memories ?? foreign.json?.results ?? []);
+    check(
+      'recall under a different uid does not leak the fact',
+      !foreignMemories.includes(sentinel),
+      `found=${foreign.json?.found ?? 0}`,
+    );
 
     // 5. CONTINUITY — the check that catches what a user actually notices.
     //
@@ -150,12 +168,15 @@ export async function probeMemoryLoop(opts: ProbeMemoryLoopOptions): Promise<Mem
         start.json?.hasHistory === true ||
         start.json?.returning === true ||
         payload.includes(sentinel);
+      const continuityOk = start.status === 200 && signalsHistory;
       check(
         'a NEW conversation sees the previous one (no "first chat here")',
-        start.status === 200 && signalsHistory,
-        start.status === 200
-          ? `no history signal in ${startRoute} response`
-          : `status ${start.status} from ${startRoute} — is the route mounted?`,
+        continuityOk,
+        continuityOk
+          ? undefined
+          : start.status === 200
+            ? `no history signal in ${startRoute} response`
+            : `status ${start.status} from ${startRoute} — is the route mounted?`,
       );
     }
   } catch (err) {

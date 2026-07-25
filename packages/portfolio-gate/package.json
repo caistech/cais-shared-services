@@ -1,7 +1,7 @@
 {
   "name": "@caistech/portfolio-gate",
-  "version": "0.5.0",
-  "description": "Portfolio Standard enforcement layer — errorResponse helper (R10), route smoke test (R13), auth smoke test (R1/R4), session smoke test (authenticated routes), static audits (R3/R7/R8/R9/R11/R15 + responsive-design), a LIVE RLS audit (R9 — queries the running DB so Drizzle-push/dashboard schemas and prod drift can't hide), and a `audit-all` master runner.",
+  "version": "0.6.1",
+  "description": "Portfolio Standard enforcement layer \u2014 errorResponse helper (R10), route smoke test (R13), auth smoke test (R1/R4), session smoke test (authenticated routes), static audits (R3/R7/R8/R9/R11/R15 + responsive-design), a LIVE RLS audit (R9 \u2014 queries the running DB so Drizzle-push/dashboard schemas and prod drift can't hide), and a `audit-all` master runner.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -42,7 +42,8 @@
     "portfolio-gate-audit-responsive": "dist/bin/audit-responsive.js",
     "portfolio-gate-audit-all": "dist/bin/audit-all.js",
     "portfolio-gate-audit-commitment-panel": "dist/bin/audit-commitment-panel.js",
-    "portfolio-gate-audit-voice-agent": "dist/bin/audit-voice-agent.js"
+    "portfolio-gate-audit-voice-agent": "dist/bin/audit-voice-agent.js",
+    "portfolio-gate-memory-loop": "dist/bin/memory-loop.js"
   },
   "scripts": {
     "build": "tsc",
@@ -62,13 +63,21 @@
   "peerDependencies": {
     "next": ">=14.0.0",
     "typescript": ">=5.0.0",
-    "playwright": ">=1.40.0"
+    "playwright": ">=1.40.0",
+    "@caistech/elevenlabs-convai": ">=0.7.5",
+    "@supabase/supabase-js": ">=2.0.0"
   },
   "peerDependenciesMeta": {
     "next": {
       "optional": false
     },
     "playwright": {
+      "optional": true
+    },
+    "@caistech/elevenlabs-convai": {
+      "optional": true
+    },
+    "@supabase/supabase-js": {
       "optional": true
     }
   },
