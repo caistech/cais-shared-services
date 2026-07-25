@@ -19,6 +19,6 @@
   },
   "include": ["src/**/*"],
   "exclude": [
-    "src/abn-lookup"
+    "src/abn-lookup/AbnLookupField.tsx"
   ]
 }
