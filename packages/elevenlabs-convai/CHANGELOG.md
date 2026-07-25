@@ -1,5 +1,26 @@
 # @caistech/elevenlabs-convai — Changelog
 
+## 0.7.0 — 2026-07-25
+
+The two 0.6.0 follow-ups: a reusable CI guard, and config that actually propagates.
+
+### Added
+- **`@caistech/elevenlabs-convai/testing` → `probeMemoryLoop()`** — a reusable CI guard for the
+  memory loop. Calls the DEPLOYED webhook routes exactly as ElevenLabs does (body = LLM-filled
+  params only; identity via the server-baked `?uid`) and asserts save→recall round-trips, auth is
+  enforced (401 on a wrong secret), and identity is isolated (a different uid can't see the fact).
+  A direct unit test hides the bug by supplying a conversation id; this can't. Needs only a base URL
+  + a test user id; writes one sentinel and cleans it up given a supabase client. Never throws
+  (a thrown call becomes a failed check). This is the guard that would have caught the whole
+  "memory never worked in a real call" saga on day one.
+
+### Fixed
+- **`ensureWorkspaceTools` now UPDATES an existing workspace tool's config** (PATCH on a name+url
+  match) instead of reusing it as-is. Previously a changed header (the tool secret), request-body
+  schema, or description silently never propagated, so re-provisioning appeared to do nothing and
+  consumers needed a manual patch script. Best-effort: a failed PATCH is non-fatal (the existing
+  tool is still referenced). Removes the 0.6.0 "known limitation."
+
 ## 0.6.0 — 2026-07-25
 
 Memory that works in a REAL voice call — server-baked identity + tool-webhook auth. This closes the

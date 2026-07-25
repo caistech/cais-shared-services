@@ -111,6 +111,20 @@ export async function ensureWorkspaceTools(
         e.tool_config?.api_schema?.url === cfg.api_schema.url
     );
     if (match?.id) {
+      // A workspace tool with this name+url already exists. UPDATE its config in place rather than
+      // reuse-as-is — otherwise a changed header (e.g. the tool secret), request-body schema, or
+      // description silently never propagates, and re-provisioning appears to do nothing. Best-effort:
+      // a failed PATCH is non-fatal (we still reference the existing tool).
+      const patchRes = await fetch(`${WORKSPACE_TOOLS_API}/${match.id}`, {
+        method: 'PATCH',
+        headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tool_config: cfg }),
+      });
+      if (!patchRes.ok) {
+        console.warn(
+          `[convai] workspace tool update failed for "${cfg.name}" (${match.id}): ${patchRes.status} — reusing existing config`
+        );
+      }
       ids.push(match.id);
       continue;
     }
