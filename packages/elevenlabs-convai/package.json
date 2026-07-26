@@ -1,6 +1,6 @@
 {
   "name": "@caistech/elevenlabs-convai",
-  "version": "0.7.6",
+  "version": "0.8.0",
   "description": "ElevenLabs Conversational AI — agent provisioning, webhook routes, persistent memory, anonymous sessions, and a React VoiceWidget",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -61,5 +61,8 @@
     "directory": "packages/elevenlabs-convai"
   },
   "license": "PRIVATE",
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@caistech/mnemo": "^0.1.0"
+  }
 }

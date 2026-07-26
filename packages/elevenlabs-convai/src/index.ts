@@ -122,3 +122,19 @@ export type { VoiceInitAnswers } from './voice-init.js';
 
 export { ensureUserAgent } from './ensure-user-agent.js';
 export type { EnsureUserAgentOptions, EnsureUserAgentResult } from './ensure-user-agent.js';
+
+// The semantic-memory leg — Mnemo, INSIDE the canonical loop rather than left to each product to
+// remember. See memory-semantic.ts for why that choice was made.
+export {
+  completeConversationMemory,
+} from './memory-pipeline.js';
+export type { ConversationMemoryParams, ConversationMemoryResult } from './memory-pipeline.js';
+
+export {
+  activeMemoryKeys,
+  dedupeUserMemory,
+  indexNewFacts,
+  recallSemanticFacts,
+  voiceMemoryScope,
+} from './memory-semantic.js';
+export type { SemanticMemoryOptions } from './memory-semantic.js';

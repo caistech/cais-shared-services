@@ -159,3 +159,103 @@ repo.**
 | `probeMemoryLoop` in CI | **zero repos.** BucketLyst has a manual `npm run probe:memory`. Your item 2 |
 | BucketLyst prod memory loop | **PASS** on all four 0.7.2 checks (continuity not yet re-probed against 0.7.3) |
 | npm auth gotcha | this repo's `.npmrc` maps `${GITHUB_PACKAGES_TOKEN}`, **not** `NODE_AUTH_TOKEN`. Wrong name → empty string → `401 unauthenticated`, which reads like a scope problem and isn't. Read the repo's `.npmrc`; the name differs between repos |
+
+---
+
+# ADDENDUM — 2026-07-27: a THIRD defect, and it is a live auth hole
+
+**Written from the BucketLyst session after tracing why `ELEVENLABS_WEBHOOK_SECRET` was unset.**
+This is a new item for your package work, and it is more serious than items 1 and 2.
+
+## The defect
+
+`src/routes.ts:267`:
+
+```ts
+if (postCallSecret) {
+  const signature = req.headers.get('elevenlabs-signature');
+  if (!verifyWebhookSignature(rawBody, signature, postCallSecret)) {
+    return json(401, { success: false, error: 'Invalid signature' });
+  }
+}
+```
+
+**This is fail-open.** With no secret configured, signature verification is not *failed* — it is
+*skipped*, and the request proceeds to `parsePostCallPayload` → `handlePostCallWebhook`. A missing
+env var silently turns authentication off while the route keeps answering 200/400 like a healthy
+endpoint.
+
+`VOICE_MEMORY_STANDARD` states the rule this breaks explicitly: *"every convai webhook verifies its
+HMAC … unverified → 401."* The package ships the opposite default.
+
+## It was live, and verified
+
+| product | unsigned POST to `/api/convai/webhooks/post-call` | |
+|---|---|---|
+| BucketLyst | **400 — Malformed post-call payload** | reached the parser: unauthenticated |
+| Singify | 401 | secret set, verification runs |
+| Kira | 401 | secret set, verification runs |
+
+Not portfolio-wide — BucketLyst was the outlier. But the *default* is wrong for everyone, and the
+next product to miss the capture step inherits the hole with no signal.
+
+**Impact.** `handlePostCallWebhook` binds by `elevenlabs_agent_id` and `conversation_id` taken from
+the REQUEST BODY. An agent id is not a credential — it is shipped to the browser. So an unverified
+payload can write conversation content and messages that the agent later recalls and speaks back as
+fact. Memory poisoning, not just junk rows.
+
+## Why the secret goes missing — the design that guarantees it
+
+From `bindWorkspaceWebhook`'s own comment: the secret is *"shown ONLY at creation (masked on every
+later GET) … it is undefined when an existing webhook is reused (the caller must already hold it)."*
+
+So the package hands a one-time, unrecoverable credential back through a return value and trusts
+every consumer, forever, to notice and store it. BucketLyst's `lib/guide-agent.ts` did:
+
+```ts
+const { agentId } = await ensureUserAgent({ … });   // webhookSecret dropped, silently
+```
+
+That is not a consumer bug so much as an API shape that invites exactly this. The obvious way to
+call it is the wrong way, and nothing anywhere says so — the same shape as the `agent_id NOT NULL`
+defect, where the obvious call swallowed writes behind a 200.
+
+**This is now the third instance of one disease: the package's failures are green.** A silent 200
+on a failed insert, a skipped signature check, and (item 1) a constraint the package's own code
+contradicts. All three look healthy from outside.
+
+## What I'd change in the package
+
+1. **Fail closed.** No `postCallSecret` → 401, always. If a consumer genuinely wants an unverified
+   endpoint, make it opt in by name (`allowUnsignedPostCall: true`) so it appears in a diff and in
+   review. Better still, make `postCallSecret` required in the type when a `postCall` route is
+   requested, so it fails at compile time rather than in production.
+2. **Stop returning the secret as advice.** Persist it (a service-role table alongside
+   `convai_agents`), or have `ensureUserAgent` throw when it mints a secret the caller has not
+   provided a sink for. A credential that survives only if every future consumer remembers a
+   convention is a credential that will be lost.
+3. **The reuse-by-URL check races.** BucketLyst had **two** enabled workspace webhooks for the
+   identical URL, each with its own secret — two concurrent first-loads both missed the list check
+   and both created. Whichever an agent binds to decides which secret is correct, and there is no
+   way to tell from outside. Dedupe deterministically, or create-then-reconcile.
+4. **`probeMemoryLoop` should assert post-call auth**: an unsigned POST must return 401. This is the
+   same argument that justified the continuity check — every other check can pass while this is
+   broken, and it is the one with a security consequence. It is also the cheapest possible probe.
+5. **Rotation trap, if you ever ship a helper:** ElevenLabs refuses to delete a webhook an agent is
+   still bound to (`webhook_in_use`, HTTP 405). The order is forced — unbind every agent, delete,
+   create, re-bind. Discovered the hard way; encode it rather than rediscovering it.
+
+## Remediation already done in BucketLyst (reference implementation)
+
+`scripts/rebind-post-call-webhook.mjs` — unbinds all agents, deletes every webhook matching the
+URL, recreates through the package's own `bindWorkspaceWebhook`, re-binds, then writes the secret
+to `.env.local` **and** pushes it to Vercel as `sensitive`/production+preview in the same run. It
+never prints the secret, only a fingerprint. Written that way because a secret you have to copy by
+hand is a secret that gets dropped again — which is the entire cause of this incident.
+
+**It is a strong candidate for extraction as a package CLI** (`rotate-post-call-webhook`), since
+every consumer will need it the first time their secret is lost or rotated. The only product-local
+parts are the agent-name prefix and the Vercel project id.
+
+BucketLyst also now fails closed at its own route regardless of what the package does, and logs
+loudly if `ensureUserAgent` returns a secret that does not match the configured env.

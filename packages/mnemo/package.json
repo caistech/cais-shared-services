@@ -1,0 +1,32 @@
+{
+  "name": "@caistech/mnemo",
+  "version": "0.1.0",
+  "description": "The one Mnemo client — transport only (add/search, fail-soft, never throws). Each consumer owns its own SCOPE POLICY, because planning (shared+jurisdiction-keyed), bug-knowledge (portfolio-wide), voice memory (per-user) and SayFix (per-website) are deliberately different isolation models.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.0"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/mnemo"
+  }
+}
