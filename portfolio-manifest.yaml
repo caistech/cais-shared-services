@@ -472,6 +472,14 @@ projects:
       - PLATFORM_TRUST_SERVICE_KEY
       - GITHUB_PACKAGES_TOKEN
       - RESEND_API_KEY        # vault party-invite emails + auth SMTP
+      # Added 2026-07-26. The key WAS on this project's Vercel but was never declared here, so no
+      # propagation ever reached it — an unmanaged manual copy that quietly went stale. Production
+      # returned 401 authentication_error on every /api/assistant call, and because the route
+      # swallowed the error the guide had been dead for an unknown period with no trace. Declaring
+      # it puts the key under portfolio-env-sync so it rotates with everything else. (Same failure
+      # shape as this repo's .npmrc reading NODE_AUTH_TOKEN while rotation updated
+      # GITHUB_PACKAGES_TOKEN: the credential a build actually reads must be the one that rotates.)
+      - ANTHROPIC_API_KEY     # Morgan / the estate guide + will analysis
     envs:
       PLATFORM_TRUST_PROJECT_ID:
         ref: $secret:platform_trust_project_id_executorai
