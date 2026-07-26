@@ -13,7 +13,6 @@ The handlers cover:
   - scripts/set-caistech-token.sh     (REPOS array + VERCEL_SLUG map)
   - scripts/set-vercel-env-v2.sh      (SLUGS string)
   - scripts/set-vercel-env-only.sh    (SLUGS array)
-  - scripts/finalize-consumers.sh     (ENTRIES array)
   - scripts/redeploy-vercel.sh        (SLUGS string)
 """
 
@@ -213,14 +212,16 @@ def main() -> int:
     # no longer needs to register it anywhere for substrate updates to reach it; scaffolding the
     # dependabot config (already in cais-build-template-v2) is what makes it a consumer.
 
-    # 6. finalize-consumers.sh — ENTRIES array
-    insert_into_array(
-        path=os.path.join(s, "finalize-consumers.sh"),
-        array_open_pattern=r"^ENTRIES=\(",
-        new_line=f'  "{gh_repo}|."',
-        presence_pattern=rf'"{re.escape(gh_repo)}\|',
-        label="finalize-consumers.sh ENTRIES",
-    )
+    # 6. (removed 2026-07-26) finalize-consumers.sh — deleted along with this handler.
+    #
+    # The other half of the manual bump flow: regenerate each consumer's lockfile, commit, push.
+    # Beyond carrying the same stale repo list as bump-consumers.sh, its COMMIT MESSAGE was
+    # hardcoded to a single historical migration ("bump @caistech/* to compiled-dist versions",
+    # naming seven specific old versions), so any later run would have committed that text no matter
+    # what actually changed. It was a one-shot script that outlived its one shot.
+    #
+    # Dependabot opens PRs with the lockfile already regenerated and a message describing the real
+    # change, which is the whole of what this did.
 
     # 7. redeploy-vercel.sh — SLUGS string
     insert_into_string_var(
