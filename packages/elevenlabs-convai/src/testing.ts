@@ -76,6 +76,24 @@ export interface ProbeMemoryLoopOptions {
    * of why it ran in zero repos.
    */
   toolSecretHeader?: string;
+  /**
+   * Also assert POST-CALL AUTH: that an unsigned POST to the post-call route is REFUSED.
+   *
+   * The cheapest probe here and the only one with a direct security consequence. `handlePostCallWebhook`
+   * binds by `elevenlabs_agent_id`/`conversation_id` read from the request BODY, and an agent id is
+   * shipped to the browser — so a post-call route that accepts unsigned payloads lets anyone write
+   * conversation content the agent later recalls and speaks back as fact.
+   *
+   * Every other check in this probe can pass while this is broken, which is the same argument that
+   * justified the continuity check. Default TRUE, and it fails rather than skips: this defect reached
+   * production precisely because it was documented three times and asserted zero times.
+   *
+   * Anything other than 2xx counts as refused — products differ between 401 (bad signature) and 500
+   * (secret not configured), and both are correct refusals.
+   */
+  expectPostCallAuth?: boolean;
+  /** The post-call route, relative to baseUrl. Default 'post-call'. */
+  postCallRoute?: string;
 }
 
 /**
@@ -93,6 +111,8 @@ export async function probeMemoryLoop(opts: ProbeMemoryLoopOptions): Promise<Mem
     expectContinuity = true,
     startRoute = 'start_conversation',
     toolSecretHeader = 'x-convai-tool-secret',
+    expectPostCallAuth = true,
+    postCallRoute = 'post-call',
     runId = `probe_${Date.now()}`,
   } = opts;
 
@@ -132,6 +152,18 @@ export async function probeMemoryLoop(opts: ProbeMemoryLoopOptions): Promise<Mem
     if (toolSecret) {
       const noAuth = await post('recall_memory', `?uid=${encodeURIComponent(uid)}`, { query: sentinel }, 'deliberately-wrong-secret');
       check('recall_memory rejects a wrong tool secret (401)', noAuth.status === 401, `status ${noAuth.status}`);
+    }
+
+    // 3b. post-call auth — an UNSIGNED post-call POST must be refused. Cheapest check here, and the
+    //     only one whose failure is a live write path: an accepted unsigned payload writes memory the
+    //     agent later speaks back as fact. No `elevenlabs-signature` header is sent on purpose.
+    if (expectPostCallAuth) {
+      const unsigned = await post(postCallRoute, '', { type: 'post_call_transcription', data: { conversation_id: sentinel } });
+      check(
+        'post-call rejects an UNSIGNED payload',
+        unsigned.status >= 400,
+        `status ${unsigned.status} — 2xx means signature verification is skipped, not failed`
+      );
     }
 
     // 4. identity isolation — a different uid must NOT see this user's sentinel.

@@ -109,8 +109,34 @@ export interface CreateConvaiWebhookRoutesOptions {
    * call into a 401. Re-provision, verify, then set it.
    */
   requireToolSecret?: boolean;
-  /** When set, post-call requests must carry a valid `elevenlabs-signature` header. */
+  /**
+   * POST-CALL AUTH — **fails closed as of 0.10.0.**
+   *
+   * Post-call requests must carry a valid `elevenlabs-signature` header. With no secret resolved
+   * the route now returns 500 and processes nothing. Until 0.10.0 an unset secret **skipped**
+   * verification rather than failing it, against `VOICE_MEMORY_STANDARD`'s explicit
+   * *"unverified → 401"* — so the package shipped the opposite of the standard it documents.
+   *
+   * Why this is not a nice-to-have: `handlePostCallWebhook` binds by `elevenlabs_agent_id` and
+   * `conversation_id` taken from the request BODY, and an agent id is not a credential — it is
+   * shipped to the browser. An unverified payload can therefore write conversation content that
+   * the agent later recalls and speaks back as fact. Memory poisoning, not junk rows.
+   *
+   * **Resolution order:** this option → `process.env.ELEVENLABS_WEBHOOK_SECRET` → none.
+   * The env fallback exists because the secret is a one-time credential (ElevenLabs shows it only
+   * at webhook creation and masks it on every later GET), so the consumer that drops it has no way
+   * back. Reading the environment means a product is protected by CONFIGURATION rather than by
+   * every future caller remembering to thread an option through.
+   */
   postCallSecret?: string;
+  /**
+   * Serve the post-call route WITHOUT signature verification.
+   *
+   * Opt in by name, so an unauthenticated webhook appears in a diff and in review rather than
+   * arising from an unset variable nobody noticed. There is no good production reason to set this;
+   * it exists for local development against a webhook you have not provisioned yet.
+   */
+  allowUnsignedPostCall?: boolean;
 }
 
 type RouteHandler = (req: Request) => Promise<Response>;
@@ -161,12 +187,13 @@ function guard(fn: RouteHandler): RouteHandler {
 export function createConvaiWebhookRoutes(
   options: CreateConvaiWebhookRoutesOptions
 ): ConvaiWebhookRoutes {
-  const { supabase, tableNames, onConversationComplete, resolveSession, resolveToolIdentity, postCallSecret } = options;
+  const { supabase, tableNames, onConversationComplete, resolveSession, resolveToolIdentity } = options;
 
   // Resolve from the option, then the environment. The env fallback is what makes this reachable
   // without a code change in each product — the previous shape required every consumer to discover
   // the option and pass it, and only one ever did.
   const toolSecret = options.toolSecret ?? process.env.CONVAI_TOOL_SECRET ?? undefined;
+  const postCallSecret = options.postCallSecret ?? process.env.ELEVENLABS_WEBHOOK_SECRET ?? undefined;
 
   if (!toolSecret) {
     if (options.requireToolSecret) {
@@ -186,6 +213,18 @@ export function createConvaiWebhookRoutes(
         '`requireToolSecret: true`.'
     );
   }
+
+  // NOTE on where post-call auth is enforced: at the REQUEST, in the `postCall` handler below —
+  // not here at construction, and not as a throw.
+  //
+  // Two reasons. This factory returns all six routes whether or not a consumer mounts post-call, so
+  // a construction-time failure would penalise tool-only consumers who never expose the risky route
+  // — a false failure, and false failures are how guards get switched off. And unlike the tool-secret
+  // guard above, which is genuinely INERT (and therefore silent) when unset, an unset post-call
+  // secret makes the route answer 500 on every request: it is already loud at the point of risk.
+  //
+  // CI is what turns "loud when called" into "found before production": `probeMemoryLoop`'s
+  // post-call assertion (expectPostCallAuth, default on) fails when an unsigned POST is accepted.
 
   /** Tool-webhook auth gate. Inert only when no secret resolved — and that now warns loudly above. */
   const toolAuthOk = (req: Request): boolean =>
@@ -316,6 +355,12 @@ export function createConvaiWebhookRoutes(
       if (!verifyWebhookSignature(rawBody, signature, postCallSecret)) {
         return json(401, { success: false, error: 'Invalid signature' });
       }
+    } else if (!options.allowUnsignedPostCall) {
+      // Unreachable while the route set is built through createConvaiWebhookRoutes, which throws
+      // for exactly this case. Kept so that the request path itself refuses rather than relying on
+      // the constructor having been the only way in — the failure this guards against was, twice,
+      // a check that was present but not reached.
+      return json(500, { success: false, error: 'Post-call webhook secret not configured' });
     }
 
     const payload = parsePostCallPayload(rawBody);

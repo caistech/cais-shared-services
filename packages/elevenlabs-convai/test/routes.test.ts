@@ -13,6 +13,10 @@ function makeRoutes(over: Partial<Parameters<typeof createConvaiWebhookRoutes>[0
   return createConvaiWebhookRoutes({
     supabase: client,
     resolveSession: () => ({ userId: 'u1' }),
+    // These cases exercise the tool routes, not post-call auth. Since 0.10.0 construction refuses
+    // an unverified post-call route, so opt out explicitly here rather than weakening the default —
+    // a test suite that needs the guard relaxed must say so, in the same way a product does.
+    allowUnsignedPostCall: true,
     ...over,
   });
 }

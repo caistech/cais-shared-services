@@ -1,5 +1,54 @@
 # @caistech/elevenlabs-convai — Changelog
 
+## 0.10.0 — 2026-07-26
+
+The post-call webhook fails closed. **This is a behaviour change — read the rollout note.**
+
+### Fixed — a live auth hole, documented three times and asserted zero times
+`routes.ts` guarded verification with `if (postCallSecret)`, so an unset secret **skipped** the
+signature check instead of failing it — the exact opposite of `VOICE_MEMORY_STANDARD`'s
+*"unverified → 401"*, in the package that documents the standard.
+
+It matters because `handlePostCallWebhook` binds by `elevenlabs_agent_id` and `conversation_id`
+taken from the request **body**, and an agent id is not a credential — it is shipped to the browser.
+An unverified payload could therefore write conversation content the agent later recalls and speaks
+back as fact. **Memory poisoning, not junk rows.**
+
+Verified live before the fix: BucketLyst answered an unsigned POST with **400** (reached the
+parser — unauthenticated); Singify and Kira returned 401 because their secrets happened to be set.
+The defect was the *default*, and the next product to miss the one-time capture step inherited it
+silently.
+
+### Added
+- **`postCallSecret` falls back to `process.env.ELEVENLABS_WEBHOOK_SECRET`.** Order: option → env →
+  none. The secret is a one-time credential — ElevenLabs shows it only at webhook creation and masks
+  it on every later GET — so a consumer that drops it has no way back. Reading the environment means
+  a product is protected by CONFIGURATION rather than by every future caller threading an option
+  through.
+- **`allowUnsignedPostCall`** — serve unverified only behind a flag someone had to write down, so it
+  appears in a diff and in review instead of arising from an unset variable nobody noticed.
+- **`probeMemoryLoop({ expectPostCallAuth })`, default ON** — asserts an unsigned POST is refused.
+  The cheapest probe in the suite and the only one whose failure is a live write path. Every other
+  check can pass while this is broken, which is the same argument that justified the continuity
+  check in 0.7.3.
+
+### Where enforcement lives, and why not at construction
+The refusal is in the **request handler** (500), not a constructor throw. The factory returns all
+six routes whether or not a consumer mounts post-call, so throwing would fail tool-only consumers
+who never expose the risky route — and a guard that produces false failures is a guard someone
+switches off. Unlike the tool-secret guard, which is genuinely *inert* when unset, an unset
+post-call secret now makes the route answer 500 on every request: it is already loud at the point
+of risk. CI is what turns "loud when called" into "found before production".
+
+### ⚠️ Rollout
+There is **no automated dependency rollout** in this portfolio — no Dependabot, no Renovate, and
+`scripts/bump-consumers.sh` is a machine-local script with a stale hardcoded list. A fixed default
+reaches nobody until a consumer is bumped by hand. Audited at time of release: Kira, LingoPureAI,
+Corporate-AI-Solutions, pipeline and AIFTIS-Demo already fail closed in their own hand-rolled
+routes; BucketLyst, singify-platform and SayFix rely on the package default and pass a secret; Mova
+was the one fail-open consumer and was fixed directly. **Upgrading is therefore about the next
+product, not a live breach.**
+
 ## 0.9.0 — 2026-07-26
 
 Makes the tool-webhook guard reachable by CONFIGURATION instead of by a code change.
