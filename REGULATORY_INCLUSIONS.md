@@ -42,6 +42,26 @@ email sender identity, extended to every legal surface.
 
 ---
 
+### Scope — which repos this applies to
+
+**Only repos with a publicly exposed surface.** The obligation attaches to the product a person can
+reach, not to the code behind it.
+
+- **In scope:** every product with a public web surface, whether or not it currently has users. An
+  internal-only tool is in scope the moment it *could* be reached — and writing the inclusions while
+  it is still internal is the cheap moment, because the failure this standard exists to stop is a
+  placeholder that survives until access opens and nobody re-reads it. Declare
+  `exposure.status: "internal-only"` and what must happen `before_public`; do not defer the work.
+- **Out of scope:** `cais-shared-services` and anything else with no public surface. It is a private
+  substrate — no users, no collection, nothing to disclose. Consent and privacy obligations live in
+  the **consuming product**, which is where the person actually is. A package that *processes*
+  personal data on a product's behalf (`email-compliance`, `elevenlabs-convai`) shapes what that
+  product must say, but the saying is the product's job.
+
+Practical consequence: a shared package must never hardcode an operator identity, because it cannot
+know whose it is. That is the same reason `senderFromEnv()` reads the identity from configuration
+rather than embedding ours.
+
 ## 1. The inclusion set
 
 Six inclusions. "Applies when" is Q1; "default" is what a repo gets for free; "customise trigger" is
@@ -181,9 +201,9 @@ writing rather than fixing three times:
 
 | Product | State |
 |---|---|
-| **Kira** | Release-blocker ❌1 in its own `docs/NEXT_SESSION.md`: no ABN, no entity, no privacy policy anywhere on the site; footer "Privacy" → `#`. Its voice consent modal links a policy that 404s. Decision #1 in that same doc is I3. |
-| **BucketLyst** | Same gap, and Trigger A applies — inclusions must carry the founder's entity, not ours. The entity question is asked in `docs/EMAIL_TO_TRINH.md`; the business-name-vs-trust choice is hers. Voice is now live in production, so I3 is active. |
-| **DealFindrs** | `/privacy` and `/terms` dead under an agreement tickbox (naive-tester 2026-05-26). |
+| **Kira** | ✅ **Closed 2026-07-27** (`feat/regulatory-inclusions`). Was release-blocker ❌1: no ABN, no entity, no privacy policy, footer "Privacy" → `#`. Now `lib/privacy.ts` mirroring `lib/terms.ts`, entity + ABN + address in the footer, both links live, config declared. I3 reconciled in words — the copy no longer contradicts the vendor modal — though the modal text itself still cannot be overridden. |
+| **BucketLyst** | 🟡 **Written, one field pending.** Real policy shipped; Trigger A applies, so the inclusions carry the **founder's** entity, not ours. `operator.postal` and `confirmed_by` stay null until Trinh confirms — `email-compliance` throws without a postal address, which is correct behaviour and why it is not shipped half-done. The business-name-vs-trust choice is hers, and is asked in `docs/EMAIL_TO_TRINH.md` along with a request that Kim (lawyer) review all three surfaces before public launch. Voice is live, so I3 is active. |
+| **DealFindrs** | ✅ **Closed 2026-07-27** (`feat/regulatory-inclusions`). The earlier "no `/privacy` or `/terms`" reading was **wrong** — it came from checking `app/` in a repo that uses `src/app/`. Both existed with real content. The actual gap was narrower and sharper: the policy explained what we do with your data without ever naming the entity doing it. Now `§1 Who we are` + full identification and the OAIC pathway. Declared `internal-only` with `before_public` conditions. |
 | **StoryVerse** | The worked example of doing it properly, retroactively, under pressure — children's-data product, closed Privacy Act + COPPA + GDPR-K exposure by publishing five pages at once. |
 | **Portfolio-wide** | I3 has no default at all: `@caistech/elevenlabs-convai` never configures consent text, so every voice product shows the vendor modal. |
 
