@@ -228,6 +228,16 @@ jobs:
         if: github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          # The check's fallback is "VERCEL_PROJECT_ID (or .vercel/project.json)" — but `.vercel/`
+          # is gitignored by Vercel's OWN scaffold convention, so it is never present in a CI
+          # checkout. The fallback can only work on a developer's machine, which means this step
+          # could not pass in Actions anywhere: it failed asking for identifiers it had no way to
+          # obtain. Passing them from repo variables is the only path that exists in CI.
+          #
+          # These are identifiers, not credentials — `vars`, not `secrets`. Only VERCEL_TOKEN is
+          # secret.
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
           PUBLIC_ALIAS: ${{ vars.PUBLIC_ALIAS }}
           APP_MARKER: ${{ vars.APP_MARKER }}
         run: |
