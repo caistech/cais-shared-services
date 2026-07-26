@@ -285,15 +285,30 @@ projects:
     # scaffold time, which is also why it was absent from this file — nothing canonical could
     # reach it. Its env transferred intact (all `sensitive`, production+preview).
     vercel_project_id: "prj_IYykh42Wq5QrOKjP8VxgtKiiAAni"
+    # ⚠️ MUST NOT inherit the shared EMAIL_SENDER_* identity. Removed from this list and
+    # DELETED from the project 2026-07-26.
+    #
+    # `shared:` carries Corporate AI Solutions' legal identity (Global Buildtech Australia
+    # Pty Ltd, ABN 54 672 395 685). BucketLyst is FOUNDER-OWNED — its own
+    # regulatory.config.json declares `brand_owner: "founder"`, entity "Bucket Lyst",
+    # ABN 59 816 800 564, and states in as many words that the inclusions carry the
+    # founder's entity "and never Corporate AI Solutions'". Inheriting the shared block
+    # put OUR name, ABN and Brisbane postal address on the footer of every email HER
+    # product sends. That is exactly the failure REGULATORY_INCLUSIONS Trigger A and the
+    # PRODUCT_STANDARDS white-label gate exist to prevent.
+    #
+    # It also masked a second thing: the team believed email was inert because
+    # senderFromEnv() throws without a postal address. It was not inert — the inherited
+    # CAS postal satisfied the check, so mail could send under the wrong entity.
+    #
+    # With these absent, senderFromEnv() throws and every email path fails closed. That is
+    # the CORRECT state until Trinh confirms her trading entity, which name goes in the
+    # footer (registered business name vs the family trust), and a postal address — see
+    # bucketlyst docs/EMAIL_TO_TRINH.md. Then set them ON THE PROJECT with HER values,
+    # never by re-adding them here.
     inherit_shared:
       - GITHUB_PACKAGES_TOKEN
       - RESEND_API_KEY
-      - EMAIL_SENDER_NAME
-      - EMAIL_SENDER_EMAIL
-      - EMAIL_SENDER_ABN
-      - EMAIL_SENDER_POSTAL
-      # Present in `shared:` but NOT yet on the project — the next env-sync run pushes it.
-      - EMAIL_SENDER_PHONE
       - ABR_GUID
 
   - name: smart-board
