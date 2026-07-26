@@ -43,6 +43,36 @@ Every tester that surfaces findings — **`/naive-tester`, `/voice-auditor`, `/g
 - Visual design + DX consistency applies across both portals
 - QA testing validates both access paths work
 
+### Gate zero: is the thing you are about to test actually deployed?
+
+**Run `portfolio-gate-deploy-status` BEFORE any live tester.** Every finding below is worthless if
+production is not running the code you think it is — a passing test against a stale build is worse
+than no test, because it manufactures false confidence.
+
+```bash
+npx portfolio-gate-deploy-status --public-url <public prod URL> --app-marker "<Product>"
+```
+
+This is not hypothetical. ExecutorAI's production deploys failed **silently for a month**
+(2026-06-24 → 2026-07-26): every push errored at `npm install` with a 401 from GitHub Packages (an
+expired `NODE_AUTH_TOKEN` in Vercel), so production served a month-old build while `main` moved on.
+Nothing surfaced it. The undeployed commits included RLS column-exposure hardening and admin MFA
+enforcement — security work already described to a partner as remediated.
+
+Two traps it exists to close, both of which defeat a naive check:
+
+- **A stale production is healthy.** It serves 200s all day. Only comparing the **deployed commit
+  SHA** against your ref exposes it.
+- **A protection wall answers 200.** Vercel's SSO deployment-protection page returns HTTP 200 with
+  a login screen, so "the site responds" passes against a product nobody can reach. Point testers
+  at a **publicly reachable** production URL and assert an app-specific marker in the HTML.
+
+It **fails when unconfigured rather than skipping** — a check quietly doing nothing is
+indistinguishable from one that passed. A repo that genuinely does not deploy on Vercel opts out
+with a recorded reason (`--not-applicable "<reason>"`). Wired into the shared
+`templates/.github/workflows/gate.yml` on push/schedule, plus a daily cron so token expiry is
+caught without a push. *(Codified 2026-07-26; `@caistech/portfolio-gate` ≥0.8.0.)*
+
 ### Primary tester: `/naive-tester`
 
 Walks the product as a real human persona **and** cross-checks every UI-observable item in this checklist, closing with a **Standards Check** (✅ / ❌ / — per item). **Any ❌ is a release-blocking finding.**

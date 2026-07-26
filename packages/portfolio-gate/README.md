@@ -216,3 +216,35 @@ for the full rationale. The TL;DR:
 ## License
 
 PRIVATE — Corporate AI Solutions.
+
+## Deploy status — is production actually running your code? (v0.8.0)
+
+```bash
+portfolio-gate-deploy-status --public-url https://app.example.com --app-marker "Acme"
+portfolio-gate-deploy-status --wait          # on push: poll until the build settles
+portfolio-gate-deploy-status --not-applicable "static export, no Vercel project"
+```
+
+**Why it exists.** ExecutorAI's production deploys failed silently for a month: every push to
+`main` errored at `npm install` with a 401 from GitHub Packages (an expired `NODE_AUTH_TOKEN` in
+Vercel), so production kept serving a month-old build while `main` moved on. Nothing surfaced it.
+Among the undeployed commits were RLS column-exposure hardening and admin MFA enforcement —
+security work already described to a partner as remediated.
+
+**Three assertions, because the obvious ones are not enough:**
+
+1. the latest production deployment is `READY`, not `ERROR`;
+2. **its commit SHA matches the expected ref** — this is the one that catches a *stale* production,
+   which looks perfectly healthy from the outside;
+3. the public URL serves the **app**, not an access wall — Vercel's SSO deployment-protection page
+   answers **HTTP 200 with a login screen**, so reachability checks pass against it.
+
+**It fails when unconfigured; it does not skip.** Unlike the memory-loop gate — where "this repo
+has no voice agent" is a real, detectable non-applicability — every product deploys, so there is
+nothing to detect. A repo that genuinely does not deploy on Vercel opts out with a **recorded
+reason** (`--not-applicable "<reason>"`, printed, and a bare opt-out is rejected). A check that
+quietly does nothing is indistinguishable from one that passed.
+
+**Config** (CLI flag, else env, else `.vercel/project.json`): `VERCEL_TOKEN` (read scope),
+`VERCEL_PROJECT_ID` / `VERCEL_TEAM_ID`, `PUBLIC_ALIAS` (a **publicly reachable** production URL —
+not a protected alias), `APP_MARKER`, and the expected ref from `GITHUB_SHA` or `git rev-parse HEAD`.

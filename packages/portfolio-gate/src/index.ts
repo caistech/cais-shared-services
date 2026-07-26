@@ -71,3 +71,10 @@ export type { MemoryLoopConfig, MemoryLoopGateResult } from './smoke/memory-loop
 
 export { auditVoiceMemory, formatVoiceMemoryAudit } from './audit/voice-memory.js'
 export type { VoiceMemoryAuditResult } from './audit/voice-memory.js'
+
+export { runDeployStatusGate, formatDeployStatusResult } from './smoke/deploy-status.js'
+export type {
+  DeployStatusConfig,
+  DeployStatusCheck,
+  DeployStatusResult,
+} from './smoke/deploy-status.js'
