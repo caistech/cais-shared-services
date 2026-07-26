@@ -1,0 +1,48 @@
+{
+  "source": "REGULATORY_INCLUSIONS.md §4",
+  "ratified": false,
+  "all_confirmed": false,
+  "count": 3,
+  "note": "PROPOSAL — not yet in criteria.json. That file is generated from the signed-off workbook by extract_workbook.py and must never be hand-edited (THIN_MVP_RUBRIC §8), so these are filed here for ratification, following the promise-attributes-PROPOSAL.json convention. On approval, add the rows to the workbook and regenerate; do not merge this file in by hand. Codes continue the existing sequence (last ratified: 43).",
+  "criteria": [
+    {
+      "code": "44",
+      "check": "regulatory.config.json present; every inclusion declared default/customised/not-applicable; operator identity confirmed by a named person",
+      "source": "RegInclusions §3.1",
+      "method": "AUTO",
+      "relevance": "PRE",
+      "proposed_tier": "CONDITIONAL-HARD",
+      "confirmed": false,
+      "tier": null,
+      "weight": null,
+      "notes": "Silence is not acceptance. The declaration exists to force Trigger A (whose legal identity is behind this surface) to be answered explicitly rather than assumed to be ours — the assumption that puts CAS's ABN on a distributor's product. 'not-applicable' requires a reason, not a shrug.",
+      "applies_when": "collects-personal-information"
+    },
+    {
+      "code": "45",
+      "check": "Every declared inclusion URL resolves 200, is not a dead '#' anchor, and contains no REPLACE marker",
+      "source": "RegInclusions §3.2",
+      "method": "AUTO",
+      "relevance": "PRE",
+      "proposed_tier": "HARD",
+      "confirmed": false,
+      "tier": null,
+      "weight": null,
+      "notes": "The highest-value check in the set and purely mechanical, so a waiver could only ever be an excuse. Catches the real failure, which is not a MISSING policy but a PUBLISHED placeholder sitting under a tickbox that says 'I agree to the Privacy Policy'. Found in production on DealFindrs 2026-05-26. Vacuous (auto-passes) when #44 declares everything not-applicable, so it costs nothing where it does not apply.",
+      "applies_when": null
+    },
+    {
+      "code": "46",
+      "check": "Voice consent reconciled: product privacy copy does not contradict the vendor consent modal, and the policy that modal links to exists",
+      "source": "RegInclusions §1 I3",
+      "method": "NAIVE",
+      "relevance": "PRE",
+      "proposed_tier": "CONDITIONAL-HARD",
+      "confirmed": false,
+      "tier": null,
+      "weight": null,
+      "notes": "ElevenLabs shows its own modal before every call ('...sharing of my communications with third-party service providers'), and @caistech/elevenlabs-convai never configures consent text, so EVERY voice product in the portfolio currently shows the vendor default. The modal is not wrong — ElevenLabs is genuinely a third-party processor — so the failure is product copy that contradicts it, plus the linked policy 404ing. Live on Kira and BucketLyst.",
+      "applies_when": "voice"
+    }
+  ]
+}
