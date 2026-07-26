@@ -172,6 +172,23 @@ function findPasswordInput(html: string): boolean {
   return /<input[^>]*type=["']password["']/i.test(html)
 }
 
+/**
+ * Is this page CLIENT-RENDERED, so that a static HTML check cannot see its form at all?
+ *
+ * The canonical `@caistech/corporate-components` AuthForm renders on the client, so the served
+ * HTML for `/login` contains no `<input>` of any kind. Grepping it for a password field then
+ * reports "no password input" for a page that has one — a false FAIL against precisely the repos
+ * that adopted the canonical auth surface. Kira hit exactly this on upgrading from 0.3.0.
+ *
+ * The distinction that matters: NO inputs at all means "an SPA shell — cannot verify statically."
+ * Inputs present but none of type=password is a genuine failure and still fails.
+ *
+ * Degrade, don't fake: this reports the check as unverifiable rather than inventing a pass.
+ */
+function isClientRendered(html: string): boolean {
+  return !/<input/i.test(html)
+}
+
 async function runFunctionalTests(config: AuthSmokeConfig): Promise<{
   failures: AuthFunctionalFailure[]
   complianceIssues: AuthComplianceIssue[]
@@ -206,6 +223,16 @@ async function runFunctionalTests(config: AuthSmokeConfig): Promise<{
       status: signupResult.status,
       reason: signupResult.error ?? `server error ${signupResult.status}`,
     })
+  } else if (signupResult.data && isClientRendered(signupResult.data)) {
+    // Client-rendered: the served HTML has no form to inspect, so NONE of the DOM assertions
+    // below can be evaluated. Reporting them as failures would false-fail every repo on the
+    // canonical AuthForm. One honest 'unverifiable' beats four invented defects.
+    complianceIssues.push({
+      type: 'signup',
+      severity: 'minor',
+      message: 'signup page is client-rendered — password field, toggle and links not verifiable from static HTML',
+      fix: 'Verify with a browser pass (/naive-tester or /qa). Not a defect: the canonical AuthForm renders client-side.',
+    })
   } else if (signupResult.data) {
     // Compliance: Check password visibility toggle
     if (!hasPasswordToggle(signupResult.data)) {
@@ -219,7 +246,8 @@ async function runFunctionalTests(config: AuthSmokeConfig): Promise<{
 
     // Note: Forgot-password link is only required on login page, not signup
 
-    // Check password input exists
+    // Check password input exists. Skipped — with a stated reason — on a client-rendered page,
+    // where the served HTML contains no form to inspect.
     if (!findPasswordInput(signupResult.data)) {
       failures.push({
         leg: 'signup',
@@ -278,6 +306,14 @@ async function runFunctionalTests(config: AuthSmokeConfig): Promise<{
       status: loginResult.status,
       reason: loginResult.error ?? `server error ${loginResult.status}`,
     })
+  } else if (loginResult.data && isClientRendered(loginResult.data)) {
+    // See the signup leg — same reasoning.
+    complianceIssues.push({
+      type: 'login',
+      severity: 'minor',
+      message: 'login page is client-rendered — password field, toggle and links not verifiable from static HTML',
+      fix: 'Verify with a browser pass (/naive-tester or /qa). Not a defect: the canonical AuthForm renders client-side.',
+    })
   } else if (loginResult.data) {
     // Compliance: Check password visibility toggle
     if (!hasPasswordToggle(loginResult.data)) {
@@ -309,7 +345,8 @@ async function runFunctionalTests(config: AuthSmokeConfig): Promise<{
       })
     }
 
-    // Check password input exists
+    // Check password input exists — see the signup leg for why a client-rendered page is warned
+    // about rather than failed.
     if (!findPasswordInput(loginResult.data)) {
       failures.push({
         leg: 'login',
@@ -471,11 +508,20 @@ export async function runAuthSmoke(
     })),
   ]
 
-  // Fail if any critical compliance issues
+  // Severity has to actually mean something.
+  //
+  // `allFailures` folds in EVERY compliance issue, so `allFailures.length === 0` was false whenever
+  // any issue existed at all — which made a `minor` note fail the gate exactly as hard as a
+  // critical defect, and made the `!hasCriticalIssues` term below dead code. A checker that treats
+  // "I could not verify this" as identical to "this is broken" teaches people to ignore it.
+  //
+  // The verdict now rests on FUNCTIONAL failures (a leg that did not respond correctly) plus
+  // CRITICAL compliance issues. Major and minor issues are still reported in full — they just do
+  // not, on their own, block a deploy.
   const hasCriticalIssues = complianceIssues.some(i => i.severity === 'critical')
 
   return {
-    passed: allFailures.length === 0 && !hasCriticalIssues,
+    passed: failures.length === 0 && !hasCriticalIssues,
     total: testedFeatures.length + complianceIssues.length,
     failures: allFailures,
     complianceIssues,
