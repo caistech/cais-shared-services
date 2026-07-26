@@ -16,6 +16,8 @@
 //
 // Web Crypto (not node:crypto) so this stays usable on every runtime the rest of the package is.
 
+import type { SenderIdentity } from "./compliance.js";
+
 /** How the address was suppressed. `bounce`/`complaint` come from provider webhooks. */
 export type SuppressionReason = "unsubscribe" | "bounce" | "complaint" | "manual";
 
@@ -117,6 +119,29 @@ export async function unsubscribeUrlFor(
   return `${baseUrl.replace(/\/$/, "")}${path}?t=${encodeURIComponent(token)}`;
 }
 
+/**
+ * How the opt-out page presents itself.
+ *
+ * This is not decoration. An unsubscribe page is reached from an email, by someone who is already
+ * mildly annoyed, and it asks them to confirm an action — which is exactly the shape of a phishing
+ * page. A bare white card with no logo, no name and no way back reads as one. Field feedback,
+ * verbatim: *"my first thought is phishing and my second is I'll mark it as spam"* — which damages
+ * deliverability more than the unsubscribe itself does.
+ *
+ * So the page identifies itself the same way the email did: same brand, same legal entity, a
+ * contact address, and a link back to something real.
+ */
+export interface UnsubscribeBrand {
+  /** Absolute URL of a logo/avatar. Rendered ~40px. Omit if there isn't one. */
+  logoUrl?: string;
+  /** Where "back to <brand>" goes. Absolute. */
+  homeUrl?: string;
+  /** Accent for the button + links. Any CSS colour. Defaults to a neutral teal. */
+  accent?: string;
+  /** Shown as the human fallback ("not what you wanted? email us"). */
+  supportEmail?: string;
+}
+
 export interface UnsubscribeRouteOptions {
   /** HMAC secret. Same value used to mint the links (typically UNSUBSCRIBE_SECRET). */
   secret: string;
@@ -124,6 +149,15 @@ export interface UnsubscribeRouteOptions {
   store: SuppressionStore;
   /** Shown on the confirmation page. */
   brandName: string;
+  /** Visual identity, so the page doesn't read as a phishing form. See {@link UnsubscribeBrand}. */
+  brand?: UnsubscribeBrand;
+  /**
+   * The legal entity behind the send (Spam Act pillar 2). Rendered as the page footer.
+   *
+   * The same identity the email itself carries — pass `senderFromEnv()`. A recipient who wants to
+   * check who is actually emailing them should not have to go back to the email to find out.
+   */
+  sender?: SenderIdentity;
   /**
    * One-click mode. When true, a GET unsubscribes immediately instead of showing a confirm button.
    *
@@ -136,19 +170,71 @@ export interface UnsubscribeRouteOptions {
   onUnsubscribed?: (email: string) => Promise<void> | void;
 }
 
-function page(title: string, body: string, brandName: string): Response {
+/** Minimal HTML escape — every interpolated value below is attacker-influenced (the token) or
+ *  operator-supplied (brand/sender), and this page is rendered outside any framework's escaping. */
+function esc(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+interface PageChrome {
+  brandName: string;
+  brand?: UnsubscribeBrand;
+  sender?: SenderIdentity;
+}
+
+function page(title: string, body: string, chrome: PageChrome): Response {
+  const { brandName, brand = {}, sender } = chrome;
+  const accent = brand.accent ?? "#0f766e";
+
+  const logo = brand.logoUrl
+    ? `<img src="${esc(brand.logoUrl)}" alt="" width="40" height="40">`
+    : "";
+
+  // Identity block: who this page belongs to, above the fold, before we ask for a click.
+  const header = `<header class="brand">${logo}<span>${esc(brandName)}</span></header>`;
+
+  // The Spam Act identification the email carried, repeated here so it is checkable in place.
+  const identity = sender
+    ? `<p class="who"><strong>${esc(sender.name)}</strong>${sender.abn ? ` · ABN ${esc(sender.abn)}` : ""}` +
+      `${sender.postal ? `<br>${esc(sender.postal)}` : ""}` +
+      `<br><a href="mailto:${esc(sender.email)}">${esc(sender.email)}</a>` +
+      `${sender.phone ? ` · ${esc(sender.phone)}` : ""}</p>`
+    : "";
+
+  const support = brand.supportEmail
+    ? `<p class="who">Not what you wanted? Email <a href="mailto:${esc(brand.supportEmail)}">${esc(brand.supportEmail)}</a>.</p>`
+    : "";
+
+  const back = brand.homeUrl
+    ? `<p class="back"><a href="${esc(brand.homeUrl)}">← Back to ${esc(brandName)}</a></p>`
+    : "";
+
   return new Response(
     `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${title} · ${brandName}</title>
+<meta name="robots" content="noindex">
+<title>${esc(title)} · ${esc(brandName)}</title>
 <style>
+ :root{color-scheme:light}
  body{margin:0;font:16px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#f5f5f5;color:#333}
- main{max-width:34rem;margin:0 auto;padding:4rem 1.25rem}
- .card{background:#fff;border-radius:12px;padding:2rem}
- h1{font-size:1.5rem;margin:0 0 .75rem}
+ main{max-width:34rem;margin:0 auto;padding:3rem 1.25rem}
+ .brand{display:flex;align-items:center;gap:.65rem;margin:0 0 1.25rem;font-size:1.15rem;font-weight:700;color:#1c1917}
+ .brand img{border-radius:50%;object-fit:cover;display:block}
+ .card{background:#fff;border-radius:12px;padding:2rem;border:1px solid #e7e5e4}
+ h1{font-size:1.5rem;margin:0 0 .75rem;color:#1c1917}
  p{margin:0 0 1rem;color:#555}
- button{min-height:44px;padding:.75rem 1.5rem;font-size:1rem;font-weight:600;color:#fff;background:#0f766e;border:0;border-radius:8px;cursor:pointer}
-</style></head><body><main><div class="card">${body}</div></main></body></html>`,
+ a{color:${esc(accent)}}
+ button{min-height:44px;padding:.75rem 1.5rem;font-size:1rem;font-weight:600;color:#fff;background:${esc(accent)};border:0;border-radius:8px;cursor:pointer}
+ button:hover{filter:brightness(.94)}
+ footer{margin:1.5rem .25rem 0}
+ .who{font-size:.8125rem;line-height:1.55;color:#78716c;margin:0 0 .75rem}
+ .back a{display:inline-flex;align-items:center;min-height:44px;font-size:.875rem;font-weight:500}
+</style></head><body><main>${header}<div class="card">${body}</div>
+<footer>${support}${identity}${back}</footer></main></body></html>`,
     { status: 200, headers: { "content-type": "text/html; charset=utf-8" } },
   );
 }
@@ -164,7 +250,8 @@ function page(title: string, body: string, brandName: string): Response {
  * shown an error either way.
  */
 export function createUnsubscribeRoute(options: UnsubscribeRouteOptions) {
-  const { secret, store, brandName, oneClick = false, onUnsubscribed } = options;
+  const { secret, store, brandName, brand, sender, oneClick = false, onUnsubscribed } = options;
+  const chrome: PageChrome = { brandName, brand, sender };
 
   async function doUnsubscribe(email: string): Promise<void> {
     await store.suppress(email, "unsubscribe");
@@ -185,7 +272,7 @@ export function createUnsubscribeRoute(options: UnsubscribeRouteOptions) {
       `<h1>You're unsubscribed</h1><p>You won't receive further marketing emails from ${brandName}.</p>
        <p>You may still get essential messages about anything you're signed up to — a receipt, a
        password reset, or notice of a payment.</p>`,
-      brandName,
+      chrome,
     );
 
   return {
@@ -198,7 +285,7 @@ export function createUnsubscribeRoute(options: UnsubscribeRouteOptions) {
           "Unsubscribe",
           `<h1>That link isn't valid</h1><p>It may have been altered in transit. Reply to any
            message from ${brandName} and we'll take you off the list by hand.</p>`,
-          brandName,
+          chrome,
         );
       }
 
@@ -210,9 +297,9 @@ export function createUnsubscribeRoute(options: UnsubscribeRouteOptions) {
       return page(
         "Unsubscribe",
         `<h1>Unsubscribe</h1><p>Stop sending marketing emails to <strong>${email}</strong>?</p>
-         <form method="post"><input type="hidden" name="t" value="${token}">
+         <form method="post"><input type="hidden" name="t" value="${esc(token ?? "")}">
          <button type="submit">Yes, unsubscribe me</button></form>`,
-        brandName,
+        chrome,
       );
     },
 
@@ -229,7 +316,7 @@ export function createUnsubscribeRoute(options: UnsubscribeRouteOptions) {
       }
 
       const email = await verifyUnsubscribeToken(token, secret);
-      if (!email) return page("Unsubscribe", `<h1>That link isn't valid</h1>`, brandName);
+      if (!email) return page("Unsubscribe", `<h1>That link isn't valid</h1>`, chrome);
 
       await doUnsubscribe(email);
       return done();

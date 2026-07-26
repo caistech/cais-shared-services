@@ -164,6 +164,19 @@ interface SupabaseAuthLike {
     email: string,
     options?: { redirectTo?: string }
   ): Promise<{ data: unknown; error: { message: string } | null }>;
+  /**
+   * Re-send the signup confirmation.
+   *
+   * OPTIONAL on the duck-typed surface: older `@supabase/supabase-js` versions predate `resend`,
+   * and this package must not force a consumer to upgrade its SDK to keep building. The login
+   * surface feature-detects it and falls back to a magic link, which lands a session for an
+   * unconfirmed user just as well.
+   */
+  resend?(args: {
+    type: 'signup' | 'email_change';
+    email: string;
+    options?: { emailRedirectTo?: string };
+  }): Promise<{ data: unknown; error: { message: string } | null }>;
   updateUser(args: {
     password: string;
   }): Promise<{
@@ -547,17 +560,45 @@ function useSlowFlag(active: boolean, delayMs = 5000) {
   return slow;
 }
 
-function ErrorBox({ code }: { code: AuthErrorCode | null }) {
+function ErrorBox({
+  code,
+  action,
+}: {
+  code: AuthErrorCode | null;
+  /**
+   * A recovery the user can take from inside the error itself.
+   *
+   * An error that only describes a situation leaves the user to guess the way out, and the guess
+   * on a login screen is "sign up again" — which makes a duplicate account. Where there IS a next
+   * step, it belongs here, next to the sentence explaining why they need it.
+   */
+  action?: { label: string; onClick: () => void; busy?: boolean };
+}) {
   const t = useT();
   if (!code) return null;
   return (
-    <p
+    <div
       role="alert"
       className={`text-sm rounded-lg px-3 py-2 flex gap-2 items-start ${t.errorBox}`}
     >
       <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden />
-      <span>{resolveAuthErrorMessage(code)}</span>
-    </p>
+      <span>
+        {resolveAuthErrorMessage(code)}
+        {action && (
+          <>
+            {' '}
+            <button
+              type="button"
+              onClick={action.onClick}
+              disabled={action.busy}
+              className="underline font-medium disabled:opacity-60"
+            >
+              {action.busy ? 'Sending…' : action.label}
+            </button>
+          </>
+        )}
+      </span>
+    </div>
   );
 }
 
@@ -875,6 +916,39 @@ function LoginPanel({
     }
   }
 
+  /**
+   * Re-send the signup confirmation after a login blocked by `email_not_confirmed`.
+   *
+   * Without this the error is a dead end: "check your inbox for the confirmation link" is useless
+   * advice to the person whose complaint is that it never arrived, and their only remaining move is
+   * to sign up again — which makes a duplicate account, then confusion over which one holds their
+   * data. Telling someone to look harder at an empty inbox is not a recovery path.
+   *
+   * Falls back to a magic link where the installed SDK predates `auth.resend`. Both land a session
+   * for an unconfirmed address, so the user gets in either way rather than being penalised for the
+   * consumer's dependency version.
+   */
+  async function onResendConfirmation() {
+    if (!client || !email) return;
+    setErrorCode(null);
+    setMagicSubmitting(true);
+    try {
+      const emailRedirectTo = buildRedirectUrl(callbackPath, redirectTo);
+      const { error } = client.auth.resend
+        ? await client.auth.resend({ type: 'signup', email, options: { emailRedirectTo } })
+        : await client.auth.signInWithOtp({ email, options: { emailRedirectTo } });
+      if (error) {
+        setErrorCode(mapSupabaseAuthError(error));
+        return;
+      }
+      setMagicSent(true);
+    } catch (err) {
+      setErrorCode(mapSupabaseAuthError(err));
+    } finally {
+      setMagicSubmitting(false);
+    }
+  }
+
   async function onMagicLink() {
     if (!client) return;
     if (!email) {
@@ -930,7 +1004,20 @@ function LoginPanel({
         }
       />
 
-      <ErrorBox code={errorCode} />
+      {/* "Check your inbox for the confirmation link" is a dead end for the person telling you it
+          never arrived. Where the block is an unconfirmed email, the way out is offered here. */}
+      <ErrorBox
+        code={errorCode}
+        action={
+          errorCode === 'email_not_confirmed' && email
+            ? {
+                label: 'Send it again',
+                onClick: onResendConfirmation,
+                busy: magicSubmitting,
+              }
+            : undefined
+        }
+      />
 
       <PrimaryButton
         loading={submitting}

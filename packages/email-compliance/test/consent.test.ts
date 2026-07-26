@@ -149,3 +149,96 @@ describe('List-Unsubscribe headers', () => {
     expect(headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click')
   })
 })
+
+describe('unsubscribe page branding', () => {
+  // An unsubscribe page is reached from an email, by a mildly annoyed person, and asks them to
+  // confirm an action — the exact shape of a phishing page. Field feedback on the unbranded version
+  // was "my first thought is phishing and my second is I'll mark it as spam", which costs more
+  // deliverability than the unsubscribe does. These assert the page says who it belongs to.
+  const brand = {
+    logoUrl: 'https://kira.app/avatar.jpeg',
+    homeUrl: 'https://kira.app',
+    accent: '#db2777',
+    supportEmail: 'hello@kira.app',
+  }
+  const sender = {
+    name: 'Global Buildtech Australia Pty Ltd',
+    abn: '54 672 395 685',
+    postal: '76-84 Brunswick Street, Fortitude Valley QLD 4006',
+    email: 'dennis@corporateaisolutions.com',
+    phone: '+61402612471',
+  }
+
+  async function brandedPage() {
+    const store = memoryStore()
+    const route = createUnsubscribeRoute({ secret: SECRET, store, brandName: 'Kira', brand, sender })
+    const token = await signUnsubscribeToken('owner@example.com', SECRET)
+    const response = await route.GET(
+      new Request(`https://kira.app/unsubscribe?t=${encodeURIComponent(token)}`),
+    )
+    return response.text()
+  }
+
+  it('identifies itself — logo, brand, and a link back to something real', async () => {
+    const html = await brandedPage()
+    expect(html).toContain('https://kira.app/avatar.jpeg')
+    expect(html).toContain('Back to Kira')
+    expect(html).toContain('hello@kira.app')
+  })
+
+  it('carries the Spam Act identification the email carried', async () => {
+    const html = await brandedPage()
+    expect(html).toContain('Global Buildtech Australia Pty Ltd')
+    expect(html).toContain('ABN 54 672 395 685')
+    expect(html).toContain('Fortitude Valley')
+  })
+
+  it('applies the brand accent to the confirm button', async () => {
+    const html = await brandedPage()
+    expect(html).toContain('#db2777')
+  })
+
+  it('still renders without any branding — the option is additive', async () => {
+    const store = memoryStore()
+    const route = createUnsubscribeRoute({ secret: SECRET, store, brandName: 'Kira' })
+    const token = await signUnsubscribeToken('owner@example.com', SECRET)
+    const html = await route
+      .GET(new Request(`https://kira.app/unsubscribe?t=${encodeURIComponent(token)}`))
+      .then((r) => r.text())
+
+    expect(html).toContain('Yes, unsubscribe me')
+    expect(html).not.toContain('<img')
+  })
+
+  it('escapes brand and sender values rather than injecting them raw', async () => {
+    const store = memoryStore()
+    const route = createUnsubscribeRoute({
+      secret: SECRET,
+      store,
+      brandName: '<script>alert(1)</script>',
+      sender: { name: 'A & B "Co"', email: 'x@y.com' },
+    })
+    const token = await signUnsubscribeToken('owner@example.com', SECRET)
+    const html = await route
+      .GET(new Request(`https://kira.app/unsubscribe?t=${encodeURIComponent(token)}`))
+      .then((r) => r.text())
+
+    expect(html).not.toContain('<script>alert(1)</script>')
+    expect(html).toContain('&lt;script&gt;')
+    expect(html).toContain('A &amp; B &quot;Co&quot;')
+  })
+
+  it('escapes the token it echoes back into the confirm form', async () => {
+    // The token is the only attacker-controlled value on the page, and it reaches a value=""
+    // attribute. It is safe TODAY only because it gets there after HMAC verification and a
+    // verifying token is base64url — an invariant held by a different function three frames away.
+    // Escaped at the point of use so this does not depend on that holding.
+    const store = memoryStore()
+    const route = createUnsubscribeRoute({ secret: SECRET, store, brandName: 'Kira' })
+    const html = await route
+      .GET(new Request('https://kira.app/unsubscribe?t=%22%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E'))
+      .then((r) => r.text())
+
+    expect(html).not.toContain('<script>alert(1)</script>')
+  })
+})

@@ -27,7 +27,12 @@ export {
   unsubscribeUrlFor,
   verifyUnsubscribeToken,
 } from "./consent.js";
-export type { SuppressionReason, SuppressionStore, UnsubscribeRouteOptions } from "./consent.js";
+export type {
+  SuppressionReason,
+  SuppressionStore,
+  UnsubscribeBrand,
+  UnsubscribeRouteOptions,
+} from "./consent.js";
 
 export { createSupabaseSuppressionStore } from "./supabase-suppressions.js";
 export type { SupabaseLike, SupabaseSuppressionOptions } from "./supabase-suppressions.js";

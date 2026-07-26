@@ -146,9 +146,23 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          npx --no-install portfolio-gate-memory-loop \
-            --config memory-loop.config.json \
-            --base-url "$PORTFOLIO_GATE_PREVIEW_URL"
+          # Resolve the binary from node_modules DIRECTLY, never via a bare `npx <name>`.
+          #
+          # `npx --no-install` does not reliably refuse the network. Where the local bin was absent
+          # it queried the PUBLIC registry for an unscoped `portfolio-gate-memory-loop`, got a 404,
+          # and failed the gate — turning a step that is supposed to skip into a hard failure in
+          # every repo whose @caistech/portfolio-gate predates 0.7.0. When this was first swept in
+          # that was 26 of 27 repos, all still on ^0.3.0.
+          #
+          # The skip is a WARNING, not silence. A step that quietly passes when it did not run is
+          # the exact failure this gate exists to correct: probeMemoryLoop shipped in 0.7.0 and ran
+          # in zero repos precisely because nothing said so out loud.
+          BIN=node_modules/.bin/portfolio-gate-memory-loop
+          if [ ! -x "$BIN" ]; then
+            echo "::warning title=Voice memory loop NOT verified::@caistech/portfolio-gate in this repo predates the memory-loop gate (needs >=0.7.0). The voice memory loop is not being checked here. Bump the dependency to enable it."
+            exit 0
+          fi
+          "$BIN" --config memory-loop.config.json --base-url "$PORTFOLIO_GATE_PREVIEW_URL"
 
       # Static counterpart to the runtime probe. The Mnemo dual-write happens in the POST-CALL
       # path, which probeMemoryLoop never triggers — so a product missing the semantic leg passes
@@ -157,4 +171,11 @@ jobs:
       # Skips in non-voice repos. A deliberate omission is declared, not silent:
       #   memory-loop.config.json  ->  { "semanticMemory": false }
       - name: Voice semantic-memory wiring (static; skips where there is no voice agent)
-        run: npx --no-install portfolio-gate-audit-voice-memory
+        run: |
+          # Same direct resolution + loud skip as the runtime probe above.
+          BIN=node_modules/.bin/portfolio-gate-audit-voice-memory
+          if [ ! -x "$BIN" ]; then
+            echo "::warning title=Voice semantic-memory wiring NOT audited::@caistech/portfolio-gate in this repo predates the static voice-memory audit (needs >=0.7.0). Bump the dependency to enable it."
+            exit 0
+          fi
+          "$BIN"
