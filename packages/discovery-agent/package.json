@@ -34,7 +34,7 @@
     "react": { "optional": true }
   },
   "devDependencies": {
-    "@caistech/elevenlabs-convai": "^0.4.9",
+    "@caistech/elevenlabs-convai": "^0.9.0",
     "@elevenlabs/react": "^1.6.3",
     "@supabase/supabase-js": "^2.39.0",
     "@types/react": "^19.2.15",
