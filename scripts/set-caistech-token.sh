@@ -7,6 +7,12 @@
 #   2. Your ~/.npmrc (so local `pnpm install`/`npm install` resolves @caistech/*)
 #   3. Each Vercel project's env vars (so Vercel builds resolve @caistech/*)
 #
+# Step 3 ALSO writes NPM_RC, and under pnpm 10+ that is the only one of the three Vercel keys that
+# authenticates anything — the other two are orphaned there, because pnpm 10 no longer expands
+# ${NODE_AUTH_TOKEN} in a committed project .npmrc. See the NPM_RC_CONTENT note below for the full
+# story, including why the build cache hid it. Rotating the PAT rotates NPM_RC with it, since the
+# file content embeds a literal copy.
+#
 # Usage:
 #   bash set-caistech-token.sh <GITHUB_PACKAGES_TOKEN> <VERCEL_API_TOKEN>
 #
@@ -41,6 +47,31 @@ TEAM_ID="team_hwN7IFtd2Fo3DCj9C67ZwI1t"  # Corporate AI Solutions
 #
 # An env var nothing reads is free. A stale one that IS read is an outage.
 KEYS=(GITHUB_PACKAGES_TOKEN NODE_AUTH_TOKEN)
+
+# NPM_RC — the key that actually AUTHENTICATES a Vercel install (added 2026-07-26).
+#
+# Both KEYS above are, on Vercel under pnpm 10+, orphaned. Their only consumer was the committed
+# project .npmrc line `//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}`, and pnpm 10 stopped
+# expanding environment variables in a PROJECT-level .npmrc — deliberately, because that file is
+# committed. So the substitution the whole portfolio relies on became a silent no-op, and pushing
+# the token under more names could never have fixed it.
+#
+# Nobody noticed because Vercel's build cache carries the pnpm store: a cached install never
+# fetches from GitHub Packages and never authenticates. SayFix went eight consecutive green
+# deploys that way; the first CACHE-LESS build failed with ERR_PNPM_FETCH_401, "No authorization
+# header was set for the request".
+#
+# NPM_RC is Vercel's documented private-registry mechanism — its contents become ~/.npmrc at
+# install time. That is USER level, where a LITERAL token IS honoured. Same mechanism that already
+# works in GitHub Actions, where actions/setup-node writes a managed user-level .npmrc and installs
+# succeed under this exact pnpm version.
+#
+# Vercel-only on purpose: locally, Step 2 already writes the literal token into ~/.npmrc, which is
+# the same mechanism by a different route. There is nothing for NPM_RC to add in .env.local.
+NPM_RC_CONTENT=$(printf '%s\n' \
+  '@caistech:registry=https://npm.pkg.github.com' \
+  "//npm.pkg.github.com/:_authToken=$GH_TOKEN" \
+  'always-auth=true')
 
 # Repos with @caistech/* deps. `easy-claude-code` has its app at apps/frontend/.
 REPOS=(
@@ -151,7 +182,11 @@ echo "  ✓ ~/.npmrc updated (local pnpm/npm install will now resolve @caistech/
 if [ -z "$VERCEL_TOKEN" ]; then
   echo ""
   echo "== Step 3: SKIPPED (no VERCEL_API_TOKEN provided) =="
-  echo "  Add GITHUB_PACKAGES_TOKEN *and* NODE_AUTH_TOKEN manually via https://vercel.com/<team>/<project>/settings/environment-variables"
+  echo "  Add GITHUB_PACKAGES_TOKEN, NODE_AUTH_TOKEN *and* NPM_RC manually via https://vercel.com/<team>/<project>/settings/environment-variables"
+  echo "  NPM_RC is the one builds actually authenticate with under pnpm 10+; its value is the three-line .npmrc:"
+  echo "    @caistech:registry=https://npm.pkg.github.com"
+  echo "    //npm.pkg.github.com/:_authToken=<the PAT>"
+  echo "    always-auth=true"
   echo "  Or rerun: bash $0 $GH_TOKEN <VERCEL_API_TOKEN>"
   exit 0
 fi
@@ -170,6 +205,52 @@ DONE_SLUGS=""
 # storing the token non-readable. Sensitive vars can't target development, so
 # we scope to production+preview — local builds read it from ~/.npmrc (Step 2)
 # and each repo's .env.local (Step 1), never from Vercel's development env.
+
+# Set ONE env var on ONE project: delete every existing row for the key, then create.
+#
+# Factored out because NPM_RC needs the identical delete-then-post handling but a DIFFERENT value,
+# and the alternative — a second copy of this block — is how the two drift until only one of them
+# has the 2026-07-26 delete fix.
+#
+# The payload is built by a JSON serialiser, not string interpolation: NPM_RC's value contains
+# NEWLINES, which would produce invalid JSON inline. This also makes any future value containing a
+# quote or backslash safe, which the old inline form was not.
+#
+# Returns 1 on error (and prints it) so the caller can mark the project failed.
+set_vercel_env() {
+  local slug="$1" key="$2" value="$3"
+  local existing_ids eid payload response err
+
+  existing_ids=$(KEY="$key" curl -sS \
+    -H "Authorization: Bearer $VERCEL_TOKEN" \
+    "https://api.vercel.com/v9/projects/$slug/env?teamId=$TEAM_ID" 2>/dev/null \
+    | KEY="$key" node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{const j=JSON.parse(s);(j.envs||[]).filter(e=>e.key===process.env.KEY).forEach(e=>console.log(e.id))}catch{}})" || true)
+
+  for eid in $existing_ids; do
+    curl -sS -X DELETE \
+      -H "Authorization: Bearer $VERCEL_TOKEN" \
+      "https://api.vercel.com/v9/projects/$slug/env/$eid?teamId=$TEAM_ID" >/dev/null 2>&1 || true
+  done
+
+  # Create new. DELETE-then-POST, never PATCH: a sensitive var is non-readable,
+  # so an in-place update silently keeps the OLD value and nothing can read it
+  # back to notice.
+  payload=$(KEY="$key" VALUE="$value" node -e 'console.log(JSON.stringify({key:process.env.KEY,value:process.env.VALUE,type:"sensitive",target:["production","preview"]}))')
+
+  response=$(curl -sS -X POST \
+    -H "Authorization: Bearer $VERCEL_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "$payload" \
+    "https://api.vercel.com/v10/projects/$slug/env?teamId=$TEAM_ID" 2>&1)
+
+  if echo "$response" | grep -q '"error"'; then
+    err=$(echo "$response" | grep -oE '"message"[[:space:]]*:[[:space:]]*"[^"]+"' | head -1)
+    echo "  ✗ $slug [$key] → $err"
+    return 1
+  fi
+  return 0
+}
+
 for repo in "${REPOS[@]}"; do
   slug="${VERCEL_SLUG[$repo]}"
   [ -z "$slug" ] && { echo "  skip $repo (no Vercel project)"; SKIPPED=$((SKIPPED+1)); continue; }
@@ -198,31 +279,12 @@ for repo in "${REPOS[@]}"; do
   # Parse JSON with a parser, and delete ALL matches (one key can have several target rows).
   project_failed=0
   for key in "${KEYS[@]}"; do
-    existing_ids=$(KEY="$key" curl -sS \
-      -H "Authorization: Bearer $VERCEL_TOKEN" \
-      "https://api.vercel.com/v9/projects/$slug/env?teamId=$TEAM_ID" 2>/dev/null \
-      | KEY="$key" node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{const j=JSON.parse(s);(j.envs||[]).filter(e=>e.key===process.env.KEY).forEach(e=>console.log(e.id))}catch{}})" || true)
-    for eid in $existing_ids; do
-      curl -sS -X DELETE \
-        -H "Authorization: Bearer $VERCEL_TOKEN" \
-        "https://api.vercel.com/v9/projects/$slug/env/$eid?teamId=$TEAM_ID" >/dev/null 2>&1 || true
-    done
-
-    # Create new. DELETE-then-POST, never PATCH: a sensitive var is non-readable,
-    # so an in-place update silently keeps the OLD value and nothing can read it
-    # back to notice.
-    response=$(curl -sS -X POST \
-      -H "Authorization: Bearer $VERCEL_TOKEN" \
-      -H "Content-Type: application/json" \
-      -d "{\"key\":\"$key\",\"value\":\"$GH_TOKEN\",\"type\":\"sensitive\",\"target\":[\"production\",\"preview\"]}" \
-      "https://api.vercel.com/v10/projects/$slug/env?teamId=$TEAM_ID" 2>&1)
-
-    if echo "$response" | grep -q '"error"'; then
-      err=$(echo "$response" | grep -oE '"message"[[:space:]]*:[[:space:]]*"[^"]+"' | head -1)
-      echo "  ✗ $slug [$key] → $err"
-      project_failed=1
-    fi
+    set_vercel_env "$slug" "$key" "$GH_TOKEN" || project_failed=1
   done
+
+  # The one that actually authenticates the install (see NPM_RC_CONTENT above). Written LAST so a
+  # partially-updated project still reads as failed on the summary line below.
+  set_vercel_env "$slug" NPM_RC "$NPM_RC_CONTENT" || project_failed=1
 
   # One line per PROJECT, not per key — a project counts as updated only when
   # every key landed, so a half-written project can never read as a success.
