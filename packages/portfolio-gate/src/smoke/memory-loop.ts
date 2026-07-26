@@ -24,6 +24,25 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 export interface MemoryLoopConfig {
+  /**
+   * Set FALSE to declare that this product's voice agent holds NO cross-session memory at all —
+   * a widget-only in-context clarifier, with no convai webhook routes to probe.
+   *
+   * This is the ONE thing that turns the runtime probe off, and it exists because the alternative
+   * punished honesty. A repo like PartReady — a `VoiceWidget` in one component, no routes, no
+   * memory, correctly declaring `semanticMemory: false` — still failed this probe with "no test
+   * user id", because there is no test user and nothing to test. Left that way, the only route to
+   * a green gate is to delete the check, which is how a gate stops being trusted.
+   *
+   * It must be an EXPLICIT declaration and is never inferred. Absence of configuration still
+   * fails, loudly: a probe that quietly does nothing because a variable is unset is
+   * indistinguishable from one that passed, and that ambiguity is the whole reason this exists.
+   * Declaring `false` is on the record and reviewable; forgetting to configure it is not.
+   *
+   * VOICE_MEMORY_STANDARD permits pull-only/transient for a clarifier — this is how that permission
+   * gets stated rather than assumed. Revisit the moment the agent is asked to remember anything.
+   */
+  memoryLoop?: boolean
   /** Deployed app origin, e.g. `https://kira-rho.vercel.app`. Usually from --base-url. */
   baseUrl?: string
   /** Path the convai webhook routes are mounted at. Default `/api/convai/webhooks`. */
@@ -92,6 +111,17 @@ export async function runMemoryLoopGate(
     return {
       outcome: 'skipped',
       reason: 'no @caistech/elevenlabs-convai dependency — this repo has no voice memory loop',
+      checks: [],
+    }
+  }
+
+  // An EXPLICIT declaration that there is no loop. Not inferred from missing config — see the
+  // `memoryLoop` docs above for why that distinction is the whole point.
+  if (config.memoryLoop === false) {
+    return {
+      outcome: 'skipped',
+      reason:
+        'memoryLoop:false declared in memory-loop.config.json — this product\'s voice agent holds no cross-session memory (widget-only clarifier). Opt-out is on the record.',
       checks: [],
     }
   }

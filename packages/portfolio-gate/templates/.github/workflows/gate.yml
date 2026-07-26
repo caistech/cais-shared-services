@@ -49,6 +49,21 @@ jobs:
           else
             echo "pm=npm" >> $GITHUB_OUTPUT
           fi
+          # setup-node's dependency cache REQUIRES a committed lockfile and hard-errors without one
+          # ("Dependencies lock file is not found"). Several repos gitignore all three lockfiles, so
+          # the gate would fail there before running a single check — not because anything is wrong
+          # with the product, but because it cannot warm a cache.
+          #
+          # Emit an empty cache key in that case: caching is an optimisation, and an optimisation
+          # must never be the reason a repo cannot be verified. The missing lockfile is still a real
+          # reproducibility problem, but it is the REPO's problem to fix, not something this gate
+          # should force by refusing to run.
+          if [ -f pnpm-lock.yaml ] || [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ] || [ -f yarn.lock ]; then
+            echo "cache=$( [ -f pnpm-lock.yaml ] && echo pnpm || echo npm )" >> $GITHUB_OUTPUT
+          else
+            echo "::warning title=No committed lockfile::This repo has no committed lockfile, so dependency caching is disabled and builds are not reproducible — CI, Vercel and your machine can each resolve different versions. Commit one."
+            echo "cache=" >> $GITHUB_OUTPUT
+          fi
 
       - name: Setup pnpm
         if: steps.detect-pm.outputs.pm == 'pnpm'
@@ -65,7 +80,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          cache: ${{ steps.detect-pm.outputs.pm }}
+          cache: ${{ steps.detect-pm.outputs.cache }}
           registry-url: 'https://npm.pkg.github.com'
           scope: '@caistech'
 

@@ -104,12 +104,45 @@ export function auditVoiceMemory(cwd: string = process.cwd()): VoiceMemoryAuditR
   const callSites: string[] = [];
   let anyWithSemantic = false;
 
+  // An ALTERNATIVE, product-shaped semantic write.
+  //
+  // This exists because the first version of this audit graded a function NAME rather than a
+  // capability, and produced false positives on two products whose memory demonstrably works:
+  //
+  //   SayFix   — onConversationComplete → fileTicketFromConversation → distillTranscriptToSpec
+  //              → createTicketCore → mnemoAdd(repo.id, …), recalled via mnemoSearch. A complete
+  //              distil→write→recall loop, scoped per WEBSITE rather than per user, which is the
+  //              correct scope for its domain.
+  //   pipeline — distillConversationToMemory + handleRecallMemory, the pre-canonical 0.4.x
+  //              assembly. Older shape, still a working loop.
+  //
+  // A false positive is worse here than a missed detection: a check that fails a team who did the
+  // work correctly is a check that gets switched off, and then it catches nothing at all. That is
+  // the same trap as grading an SDK voice widget against the CDN-embed signature.
+  //
+  // So the audit now asks "does anything distil conversation content into a semantic store?" and
+  // reports the shape it found. `completeConversationMemory` remains PREFERRED — it is the one
+  // path that gets snapshot-before-distil ordering right for free — but it is not the only honest
+  // answer, and the audit no longer pretends it is.
+  const ALTERNATIVE_SEMANTIC_WRITES = [
+    'distillConversationToMemory(',
+    'mnemoAdd(',
+    'mnemo.add(',
+    'rememberPlanningConclusion(',
+    'createMnemoClient(',
+  ];
+  let alternativeShape: string | null = null;
+
   for (const file of files) {
     let source: string;
     try {
       source = readFileSync(file, 'utf8');
     } catch {
       continue;
+    }
+    if (!alternativeShape) {
+      const hit = ALTERNATIVE_SEMANTIC_WRITES.find((needle) => source.includes(needle));
+      if (hit) alternativeShape = hit.replace('(', '');
     }
     if (!source.includes('completeConversationMemory(')) continue;
     callSites.push(file.replace(cwd, '').replace(/^[\\/]/, ''));
@@ -125,12 +158,26 @@ export function auditVoiceMemory(cwd: string = process.cwd()): VoiceMemoryAuditR
   }
 
   if (callSites.length === 0) {
+    if (alternativeShape) {
+      return {
+        outcome: 'pass',
+        reason:
+          `semantic memory written via ${alternativeShape}() rather than the canonical ` +
+          'completeConversationMemory(). Distilled content does reach a semantic store, so this ' +
+          'is a working loop, not a gap. Migrating is still worth doing — the canonical path gets ' +
+          'the snapshot-before-distil ordering right for free, and getting it wrong silently ' +
+          'indexes nothing — but it is an improvement, not a defect.',
+        callSites,
+      };
+    }
     return {
       outcome: 'fail',
       reason:
-        'voice repo does not call completeConversationMemory() — the canonical post-call memory ' +
-        'pipeline (distil → dedupe → index). Either wire it, or declare "semanticMemory": false ' +
-        'in memory-loop.config.json if this product genuinely has no cross-session memory.',
+        'voice repo writes NOTHING to a semantic store — no completeConversationMemory(), and no ' +
+        'alternative distil/write path either. If the agent also recalls, it is recalling from a ' +
+        'store nothing fills, which reads to the user as an agent that forgets everything. Wire ' +
+        'the pipeline, or declare "semanticMemory": false in memory-loop.config.json if this ' +
+        'product genuinely has no cross-session memory.',
       callSites,
     };
   }

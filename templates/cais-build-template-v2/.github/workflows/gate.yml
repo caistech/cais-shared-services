@@ -49,6 +49,21 @@ jobs:
           else
             echo "pm=npm" >> $GITHUB_OUTPUT
           fi
+          # setup-node's dependency cache REQUIRES a committed lockfile and hard-errors without one
+          # ("Dependencies lock file is not found"). Several repos gitignore all three lockfiles, so
+          # the gate would fail there before running a single check — not because anything is wrong
+          # with the product, but because it cannot warm a cache.
+          #
+          # Emit an empty cache key in that case: caching is an optimisation, and an optimisation
+          # must never be the reason a repo cannot be verified. The missing lockfile is still a real
+          # reproducibility problem, but it is the REPO's problem to fix, not something this gate
+          # should force by refusing to run.
+          if [ -f pnpm-lock.yaml ] || [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ] || [ -f yarn.lock ]; then
+            echo "cache=$( [ -f pnpm-lock.yaml ] && echo pnpm || echo npm )" >> $GITHUB_OUTPUT
+          else
+            echo "::warning title=No committed lockfile::This repo has no committed lockfile, so dependency caching is disabled and builds are not reproducible — CI, Vercel and your machine can each resolve different versions. Commit one."
+            echo "cache=" >> $GITHUB_OUTPUT
+          fi
 
       - name: Setup pnpm
         if: steps.detect-pm.outputs.pm == 'pnpm'
@@ -65,7 +80,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
-          cache: ${{ steps.detect-pm.outputs.pm }}
+          cache: ${{ steps.detect-pm.outputs.cache }}
           registry-url: 'https://npm.pkg.github.com'
           scope: '@caistech'
 
@@ -179,3 +194,36 @@ jobs:
             exit 0
           fi
           "$BIN"
+
+      # Is production actually running the code we think it is? Only meaningful against the real
+      # production deployment, so it runs on push-to-main (and any scheduled run), not on PRs.
+      #
+      # Born from a month-long silent outage: every production deploy failed at `npm install`
+      # (expired NODE_AUTH_TOKEN -> 401 from GitHub Packages) while production kept serving a
+      # month-old build. Nothing noticed. Among the undeployed commits were RLS hardening and
+      # admin MFA enforcement.
+      #
+      # Three assertions, because the obvious ones are not enough: READY, the deployed SHA matches
+      # this ref (catches a STALE prod that looks healthy), and the public URL serves the APP --
+      # Vercel's SSO protection page answers HTTP 200 with a login screen, so a "curl returns 200"
+      # check passes against a wall.
+      #
+      # Repo setup: VERCEL_TOKEN secret; PUBLIC_ALIAS must be a PUBLICLY reachable production URL
+      # (not a protected alias); APP_MARKER a string present in the app but never on a wall.
+      # A repo that genuinely does not deploy on Vercel opts out with a RECORDED reason:
+      #   portfolio-gate-deploy-status --not-applicable "static export, no Vercel project"
+      - name: Deploy status (production matches this ref)
+        if: github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          PUBLIC_ALIAS: ${{ vars.PUBLIC_ALIAS }}
+          APP_MARKER: ${{ vars.APP_MARKER }}
+        run: |
+          # Same direct resolution + loud skip as the probes above.
+          BIN=node_modules/.bin/portfolio-gate-deploy-status
+          if [ ! -x "$BIN" ]; then
+            echo "::warning title=Deploy status NOT verified::@caistech/portfolio-gate in this repo predates the deploy-status gate (needs >=0.8.0). Production could be serving stale code and nothing here would notice. Bump the dependency to enable it."
+            exit 0
+          fi
+          # --wait on push: poll until the deployment for this commit settles.
+          "$BIN" ${{ github.event_name == 'push' && '--wait' || '' }}

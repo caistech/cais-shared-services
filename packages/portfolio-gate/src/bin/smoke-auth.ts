@@ -110,6 +110,23 @@ async function main(): Promise<void> {
     process.exit(2)
   }
 
+  // An EXPLICIT declaration that this product has no auth surface at all.
+  //
+  // Some products genuinely have none — PartReady is a single public page with one API route, no
+  // login, no signup, no accounts. Without this the gate hard-errors (exit 2) on the missing
+  // config, so the only way to a green gate is to delete the auth step, and a step that gets
+  // deleted to make a build pass protects nothing thereafter.
+  //
+  // Declared, never inferred: a MISSING auth.config.json still fails, because "this product has no
+  // auth" and "nobody wrote the config yet" are different facts that must not look the same. The
+  // declaration is a reviewable line in the repo; forgetting is not.
+  if ((config as { auth?: boolean }).auth === false) {
+    process.stdout.write(
+      'auth smoke: SKIPPED — auth:false declared in auth.config.json (this product has no auth surface). Opt-out is on the record.\n'
+    )
+    process.exit(0)
+  }
+
   if (args.baseUrlOverride) {
     config = { ...config, baseUrl: args.baseUrlOverride }
   }

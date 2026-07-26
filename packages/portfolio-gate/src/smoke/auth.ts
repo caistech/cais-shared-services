@@ -48,6 +48,13 @@ export interface AuthFunctionalFailure {
 }
 
 export interface AuthSmokeConfig {
+  /**
+   * Set FALSE to declare that this product has NO auth surface — no login, no signup, no accounts.
+   *
+   * Explicit only. A MISSING config still hard-errors: "this product has no auth" and "nobody
+   * wrote the config yet" are different facts and must not produce the same result.
+   */
+  auth?: boolean
   baseUrl: string
   loginPath: string
   signupPath: string
