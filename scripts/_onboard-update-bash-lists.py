@@ -13,7 +13,6 @@ The handlers cover:
   - scripts/set-caistech-token.sh     (REPOS array + VERCEL_SLUG map)
   - scripts/set-vercel-env-v2.sh      (SLUGS string)
   - scripts/set-vercel-env-only.sh    (SLUGS array)
-  - scripts/bump-consumers.sh         (ENTRIES array)
   - scripts/finalize-consumers.sh     (ENTRIES array)
   - scripts/redeploy-vercel.sh        (SLUGS string)
 """
@@ -201,14 +200,18 @@ def main() -> int:
         label="set-vercel-env-only.sh SLUGS",
     )
 
-    # 5. bump-consumers.sh — ENTRIES array
-    insert_into_array(
-        path=os.path.join(s, "bump-consumers.sh"),
-        array_open_pattern=r"^ENTRIES=\(",
-        new_line=f'  "{gh_repo}|package.json"',
-        presence_pattern=rf'"{re.escape(gh_repo)}\|',
-        label="bump-consumers.sh ENTRIES",
-    )
+    # 5. (removed 2026-07-26) bump-consumers.sh — deleted along with this handler.
+    #
+    # It maintained a hardcoded ENTRIES list of consumer repos so a @caistech bump could be pushed
+    # by hand from one machine. The list went stale faster than it was used: at deletion it still
+    # carried archived repos (mmcbuild twice, gbta-openclaw, SmartBoard) and omitted more than half
+    # the products actually consuming the substrate — so even running it did not do the job it
+    # existed for.
+    #
+    # Superseded by per-repo .github/dependabot.yml, which discovers consumers from the dependency
+    # graph rather than from a list a human has to remember to append to. Onboarding a new product
+    # no longer needs to register it anywhere for substrate updates to reach it; scaffolding the
+    # dependabot config (already in cais-build-template-v2) is what makes it a consumer.
 
     # 6. finalize-consumers.sh — ENTRIES array
     insert_into_array(
