@@ -80,12 +80,35 @@ export interface CreateConvaiWebhookRoutesOptions {
     body: Record<string, unknown>
   ) => Promise<ConvaiToolIdentity | null> | ConvaiToolIdentity | null;
   /**
-   * TOOL-WEBHOOK AUTH (fail-closed only when set). When set, every memory tool route requires the
-   * `x-convai-tool-secret` header to equal this value — closing the hole where an unauthenticated
-   * caller could POST recall/save against a victim (identity from a public agent id). The provisioned
-   * tools carry the header via `createConversationTools({ secret })`. Unset ⇒ inert (back-compat).
+   * TOOL-WEBHOOK AUTH. Every memory tool route requires the `x-convai-tool-secret` header to equal
+   * this value — closing the hole where an unauthenticated caller could POST recall/save against a
+   * victim (identity is derived from a PUBLIC agent id, which is shipped to the browser). The
+   * provisioned tools carry the header via `createConversationTools({ secret })`.
+   *
+   * **Resolution order:** this option → `process.env.CONVAI_TOOL_SECRET` → none.
+   *
+   * The env fallback exists so a product gets the guard by CONFIGURATION rather than by a code
+   * change. The original shape — an option nobody passed — meant the guard shipped in 0.6.0 and was
+   * enabled in exactly one consumer; every other product had memory endpoints an anonymous caller
+   * could read and write. Nothing was wrong with the code. Nobody turned it on.
+   *
+   * **Unset is still permitted, but it is no longer silent** — see `requireToolSecret`. A guard
+   * that is quietly inert is indistinguishable from a guard that is working, which is the property
+   * that let this sit unnoticed.
    */
   toolSecret?: string;
+  /**
+   * Refuse to construct routes without a tool secret.
+   *
+   * Defaults to `false` so this release breaks nobody. Set it to `true` in any product whose voice
+   * agent holds real user memory: it converts "the secret is set in every environment" from an
+   * operational hope into something the process cannot start without.
+   *
+   * The reason it is not the default yet is sequencing, not doubt: agents provisioned before the
+   * header existed do not send it, so flipping this on before re-provisioning turns every memory
+   * call into a 401. Re-provision, verify, then set it.
+   */
+  requireToolSecret?: boolean;
   /** When set, post-call requests must carry a valid `elevenlabs-signature` header. */
   postCallSecret?: string;
 }
@@ -138,9 +161,33 @@ function guard(fn: RouteHandler): RouteHandler {
 export function createConvaiWebhookRoutes(
   options: CreateConvaiWebhookRoutesOptions
 ): ConvaiWebhookRoutes {
-  const { supabase, tableNames, onConversationComplete, resolveSession, resolveToolIdentity, toolSecret, postCallSecret } = options;
+  const { supabase, tableNames, onConversationComplete, resolveSession, resolveToolIdentity, postCallSecret } = options;
 
-  /** Tool-webhook auth gate — inert (always ok) unless `toolSecret` is configured. */
+  // Resolve from the option, then the environment. The env fallback is what makes this reachable
+  // without a code change in each product — the previous shape required every consumer to discover
+  // the option and pass it, and only one ever did.
+  const toolSecret = options.toolSecret ?? process.env.CONVAI_TOOL_SECRET ?? undefined;
+
+  if (!toolSecret) {
+    if (options.requireToolSecret) {
+      // Fail at CONSTRUCTION, not at the first request. A route set that builds and then serves
+      // unauthenticated traffic has already lost; this makes the deploy fail instead.
+      throw new Error(
+        '[convai] requireToolSecret is set but no tool secret was resolved. Pass `toolSecret` or set ' +
+          'CONVAI_TOOL_SECRET. Refusing to serve memory endpoints without authentication.'
+      );
+    }
+    // Once, at construction — not per request, which would be noise nobody reads.
+    console.error(
+      '[convai] SECURITY: webhook routes constructed WITHOUT a tool secret. The memory endpoints ' +
+        '(recall/save) are UNAUTHENTICATED — identity is derived from a public agent id, so anyone ' +
+        'who has it can read and write this product\'s conversation memory. Set CONVAI_TOOL_SECRET ' +
+        '(or pass `toolSecret`), re-provision agents so they send the header, then set ' +
+        '`requireToolSecret: true`.'
+    );
+  }
+
+  /** Tool-webhook auth gate. Inert only when no secret resolved — and that now warns loudly above. */
   const toolAuthOk = (req: Request): boolean =>
     !toolSecret || req.headers.get(CONVAI_TOOL_SECRET_HEADER) === toolSecret;
 

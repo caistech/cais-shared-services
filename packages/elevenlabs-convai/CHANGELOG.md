@@ -1,5 +1,80 @@
 # @caistech/elevenlabs-convai — Changelog
 
+## 0.9.0 — 2026-07-26
+
+Makes the tool-webhook guard reachable by CONFIGURATION instead of by a code change.
+
+### ⚠️ This version was published from an uncommitted working tree
+
+`0.9.0` went to the registry — and into 21 production deployments — while `HEAD` sat at
+`0.8.0`. The source below existed only on one machine, untracked, for the duration. That is the
+same class of failure as the `0.7.2` divergence documented further down, one step worse: there
+was no divergent commit to compare against, because there was no commit at all. **Publish from a
+committed tree, or the thing running in production has no reviewable source.** Backfilled and
+committed 2026-07-26.
+
+### Added
+- **`toolSecret` now falls back to `process.env.CONVAI_TOOL_SECRET`.** Resolution order is
+  option → env → none. The guard shipped in `0.6.0` and was enabled in **exactly one consumer**;
+  every other product had memory endpoints (`recall`/`save`) an anonymous caller could read and
+  write, with identity derived from a public agent id that is shipped to the browser. Nothing was
+  wrong with the code. Nobody turned it on. An option each consumer must discover and pass is not
+  a mechanism — an env var the platform already sets is.
+- **`requireToolSecret`** — refuse to construct the routes at all when no secret resolves.
+  Defaults to `false` so this release breaks nobody. **Sequencing matters:** agents provisioned
+  before the header existed do not send it, so flipping this on before re-provisioning turns every
+  memory call into a 401. Re-provision, verify, then set it.
+- **A loud one-time `console.error` when no secret resolves.** Unset is still permitted, but no
+  longer silent — a guard that is quietly inert is indistinguishable from one that is working,
+  which is the property that let this sit unnoticed across the portfolio.
+
+### ⚠️ Still unfixed in this version
+The **post-call webhook remains FAIL-OPEN**: `routes.ts` guards verification with
+`if (postCallSecret)`, so an unset `ELEVENLABS_WEBHOOK_SECRET` **skips** the signature check
+rather than refusing it — against `VOICE_MEMORY_STANDARD`'s explicit *"unverified → 401"*. An
+unsigned payload can write conversation content the agent later recalls and speaks back as fact.
+Consumers must still fail closed at their own route. See the `SHARED_SERVICES.md` entry.
+
+## 0.8.0 — 2026-07-26
+
+Moves the semantic-memory leg INSIDE the voice loop.
+
+### Added
+- **`completeConversationMemory()` runs the Mnemo dual-write inside the canonical post-call
+  path**, on the new `@caistech/mnemo` transport client. `DATA_STANDARD` §6 names voice-agent
+  memory as Mnemo target #2, so a memory-bearing agent is *supposed* to dual-write distilled
+  facts — but the package terminated at the product's own Supabase and left that leg to each
+  product to remember. Exactly one product remembered: Kira hand-rolled it, BucketLyst had no
+  Mnemo integration at all, and nothing surfaced the difference, because `probeMemoryLoop`
+  asserts save→recall→continuity against the product's OWN store and cannot tell a leg is
+  missing. A product must now positively opt OUT (omit `semantic`).
+- **`scopePrefix`** — explicit, and frozen per product once set: the Mnemo scope id IS the
+  memory. Changing it silently orphans everything previously written under the old scope.
+
+### Why the sequence is packaged rather than documented
+Its ORDER is a trap: the prior-fact snapshot must be taken **BEFORE** the distil. Taken after,
+every fact looks pre-existing and nothing is ever indexed — a silent no-op indistinguishable from
+a working integration. A test pins it.
+
+## 0.7.6 — 2026-07-26
+
+*(Backfilled 2026-07-26. `0.7.4` and `0.7.5` were published during this same piece of work and
+have no separate record; `0.7.4` is the `agent_id` fix below, which is what the source commit
+names. What distinguished `0.7.5` was not written down and is not reconstructable — recorded here
+as a gap rather than invented.)*
+
+### Fixed
+- **`convai_memory.agent_id` was `NOT NULL`** while the package's own `resolveToolIdentity`
+  documents `agentId` as OPTIONAL and deliberately omits it, so recall scopes to the USER and
+  survives re-provisioning. Every memory write failed the constraint and **the handler swallowed
+  it behind a 200** — green status, nothing stored, for as long as nobody looked in the table.
+  Fixed in BOTH the `CREATE TABLE` (new installs) **and §11 UPGRADES** (existing ones). The
+  UPGRADES line is the one that matters: fixing only the CREATE leaves every database already on
+  the schema still swallowing writes — a fix that doesn't reach the bug that's actually running.
+  Guarded by an `information_schema` check, so it is a no-op where already patched.
+  Kira prod's `kira_memory.agent_id` was already nullable and was never hit; this was BucketLyst's
+  `convai_memory`. Stated specifically, because "we fixed it everywhere" should mean something.
+
 ## 0.7.3 — 2026-07-26
 
 Publishes a check that was written, committed, and never shipped.
