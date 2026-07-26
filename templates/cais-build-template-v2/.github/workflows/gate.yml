@@ -97,8 +97,20 @@ jobs:
         env:
           # NODE_AUTH_TOKEN is the convention setup-node@v4 wired up via the
           # `registry-url` + `scope` inputs above. Secret is still
-          # CAISTECH_PACKAGES_TOKEN (GitHub Actions reserves GITHUB_ prefix).
+          # CAISTECH_PACKAGES_TOKEN (GitHub Actions reserves the GITHUB_ prefix).
           NODE_AUTH_TOKEN: ${{ secrets.CAISTECH_PACKAGES_TOKEN }}
+          # The SAME secret under the other name, because the two environments a repo
+          # builds in disagree about what to call it:
+          #
+          #   GitHub Actions — setup-node exports NODE_AUTH_TOKEN
+          #   Vercel         — the portfolio rollout sets GITHUB_PACKAGES_TOKEN
+          #
+          # A repo-local .npmrc can only name ONE of them, so every repo was broken in
+          # whichever environment it did not name — and the failure is a bare 401 that
+          # looks like a bad token rather than a missing variable, which is why it cost
+          # hours to find. Exporting both makes either spelling correct here, and lets a
+          # repo keep the name Vercel needs.
+          GITHUB_PACKAGES_TOKEN: ${{ secrets.CAISTECH_PACKAGES_TOKEN }}
 
       - name: Typecheck
         run: npm run typecheck --if-present
