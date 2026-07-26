@@ -138,6 +138,7 @@ echo "== Step 3: setting env var in each Vercel project =="
 FAILED=0
 UPDATED=0
 SKIPPED=0
+DONE_SLUGS=""
 
 # Vercel REST API: POST /v10/projects/{idOrName}/env?teamId={teamId}
 # Body: { "key": "GITHUB_PACKAGES_TOKEN", "value": "...", "type": "sensitive",
@@ -149,6 +150,14 @@ SKIPPED=0
 for repo in "${REPOS[@]}"; do
   slug="${VERCEL_SLUG[$repo]}"
   [ -z "$slug" ] && { echo "  skip $repo (no Vercel project)"; SKIPPED=$((SKIPPED+1)); continue; }
+
+  # Two local repo folders can point at ONE Vercel project (MMCBuild + mmcbuild -> mmcbuild-webapp).
+  # Without this, the second pass deletes and recreates what the first just wrote — harmless but
+  # noisy, and before the delete was fixed it produced a guaranteed "already exists" failure.
+  case " $DONE_SLUGS " in
+    *" $slug "*) echo "  skip $repo (already handled as $slug)"; continue ;;
+  esac
+  DONE_SLUGS="$DONE_SLUGS $slug"
 
   # Remove any existing entry first (silently — 404 if not present is fine).
   # `|| true` keeps the script alive under `set -euo pipefail` when grep finds
