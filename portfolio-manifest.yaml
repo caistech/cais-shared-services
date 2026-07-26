@@ -37,6 +37,16 @@ secrets:
     from_env:
       var: STRIPE_WEBHOOK_SECRET
 
+  # ABR (Australian Business Register) web-services GUID — powers the CANONICAL ABN lookup route
+  # (@caistech/corporate-components/abn-lookup). Declared here because it was NOT canonical and got
+  # copied repo-to-repo instead: it existed in BucketLyst and DealFindrs, was absent from Kira, and
+  # the absence is INVISIBLE — the route returns {configured:false} and every ABN field silently
+  # degrades to a plain text input, exactly as designed to fail safe. A credential that is only ever
+  # copied is a credential the next repo simply doesn't have.
+  abr_guid:
+    from_env:
+      var: ABR_GUID
+
   # Resend — CAIS platform email (auth SMTP + transactional sends like vault invites).
   # Operator exports RESEND_API_KEY in their shell; `--apply` pushes it to each declared
   # project's Vercel as SENSITIVE. The value is never committed.
@@ -81,6 +91,11 @@ shared:
   # Resend API key — auth SMTP + transactional email (e.g. vault party invites).
   # Operator-sourced (from_env: RESEND_API_KEY); set on Vercel as SENSITIVE, production+preview only.
   RESEND_API_KEY: { ref: "$secret:resend_api_key", targets: ["production", "preview"] }
+
+  # ABR GUID — inherit in ANY product with a company/ABN field (PRODUCT_STANDARDS forbids a plain
+  # text input for those). Sensitive + production/preview only: it is a server-side credential, and
+  # the lookup route must never expose it to the client.
+  ABR_GUID: { ref: "$secret:abr_guid", targets: ["production", "preview"] }
 
   # Stripe — CAIS PLATFORM account ONLY (CAIS-owned products: SayFix billing, cockpit, etc.).
   # CLIENT products (mmcbuild, etc.) use their OWN Stripe account — do NOT inherit these there.
@@ -259,6 +274,8 @@ projects:
       - PLATFORM_TRUST_SERVICE_KEY
       - GITHUB_PACKAGES_TOKEN
       - ANTHROPIC_API_KEY
+      # Advisor enquiry form asks for a firm — so it needs the ABN lookup (2026-07-27).
+      - ABR_GUID
     envs:
       PLATFORM_TRUST_PROJECT_ID: { ref: "$secret:platform_trust_project_id_kira" }
 
@@ -277,6 +294,7 @@ projects:
       - EMAIL_SENDER_POSTAL
       # Present in `shared:` but NOT yet on the project — the next env-sync run pushes it.
       - EMAIL_SENDER_PHONE
+      - ABR_GUID
 
   - name: smart-board
     vercel_project_id: "prj_BUzAZzsnUyARewFEpO6OpXV7zqac"
