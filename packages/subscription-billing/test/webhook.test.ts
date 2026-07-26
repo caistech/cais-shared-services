@@ -394,4 +394,101 @@ describe('createSubscriptionCheckoutSession', () => {
     })
     expect(create.mock.calls[0][0].subscription_data).toBeUndefined()
   })
+
+  it('puts a fixed tax rate on the SUBSCRIPTION, so renewals stay taxed too', async () => {
+    // A line-item tax rate covers the checkout invoice only; every renewal after it bills untaxed,
+    // which nobody notices until an accountant asks why one invoice has GST and the next eleven
+    // don't.
+    const { create, stripe } = stripeSpy()
+    await createSubscriptionCheckoutSession({
+      stripe,
+      lineItem: { currency: 'AUD', unitAmount: 49900, productName: 'Plan' },
+      successUrl: 'https://x/ok',
+      cancelUrl: 'https://x/no',
+      taxRates: ['txr_gst_au'],
+    })
+    const params = create.mock.calls[0][0]
+    expect((params.subscription_data as Record<string, unknown>).default_tax_rates).toEqual(['txr_gst_au'])
+  })
+
+  it('makes a taxed dynamic price exclusive, because unspecified silently drops the tax line', async () => {
+    // Stripe defaults price_data to tax_behavior 'unspecified', which disqualifies the line from
+    // tax calculation — the invoice comes out with no tax and no error at all.
+    const { create, stripe } = stripeSpy()
+    await createSubscriptionCheckoutSession({
+      stripe,
+      lineItem: { currency: 'AUD', unitAmount: 49900, productName: 'Plan' },
+      successUrl: 'https://x/ok',
+      cancelUrl: 'https://x/no',
+      taxRates: ['txr_gst_au'],
+    })
+    const line = (create.mock.calls[0][0].line_items as Record<string, unknown>[])[0]
+    expect((line.price_data as Record<string, unknown>).tax_behavior).toBe('exclusive')
+  })
+
+  it('leaves tax_behavior unset when no tax is in play', async () => {
+    const { create, stripe } = stripeSpy()
+    await createSubscriptionCheckoutSession({
+      stripe,
+      lineItem: { currency: 'AUD', unitAmount: 49900, productName: 'Plan' },
+      successUrl: 'https://x/ok',
+      cancelUrl: 'https://x/no',
+    })
+    const line = (create.mock.calls[0][0].line_items as Record<string, unknown>[])[0]
+    expect((line.price_data as Record<string, unknown>).tax_behavior).toBeUndefined()
+  })
+
+  it('honours an explicit inclusive behaviour over the exclusive default', async () => {
+    const { create, stripe } = stripeSpy()
+    await createSubscriptionCheckoutSession({
+      stripe,
+      lineItem: { currency: 'AUD', unitAmount: 49900, productName: 'Plan', taxBehavior: 'inclusive' },
+      successUrl: 'https://x/ok',
+      cancelUrl: 'https://x/no',
+      taxRates: ['txr_gst_au'],
+    })
+    const line = (create.mock.calls[0][0].line_items as Record<string, unknown>[])[0]
+    expect((line.price_data as Record<string, unknown>).tax_behavior).toBe('inclusive')
+  })
+
+  it('enables automatic tax, and only asks to save the address when there is a customer to save it on', async () => {
+    const { create, stripe } = stripeSpy()
+    await createSubscriptionCheckoutSession({
+      stripe,
+      lineItem: { priceId: 'price_123' },
+      successUrl: 'https://x/ok',
+      cancelUrl: 'https://x/no',
+      automaticTax: true,
+      customerEmail: 'owner@example.com',
+    })
+    const params = create.mock.calls[0][0]
+    expect(params.automatic_tax).toEqual({ enabled: true })
+    // customer_update against customer_email is a Stripe API error, not a no-op.
+    expect(params.customer_update).toBeUndefined()
+
+    const second = stripeSpy()
+    await createSubscriptionCheckoutSession({
+      stripe: second.stripe,
+      lineItem: { priceId: 'price_123' },
+      successUrl: 'https://x/ok',
+      cancelUrl: 'https://x/no',
+      automaticTax: true,
+      customerId: 'cus_123',
+    })
+    expect(second.create.mock.calls[0][0].customer_update).toEqual({ address: 'auto' })
+  })
+
+  it('refuses a fixed rate and automatic tax together rather than silently picking one', async () => {
+    const { stripe } = stripeSpy()
+    await expect(
+      createSubscriptionCheckoutSession({
+        stripe,
+        lineItem: { priceId: 'price_123' },
+        successUrl: 'https://x/ok',
+        cancelUrl: 'https://x/no',
+        taxRates: ['txr_gst_au'],
+        automaticTax: true,
+      }),
+    ).rejects.toThrow(/taxRates OR automaticTax/)
+  })
 })

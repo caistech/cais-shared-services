@@ -63,6 +63,32 @@ subsequent lifecycle event.
 `createBillingPortalSession` is also exported — every subscription product owes its customers a way
 to cancel and update their card.
 
+### Tax (v0.2.0)
+
+A product that advertises "$499 **+ GST**" has to actually collect it, and the two mechanisms are
+not interchangeable:
+
+```ts
+// A fixed statutory rate the seller always charges (AU GST). No Stripe Tax subscription needed.
+taxRates: [process.env.STRIPE_GST_TAX_RATE_ID!]   // → subscription_data.default_tax_rates
+
+// Or: let Stripe Tax work it out from where the buyer is. Needs Stripe Tax + your registrations.
+automaticTax: true                                 // → automatic_tax.enabled (+ customer_update)
+```
+
+Passing both throws rather than letting Stripe pick one.
+
+Two traps this closes, both of which fail **silently** — a correct-looking invoice with no tax on it:
+
+- **`default_tax_rates` goes on the SUBSCRIPTION, not the line item.** A line-item rate covers the
+  checkout invoice only; every renewal after it bills untaxed.
+- **`price_data` defaults to `tax_behavior: 'unspecified'`,** which disqualifies the line from tax
+  calculation entirely. So a dynamic line with `taxRates` or `automaticTax` is set to `exclusive`
+  automatically — pass `lineItem.taxBehavior` to override.
+
+A fixed Stripe Price (`priceId`) carries its own tax behaviour: set it on the Price object, since
+the package cannot change a price it did not build.
+
 ## 3. Webhook
 
 ```ts

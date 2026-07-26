@@ -1,6 +1,6 @@
 {
   "name": "@caistech/subscription-billing",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Stripe subscription lifecycle for the portfolio: a checkout-session builder (fixed price OR dynamic price_data, trial + card-on-file) and an idempotent, out-of-order-safe webhook reducer that writes normalized subscription state through a caller-supplied table adapter. Product keeps its own pricing and its own table shape.",
   "type": "module",
   "main": "dist/index.js",
