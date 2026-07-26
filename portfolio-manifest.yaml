@@ -71,38 +71,6 @@ secrets:
     from_env:
       var: ELEVENLABS_API_KEY
 
-  # NPM_RC — the CONSUMER for the @caistech registry PAT on Vercel.
-  #
-  # set-caistech-token.sh already pushes the PAT correctly (both names, sensitive,
-  # production+preview). The problem was never the token: it was that NOTHING ON VERCEL READS IT
-  # any more. The consumer was `//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}` in each repo's
-  # committed .npmrc, and pnpm 10 stopped expanding environment variables in a PROJECT-level .npmrc
-  # (deliberately — the file is committed, so an expanded credential there is a footgun). The
-  # substitution the whole portfolio depends on became a no-op, silently.
-  #
-  # It is invisible because Vercel's build cache carries the pnpm store: a cached install never
-  # fetches from GitHub Packages and never authenticates. Only a CACHE-LESS build fails, with
-  # ERR_PNPM_FETCH_401 "No authorization header was set for the request".
-  #
-  # NPM_RC is Vercel's documented private-registry mechanism: its contents become ~/.npmrc at
-  # install time. That is USER level, where a LITERAL token is honoured — so it sidesteps both the
-  # expansion restriction and the which-variable-name question. Same mechanism that already works
-  # in GitHub Actions, where actions/setup-node writes a managed user-level .npmrc and installs
-  # succeed under this exact pnpm version.
-  #
-  # Operator exports the full file contents, then --apply pushes it sensitive/production+preview:
-  #
-  #   export NPM_RC="$(printf '%s\n' \
-  #     '@caistech:registry=https://npm.pkg.github.com' \
-  #     "//npm.pkg.github.com/:_authToken=$GITHUB_PACKAGES_TOKEN" \
-  #     'always-auth=true')"
-  #
-  # Rotation: rotating the PAT means re-exporting NPM_RC too — it embeds a literal copy. Folding
-  # this into set-caistech-token.sh (which already takes the PAT) is the fleet-wide follow-on.
-  npm_rc:
-    from_env:
-      var: NPM_RC
-
 # -----------------------------------------------------------------------------
 # Shared bindings — included via `inherit_shared:` in each project below.
 # -----------------------------------------------------------------------------
@@ -114,16 +82,7 @@ shared:
 
   # GH Packages PAT — needed for `npm install` of @caistech/* during build.
   # Propagated by scripts/set-caistech-token.sh.
-  #
-  # NOTE: on Vercel this variable is currently ORPHANED under pnpm 10+ — see the `npm_rc` secret
-  # above. It is still pushed (harmless, and read by app runtimes + older pnpm), but the thing that
-  # actually authenticates a Vercel install is NPM_RC.
   GITHUB_PACKAGES_TOKEN: { ref: "$secret:github_packages_token" }
-
-  # The registry auth Vercel actually consumes. Reference implementation: sayfix (2026-07-26).
-  # Roll out to the rest of the fleet once a cache-less deploy proves it there — every repo on
-  # pnpm 10+ has the same latent 401 waiting for its first cold build.
-  NPM_RC: { ref: "$secret:npm_rc", targets: ["production", "preview"] }
 
   # Common LLM provider keys — present in most consumer apps.
   ANTHROPIC_API_KEY: { ref: "$secret:anthropic_api_key" }
@@ -474,7 +433,6 @@ projects:
       - PLATFORM_TRUST_SUPABASE_URL
       - PLATFORM_TRUST_SERVICE_KEY
       - GITHUB_PACKAGES_TOKEN
-      - NPM_RC # reference implementation for the pnpm-10 registry-auth fix (2026-07-26)
       - STRIPE_SECRET_KEY # Phase 4 billing (CAIS platform account)
       - STRIPE_WEBHOOK_SECRET
     envs:
