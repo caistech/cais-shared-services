@@ -45,9 +45,18 @@ secrets:
       var: RESEND_API_KEY
 
   # ElevenLabs — voice-agent PROVISIONING key (operator-exported), read by new-product.mjs +
-  # scripts/align-morgan-agent.mjs to create/align Convai agents. NOT a runtime env and NOT in
-  # `shared:` — the runtime only needs the public NEXT_PUBLIC_ELEVENLABS_AGENT_ID, so this key
-  # must never be pushed to product Vercels. Declared here so the source is canonical.
+  # scripts/align-morgan-agent.mjs to create/align Convai agents. Declared here so the source is
+  # canonical.
+  #
+  # SCOPED EXCEPTION (2026-07-27) — this key WAS "never push it to a product Vercel", on the
+  # reasoning that the runtime only needs the public NEXT_PUBLIC_ELEVENLABS_AGENT_ID. That held
+  # while every product used ONE shared, build-time-provisioned agent. It no longer holds for a
+  # product on the one-agent-per-user model (@caistech/elevenlabs-convai ≥0.7.1 `ensureUserAgent`),
+  # where each user's agent is provisioned SERVER-SIDE ON FIRST PAGE LOAD — so the key is a genuine
+  # runtime secret there, not a build-time one. BucketLyst is the first; any memory-bearing product
+  # will be the same. Push it only to those, always `sensitive`, production+preview.
+  #
+  # Products on a single shared agent still must NOT receive it.
   elevenlabs_api_key:
     from_env:
       var: ELEVENLABS_API_KEY
@@ -252,6 +261,22 @@ projects:
       - ANTHROPIC_API_KEY
     envs:
       PLATFORM_TRUST_PROJECT_ID: { ref: "$secret:platform_trust_project_id_kira" }
+
+  - name: bucketlyst
+    # Transferred from the operator's personal Vercel team into Corporate AI Solutions on
+    # 2026-07-27. It had only ever been on the hobby team because that was the CLI default at
+    # scaffold time, which is also why it was absent from this file — nothing canonical could
+    # reach it. Its env transferred intact (all `sensitive`, production+preview).
+    vercel_project_id: "prj_IYykh42Wq5QrOKjP8VxgtKiiAAni"
+    inherit_shared:
+      - GITHUB_PACKAGES_TOKEN
+      - RESEND_API_KEY
+      - EMAIL_SENDER_NAME
+      - EMAIL_SENDER_EMAIL
+      - EMAIL_SENDER_ABN
+      - EMAIL_SENDER_POSTAL
+      # Present in `shared:` but NOT yet on the project — the next env-sync run pushes it.
+      - EMAIL_SENDER_PHONE
 
   - name: smart-board
     vercel_project_id: "prj_BUzAZzsnUyARewFEpO6OpXV7zqac"
@@ -614,6 +639,23 @@ product_registry:
     team_admin_status: unaudited
     metadata_status: unaudited
     distributor_gate_status: personal-interest-override # R15 named example (personal AI thinking partner)
+  bucketlyst:
+    display_name: "BucketLyst"
+    tagline: "Give an experience. Pass the kindness on."
+    description: "BucketLyst turns a gift into an experience and a donation — the
+      recipient chooses the charity that receives it."
+    canonical_url: "https://bucketlyst-dusky.vercel.app"
+    # Concept build, validated with the founder (Trinh). The custom domain
+    # bucketlyst.com.au is already owned but still points at her Wix site; it is
+    # attached here only once the build is production-ready. When it is, restore
+    # the CAS team's default ssoProtection (all_except_custom_domains) — with the
+    # real domain attached that setting protects previews and leaves production
+    # public, which is what we want. It is OFF today only because the generated
+    # .vercel.app URL is the front door and would otherwise be behind a login wall.
+    voice_agent_status: audited-pass       # per-user Trinh guide; memory loop PASSes in prod
+    team_admin_status: deferred-single-operator
+    metadata_status: customized
+    distributor_gate_status: unaudited
   smart-board:
     display_name: "SmartBoard"
     # metadata: no draft copy — purpose unclear (likely-kill, BUSINESS_MODEL §8); confirm before customize-metadata.sh
