@@ -20,7 +20,7 @@
     },
     {
       "code": "45",
-      "check": "Every declared inclusion URL resolves 200, is not a dead '#' anchor, and contains no REPLACE marker",
+      "check": "Every declared inclusion URL resolves 200, is not a dead '#' anchor, and contains no unfinished-content marker (REPLACE / TODO / TBD / placeholder / lorem)",
       "source": "RegInclusions §3.2",
       "method": "AUTO",
       "relevance": "PRE",
@@ -28,7 +28,7 @@
       "confirmed": false,
       "tier": null,
       "weight": null,
-      "notes": "The highest-value check in the set and purely mechanical, so a waiver could only ever be an excuse. Catches the real failure, which is not a MISSING policy but a PUBLISHED placeholder sitting under a tickbox that says 'I agree to the Privacy Policy'. Found in production on DealFindrs 2026-05-26. Vacuous (auto-passes) when #44 declares everything not-applicable, so it costs nothing where it does not apply.",
+      "notes": "The highest-value check in the set and purely mechanical, so a waiver could only ever be an excuse. Catches the real failure, which is not a MISSING policy but a PUBLISHED placeholder sitting under a tickbox that says 'I agree to the Privacy Policy'. Found in production on DealFindrs 2026-05-26. The marker list is deliberately wider than REPLACE: BucketLyst's /privacy has zero REPLACE markers and still contains 'todo', and names no entity and no ABN — a REPLACE-only grep would have passed it. Vacuous (auto-passes) when #44 declares everything not-applicable, so it costs nothing where it does not apply.",
       "applies_when": null
     },
     {
