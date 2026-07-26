@@ -69,3 +69,29 @@ jobs:
 
       - name: Auth smoke test (R1/R4)
         run: npm run smoke:auth
+
+      # Voice memory-loop gate — SKIPS CLEANLY (exit 0) in any repo that does not declare
+      # @caistech/elevenlabs-convai, so it is safe in every repo and costs nothing where there is
+      # no voice agent.
+      #
+      # It is here, in the shared gate, rather than in each repo's own workflow, because the
+      # previous arrangement was "each product remembers to verify its own memory loop" — and
+      # probeMemoryLoop shipped in 0.7.0 and ran in ZERO repos. The guard existed; nobody ran it;
+      # the bug reached production twice. Verification has to be the default, not an act of
+      # discipline.
+      #
+      # Needs, in repos that DO have a voice agent:
+      #   MEMORY_LOOP_UID / QA_TEST_USER_ID   a real test user's id
+      #   CONVAI_TOOL_SECRET                  if the webhook routes are secret-guarded
+      #   NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY   for sentinel cleanup
+      # and a memory-loop.config.json naming the webhook path, memory table and tool-secret header.
+      - name: Voice memory-loop gate (skips where there is no voice agent)
+        env:
+          MEMORY_LOOP_UID: ${{ secrets.QA_TEST_USER_ID }}
+          CONVAI_TOOL_SECRET: ${{ secrets.CONVAI_TOOL_SECRET }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          npx --no-install portfolio-gate-memory-loop \
+            --config memory-loop.config.json \
+            --base-url "$PORTFOLIO_GATE_PREVIEW_URL"
