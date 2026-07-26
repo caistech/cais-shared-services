@@ -149,3 +149,12 @@ jobs:
           npx --no-install portfolio-gate-memory-loop \
             --config memory-loop.config.json \
             --base-url "$PORTFOLIO_GATE_PREVIEW_URL"
+
+      # Static counterpart to the runtime probe. The Mnemo dual-write happens in the POST-CALL
+      # path, which probeMemoryLoop never triggers — so a product missing the semantic leg passes
+      # all five runtime checks with no semantic index at all. That is how one product's leg went
+      # missing unnoticed. Some checks are only expressible statically; this is one.
+      # Skips in non-voice repos. A deliberate omission is declared, not silent:
+      #   memory-loop.config.json  ->  { "semanticMemory": false }
+      - name: Voice semantic-memory wiring (static; skips where there is no voice agent)
+        run: npx --no-install portfolio-gate-audit-voice-memory

@@ -68,3 +68,6 @@ export type { AuditResult, AuditFinding } from './audit/shared.js'
 
 export { runMemoryLoopGate, formatMemoryLoopResult } from './smoke/memory-loop.js'
 export type { MemoryLoopConfig, MemoryLoopGateResult } from './smoke/memory-loop.js'
+
+export { auditVoiceMemory, formatVoiceMemoryAudit } from './audit/voice-memory.js'
+export type { VoiceMemoryAuditResult } from './audit/voice-memory.js'
