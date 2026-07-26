@@ -1205,6 +1205,46 @@
       },
       "fixed_at": "2026-07-25",
       "fixed_by": "claude-code (kira live voice-memory diagnosis)"
+    },
+    {
+      "id": "resend-10-per-second-serial-fanout-drops-recipients",
+      "product": "f2k-projects",
+      "error_pattern": "Too many requests. You can only make 10 requests per second. See rate limit response headers",
+      "error_symptoms": "A serial email fan-out silently loses recipients from about the 10th send onward. The operator sees a mostly-successful run; only the per-recipient receipt row shows status=failed with the rate-limit text. Nothing retries.",
+      "attempts": [
+        {
+          "tried": "Sent every recipient in a tight serial for-loop with no delay, on the assumption that serial implies safe",
+          "result": "FAILED — a serial loop with no network wait still exceeds 10 req/sec. Recipient 11 of an 11-recipient estate announcement was dropped on the first live run."
+        }
+      ],
+      "solution": {
+        "approach": "Pace the loop under the provider cap: await a 150ms delay (~6.7/sec) before every send after the first. Applies to ANY bulk serial Resend loop — admin notification fan-outs, bulk agent email, multi-recipient digests — not just the one where it was found. Record a per-recipient outcome so a partial send is visible rather than assumed clean.",
+        "code_path": "src/lib/estates/archive-notify.ts — SEND_INTERVAL_MS + delay() at the top of the deliver() closure"
+      },
+      "fixed_at": "2026-07-26",
+      "fixed_by": "claude-code (f2k estate status announcement first live run)"
+    },
+    {
+      "id": "audit-log-uuid-entity-id-rejects-text-slug-silently",
+      "product": "f2k-projects",
+      "error_pattern": "invalid input syntax for type uuid — audit_log row never written",
+      "error_symptoms": "An admin action returns 200 and the UI promises an audit trail, but audit_log holds zero rows for that action, ever. No error reaches the operator; the failure exists only as a server console.error.",
+      "attempts": [
+        {
+          "tried": "Assumed the audit write succeeded because the helper is awaited and the route returned 200",
+          "result": "FAILED — the helper swallows insert errors with console.error only, so the caller cannot distinguish success from failure"
+        },
+        {
+          "tried": "Queried audit_log by action name and found nothing; suspected the action string was wrong",
+          "result": "FAILED — the action string was correct; the INSERT itself was being rejected"
+        }
+      ],
+      "solution": {
+        "approach": "audit_log.entity_id is a uuid column. Passing a TEXT business key (an estate slug, a repo name) makes Postgres reject the insert on the uuid cast. Pass entity_id: null and carry the text key inside the details jsonb. Audit every auditLog call whose entity is keyed by slug or name rather than a UUID — and prefer surfacing insert failures over console.error, since a silently-missing audit trail is indistinguishable from one that was never attempted.",
+        "code_path": "src/lib/admin-auth.ts auditLog(); callers src/app/api/admin/estates/status/route.ts and src/app/api/admin/estates/status/notify/route.ts"
+      },
+      "fixed_at": "2026-07-26",
+      "fixed_by": "claude-code (f2k estate archive audit-trail check)"
     }
   ],
   "usage": "Before fixing ANY bug, grep this file for matching error patterns. Also check SayFix DB for product-specific attempts.",
