@@ -63,6 +63,7 @@ export { runTrustPanelAudit } from './audit/trust-panel.js'
 export { runResponsiveAudit } from './audit/responsive.js'
 export { runCommitmentPanelAudit } from './audit/commitment-panel.js'
 export { runVoiceAgentAudit } from './audit/voice-agent.js'
+export { runMachineRoutesAudit, MACHINE_MARKER } from './audit/machine-routes.js'
 export { formatAuditResult } from './audit/shared.js'
 export type { AuditResult, AuditFinding } from './audit/shared.js'
 

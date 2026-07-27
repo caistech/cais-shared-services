@@ -200,6 +200,26 @@ jobs:
           # intended "missing configuration FAILS with a message naming what is missing".
           "$BIN" --base-url "$PORTFOLIO_GATE_PREVIEW_URL"
 
+      # Does the middleware matcher silently swallow the routes MACHINES call?
+      #
+      # A session-refresh middleware redirects anything without a session, and a Next matcher
+      # normally runs on everything. So a vendor webhook or a cron route is 307'd to /login unless
+      # it was explicitly excluded — and a redirect is not an error, so nothing throws, nothing
+      # logs, and the feature simply never runs. ExecutorAI lost the same feature to this twice in
+      # one day: every ElevenLabs call to its convai webhooks, then every scheduled retention purge.
+      #
+      # Mark such a route `@machine-callable` in a comment and this fails if the matcher still
+      # captures it. Skips cleanly where there is no middleware or nothing is marked.
+      - name: Machine-callable routes survive the middleware matcher
+        run: |
+          # Same direct resolution + loud skip as the probes above.
+          BIN=node_modules/.bin/portfolio-gate-audit-machine-routes
+          if [ ! -x "$BIN" ]; then
+            echo "::warning title=Machine-callable routes NOT audited::@caistech/portfolio-gate in this repo predates the machine-routes audit (needs >=0.10.0). Webhook and cron routes are not being checked against the middleware matcher here. Bump the dependency to enable it."
+            exit 0
+          fi
+          "$BIN"
+
       # Static counterpart to the runtime probe. The Mnemo dual-write happens in the POST-CALL
       # path, which probeMemoryLoop never triggers — so a product missing the semantic leg passes
       # all five runtime checks with no semantic index at all. That is how one product's leg went
