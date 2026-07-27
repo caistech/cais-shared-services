@@ -46,18 +46,53 @@ export interface ConvAIContext {
 
 export type ToolType = 'webhook' | 'client';
 
+/**
+ * One parameter of a tool's request body — `parameters` is passed straight through as
+ * `api_schema.request_body_schema` (see agent-client.ts), so this mirrors ElevenLabs'
+ * `ObjectJsonSchemaProperty` exactly.
+ *
+ * A property's VALUE SOURCE is chosen by which of these fields is present, and ElevenLabs treats
+ * them as MUTUALLY EXCLUSIVE with `description`:
+ *
+ *   - `description` only        → the LLM fills it (the default, and the only shape this package
+ *                                 emitted before 0.11.0)
+ *   - `dynamic_variable`        → the PLATFORM fills it from a dynamic variable
+ *   - `constant_value`          → a fixed value
+ *   - `is_system_provided`      → ElevenLabs supplies it
+ *   - `is_omitted`              → dropped from the request entirely
+ *
+ * The distinction is load-bearing, not cosmetic. Identity parameters — `conversation_id`,
+ * `elevenlabs_agent_id` — were declared as LLM-filled properties with a description, and an LLM has
+ * no way to know either value: ElevenLabs does not tell the agent its own conversation id. So the
+ * model omitted them (400) or invented one (a lookup that finds nothing), and every memory tool
+ * returned nothing in every real call while unit tests that supply the id passed. Binding those
+ * parameters to `system__conversation_id` / `system__agent_id` is what makes server-derived identity
+ * reachable for a product whose agent serves MANY users (one agent per site/repo), where the
+ * `?uid=`-baked-at-provision route in createConversationTools cannot apply.
+ */
+export interface ConvAIToolProperty {
+  type: string;
+  /** LLM-filled description. Mutually exclusive with the value-source fields below. */
+  description?: string;
+  enum?: string[];
+  items?: { type: string };
+  /**
+   * Name of the ElevenLabs dynamic variable supplying this value, e.g. `system__conversation_id`
+   * or `system__agent_id`. Set this INSTEAD of `description` — sending both is rejected.
+   */
+  dynamic_variable?: string;
+  constant_value?: string | number | boolean;
+  is_system_provided?: boolean;
+  is_omitted?: boolean;
+}
+
 export interface ConvAITool {
   type: ToolType;
   name: string;
   description: string;
   parameters: {
     type: 'object';
-    properties: Record<string, {
-      type: string;
-      description: string;
-      enum?: string[];
-      items?: { type: string };
-    }>;
+    properties: Record<string, ConvAIToolProperty>;
     required?: string[];
   };
   webhook?: {

@@ -1,5 +1,71 @@
 # @caistech/elevenlabs-convai — Changelog
 
+## 0.11.0 — 2026-07-27
+
+Cross-session memory, and a guard that can tell whether it works.
+
+### Fixed — the reason a returning user was greeted as a stranger
+`migration.sql` §8 `get_conversation_context` filtered `agent_id = p_agent_id`, which **excludes
+NULL** — and NULL is exactly what the server-baked identity path writes. `resolveToolIdentity`
+documents `agentId` as optional (omit it and recall spans the whole user, correct for
+one-agent-per-user), so `handleSaveMemory` stores every tool-saved fact with `agent_id` NULL. Those
+are precisely the facts the agent chose to remember, and they were the ones hidden from the next
+session — while `has_history` still reported **true** off the conversation row.
+
+The visible result: the agent is told it has met you and handed nothing to say about it. Now
+`(agent_id = p_agent_id OR agent_id IS NULL)`.
+
+§8 is `CREATE OR REPLACE`, so re-running the migration patches any database on the default
+`convai_*` names. It cannot reach a product that **cloned** the function against renamed tables
+(Kira's `kira_memory`), so §11 now **detects** that case via `pg_get_functiondef` and raises a
+WARNING naming the function — a warning and not an exception, because the clone belongs to the
+consumer and failing their migration on our diagnosis is the wrong owner acting.
+
+### Fixed — the probe was wrong in both directions, live, while reporting five greens
+- **`has_history: true` was accepted as continuity.** That flag means a conversation ROW exists; it
+  says nothing about content. Observed on a live deployment: `has_history: true` alongside
+  `memories: []`. A guard that goes green on the exact symptom it exists to catch is worse than no
+  guard, because it gets cited as evidence. **New check: the connect response must carry speakable
+  content** — memories, `last_topic`, `summary` or `recent_messages`.
+- **The start payload omitted `elevenlabs_agent_id`**, which the canonical route requires, so the
+  continuity check 400'd for every product on the canonical route set and passed only where a product
+  had forked the route. The verdict tracked how forgiving each consumer's routing was. Both ids are
+  sent now; `agentId` is explicit or resolved from `agentsTable`, and when neither is available the
+  check is **skipped with the reason**, not silently failed.
+- **"Refused" meant any status ≥ 400**, so a 404 from a mis-derived post-call path scored as a
+  security pass without the request ever reaching the endpoint. Now 401/403/500 only, with 404
+  reported as *"asserted nothing"*. **`postCallUrl`** takes an absolute URL, because post-call is
+  commonly a sibling of the tool routes rather than a child — the check with the most direct security
+  consequence was the one that could not be configured.
+- **Isolation was credited off an errored endpoint** (a 400 also returns no memories). It now
+  requires a 200 first.
+
+### Added
+- **`identityMode: 'uid' | 'conversation'`.** Both models are supported by this package, so a probe
+  that knew only one declared the other broken — SayFix's one-agent-per-site shape is correct and
+  could only ever score red. `conversation` mode sends the platform-filled conversation id in the
+  body and needs a `conversationId` the product has already bound.
+- **`distil: { secret }` — the transcript leg.** Signs a synthetic post-call payload, delivers it,
+  reconnects, and requires the conversation's own content to come back. Every other check writes its
+  fact through `save_memory`, which never touches the transcript path — so a product whose post-call
+  webhook never fires could pass all of them and still forget every real conversation. Off by
+  default: it performs real writes and may spend LLM tokens.
+- **`platformIdentity`** on `createConversationTools` — binds the identity parameters to ElevenLabs'
+  `system__conversation_id` / `system__agent_id` dynamic variables so the **platform** fills them.
+  The parameters were declared LLM-filled with a description, and an agent is never told its own
+  conversation id, so it either omitted the field (400) or invented one (resolved to nothing). This
+  is the fix for products that must resolve identity per call rather than bake it at provision.
+- **`MemoryLoopCheck.skipped`** — a check that cannot be asserted from here is not a pass and not a
+  fail. Failing a legitimately-untestable shape is how the previous guard taught people to switch it
+  off; skips print at the same weight as failures.
+- Cleanup now also removes the conversation row the continuity check creates (messages cascade).
+  These are real rows in a real database, and a probe that litters a test user's memory degrades the
+  thing it measures.
+
+### Tests
+18 new probe tests, each pinning a shape observed on a live deployment — including the
+`has_history`-with-empty-context pass that started this.
+
 ## 0.10.0 — 2026-07-26
 
 The post-call webhook fails closed. **This is a behaviour change — read the rollout note.**

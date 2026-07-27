@@ -71,13 +71,72 @@ export interface MemoryLoopConfig {
    * 401s against precisely the products that bothered to guard their routes.
    */
   toolSecretHeader?: string
+  /**
+   * Which identity model the product's tools use: `uid` (one agent per user, identity baked into the
+   * tool URL at provision) or `conversation` (one agent per site, platform-filled conversation id
+   * resolved against a connect-time binding). Default `uid`.
+   *
+   * Both are supported by the package, so a gate that only knows one declares the other broken —
+   * which is exactly what happened to SayFix, whose per-site shape is correct and could only ever
+   * score red.
+   */
+  identityMode?: 'uid' | 'conversation'
+  /** An already-bound conversation id. Required by `conversation` mode. */
+  conversationId?: string
+  /**
+   * The product's ElevenLabs agent id, for the continuity check. Resolved from `agentsTable` via the
+   * service-role client when omitted; the canonical start route needs it and answers "Agent not
+   * found" without it.
+   */
+  agentId?: string
+  /** Table names, where a product renamed the canonical `convai_*` set (Kira: `kira_*`). */
+  conversationsTable?: string
+  agentsTable?: string
+  /**
+   * ABSOLUTE post-call URL.
+   *
+   * Previously unreachable through this gate at all: the probe derived post-call as a CHILD of the
+   * tool path, which is not where products mount it, and then scored the resulting 404 as "refused".
+   * The security check with the most direct consequence was the one that could not be configured.
+   */
+  postCallUrl?: string
+  /** Post-call route relative to the webhook path. Ignored when `postCallUrl` is set. */
+  postCallRoute?: string
+  /**
+   * Post-call path relative to the ORIGIN — the portable way to say "post-call is not under the tool
+   * path". Prefer this over `postCallUrl` in a committed config: an absolute URL pins the file to one
+   * environment, so it is wrong the moment the gate runs against a preview.
+   *
+   * Kira is the case that needs it: tools live at `/api/kira/webhooks/*` while post-call is mounted
+   * at `/api/convai/webhooks/post-call`, which neither a child route nor a relative `..` can express.
+   */
+  postCallPath?: string
+  /** Set false only with a recorded reason — this is the one check with a live write path behind it. */
+  expectPostCallAuth?: boolean
+  /**
+   * Assert the DISTIL leg (transcript → post-call → next connect). Reads the webhook signing secret
+   * from `ELEVENLABS_WEBHOOK_SECRET` when true.
+   *
+   * Off by default because it performs REAL writes against the target and may spend LLM tokens —
+   * but it is the only leg of "does the agent remember our last conversation" that is testable
+   * without audio. Every other check writes its fact through `save_memory`, which never touches the
+   * transcript path.
+   */
+  expectDistil?: boolean
 }
 
 export interface MemoryLoopGateResult {
   /** 'pass' | 'fail' | 'skipped' — skipped means the repo doesn't consume the voice package. */
   outcome: 'pass' | 'fail' | 'skipped'
   reason?: string
-  checks: { name: string; ok: boolean; detail?: string }[]
+  checks: { name: string; ok: boolean; detail?: string; skipped?: boolean }[]
+  /**
+   * What was actually probed. Printed on every run, pass or fail.
+   *
+   * Three runs were spent diagnosing a red that came from a misnamed variable pointing the probe at
+   * an empty string. A gate that does not say what it tested cannot be debugged from its output.
+   */
+  target?: { url: string; identityMode: string; uid: string; postCall: string }
 }
 
 /**
@@ -128,6 +187,10 @@ export async function runMemoryLoopGate(
 
   const baseUrl = config.baseUrl ?? env.MEMORY_LOOP_APP_URL ?? env.PORTFOLIO_GATE_PREVIEW_URL
   const uid = config.uid ?? env.MEMORY_LOOP_UID ?? env.QA_TEST_USER_ID
+  // Env fallback for the same reason `uid` has one: the agent id belongs to a PARTICULAR test user,
+  // so committing it to a shared config file is wrong the moment the test identity changes. It is not
+  // a secret, but it is environment-specific.
+  const agentId = config.agentId ?? env.MEMORY_LOOP_AGENT_ID
   const toolSecret = env.CONVAI_TOOL_SECRET ?? env.KIRA_TOOL_WEBHOOK_SECRET
   const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL ?? env.SUPABASE_URL
   const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY
@@ -165,14 +228,40 @@ export async function runMemoryLoopGate(
   }
 
   const webhookPath = (config.webhookPath ?? '/api/convai/webhooks').replace(/\/$/, '')
+  const origin = baseUrl.replace(/\/$/, '')
+  const probeBase = `${origin}${webhookPath}`
+  // An origin-relative `postCallPath` wins over nothing and loses to an explicit absolute URL.
+  const postCallUrl = config.postCallUrl ?? (config.postCallPath ? `${origin}${config.postCallPath}` : undefined)
+  const identityMode = config.identityMode ?? 'uid'
+
+  // The distil leg needs the ElevenLabs webhook signing secret. Asking for it and not finding it is a
+  // failure, not a downgrade to a cheaper test: the operator asked for the leg to be asserted.
+  const webhookSecret = env.ELEVENLABS_WEBHOOK_SECRET
+  if (config.expectDistil && !webhookSecret) {
+    return {
+      outcome: 'fail',
+      reason: 'expectDistil is set but ELEVENLABS_WEBHOOK_SECRET is not — the post-call payload cannot be signed',
+      checks: [],
+    }
+  }
+
   const result = await probeMemoryLoop({
-    baseUrl: `${baseUrl.replace(/\/$/, '')}${webhookPath}`,
+    baseUrl: probeBase,
     uid,
+    identityMode,
+    ...(config.conversationId ? { conversationId: config.conversationId } : {}),
+    ...(agentId ? { agentId } : {}),
     ...(toolSecret ? { toolSecret } : {}),
     ...(supabase ? { supabase: supabase as never } : {}),
     ...(config.memoryTable ? { memoryTable: config.memoryTable } : {}),
+    ...(config.conversationsTable ? { conversationsTable: config.conversationsTable } : {}),
+    ...(config.agentsTable ? { agentsTable: config.agentsTable } : {}),
     ...(config.expectContinuity === false ? { expectContinuity: false } : {}),
     ...(config.startRoute ? { startRoute: config.startRoute } : {}),
+    ...(postCallUrl ? { postCallUrl } : {}),
+    ...(config.postCallRoute ? { postCallRoute: config.postCallRoute } : {}),
+    ...(config.expectPostCallAuth === false ? { expectPostCallAuth: false } : {}),
+    ...(config.expectDistil && webhookSecret ? { distil: { secret: webhookSecret } } : {}),
     ...(config.toolSecretHeader ?? env.CONVAI_TOOL_SECRET_HEADER
       ? { toolSecretHeader: (config.toolSecretHeader ?? env.CONVAI_TOOL_SECRET_HEADER) as string }
       : {}),
@@ -181,6 +270,12 @@ export async function runMemoryLoopGate(
   return {
     outcome: result.pass ? 'pass' : 'fail',
     checks: result.checks,
+    target: {
+      url: probeBase,
+      identityMode,
+      uid,
+      postCall: postCallUrl ?? `${probeBase}/${config.postCallRoute ?? 'post-call'}`,
+    },
   }
 }
 
@@ -188,12 +283,20 @@ export async function runMemoryLoopGate(
 export function formatMemoryLoopResult(result: MemoryLoopGateResult): string {
   if (result.outcome === 'skipped') return `memory-loop: SKIPPED — ${result.reason}`;
 
+  // SKIP is printed at the same weight as FAIL. A check that could not be asserted must never read
+  // as one that passed — that ambiguity is the whole reason this gate exists.
   const lines = result.checks.map(
-    (c) => `  ${c.ok ? 'PASS' : 'FAIL'}  ${c.name}${c.detail ? ` — ${c.detail}` : ''}`,
+    (c) => `  ${c.skipped ? 'SKIP' : c.ok ? 'PASS' : 'FAIL'}  ${c.name}${c.detail ? ` — ${c.detail}` : ''}`,
   )
+  const asserted = result.checks.filter((c) => !c.skipped).length
+  const skipped = result.checks.length - asserted
   const head =
     result.outcome === 'pass'
-      ? `memory-loop: PASS (${result.checks.length} checks)`
+      ? `memory-loop: PASS (${asserted} asserted${skipped ? `, ${skipped} not assertable` : ''})`
       : `memory-loop: FAIL${result.reason ? ` — ${result.reason}` : ''}`
-  return [head, ...lines].join('\n')
+  const target = result.target
+    ? [`  target: ${result.target.url}  (identity: ${result.target.identityMode}, uid: ${result.target.uid})`,
+       `  post-call: ${result.target.postCall}`]
+    : []
+  return [head, ...target, ...lines].join('\n')
 }

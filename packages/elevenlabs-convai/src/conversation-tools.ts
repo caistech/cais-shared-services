@@ -7,10 +7,32 @@
 // Wire the returned tool definitions into your agent config.
 // Implement the webhook handlers in your project's API routes.
 
-import type { ConvAITool } from './types.js';
+import type { ConvAITool, ConvAIToolProperty } from './types.js';
 
 // The header the tools carry when a secret is baked in — the same constant the routes verify against.
 export const CONVAI_TOOL_SECRET_HEADER = 'x-convai-tool-secret';
+
+// ElevenLabs' built-in dynamic variables. The platform substitutes these; the agent never sees them
+// as something to reason about, which is the entire point — see ConvAIToolProperty for why asking
+// the LLM for an identity it cannot know produced tools that silently returned nothing.
+export const SYSTEM_CONVERSATION_ID = 'system__conversation_id';
+export const SYSTEM_AGENT_ID = 'system__agent_id';
+
+/**
+ * An identity parameter: platform-filled when `platformIdentity`, LLM-filled otherwise.
+ *
+ * `description` and `dynamic_variable` are mutually exclusive in the ElevenLabs schema, so the
+ * description is DROPPED in platform mode rather than sent alongside.
+ */
+function identityParam(
+  platformIdentity: boolean,
+  dynamicVariable: string,
+  description: string,
+): ConvAIToolProperty {
+  return platformIdentity
+    ? { type: 'string', dynamic_variable: dynamicVariable }
+    : { type: 'string', description };
+}
 
 // =============================================================================
 // TOOL FACTORY
@@ -34,11 +56,26 @@ export const CONVAI_TOOL_SECRET_HEADER = 'x-convai-tool-secret';
  *     not pass the conversation id to server-tool webhooks, so relying on the agent to supply it
  *     fails. Your route reads it back via `resolveToolIdentity`. Use when you know the owner at
  *     provision (one-agent-per-user). `param` defaults to `uid`.
+ *   - `platformIdentity`: the OTHER answer to the same problem, for products where `identity`
+ *     cannot apply. One agent per SITE serving many visitors has no owner to bake at provision, so
+ *     it must resolve identity per call — which the VOICE_MEMORY_STANDARD Rule 9 shape already
+ *     describes ("tools send `conversation_id`, never `user_id`"; the server looks the binding up
+ *     from a connect-time, cookie-derived row). That shape only works if the conversation id
+ *     actually ARRIVES, and it did not: the parameter was declared LLM-filled, and the agent is
+ *     never told its conversation id. Setting this binds the identity parameters to ElevenLabs'
+ *     `system__conversation_id` / `system__agent_id` so the PLATFORM fills them.
+ *
+ *     Use `identity` for one-agent-per-user, `platformIdentity` for one-agent-per-many-users.
+ *     Neither is required if your agent holds no memory.
  */
 export function createConversationTools(
   baseUrl: string,
   webhookBasePath: string = '/api/convai/webhooks',
-  opts?: { secret?: string; identity?: { param?: string; value: string } }
+  opts?: {
+    secret?: string;
+    identity?: { param?: string; value: string };
+    platformIdentity?: boolean;
+  }
 ): ConvAITool[] {
   if (!baseUrl || typeof baseUrl !== 'string' || baseUrl.trim() === '') {
     throw new Error(
@@ -59,12 +96,14 @@ export function createConversationTools(
   const url = (path: string, withIdentity = false) =>
     `${baseUrl}${webhookBasePath}/${path}${withIdentity ? idQuery : ''}`;
 
+  const platformIdentity = opts?.platformIdentity === true;
+
   return [
-    getConversationContextTool(url('start_conversation', true), headers),
-    saveMessageTool(url('save_message'), headers),
-    updateTopicTool(url('update_topic'), headers),
-    recallMemoryTool(url('recall_memory', true), headers),
-    saveMemoryTool(url('save_memory', true), headers),
+    getConversationContextTool(url('start_conversation', true), headers, platformIdentity),
+    saveMessageTool(url('save_message'), headers, platformIdentity),
+    updateTopicTool(url('update_topic'), headers, platformIdentity),
+    recallMemoryTool(url('recall_memory', true), headers, platformIdentity),
+    saveMemoryTool(url('save_memory', true), headers, platformIdentity),
   ];
 }
 
@@ -72,7 +111,11 @@ export function createConversationTools(
 // INDIVIDUAL TOOL DEFINITIONS
 // =============================================================================
 
-function getConversationContextTool(webhookUrl: string, headers: Record<string, string>): ConvAITool {
+function getConversationContextTool(
+  webhookUrl: string,
+  headers: Record<string, string>,
+  platformIdentity: boolean,
+): ConvAITool {
   return {
     type: 'webhook',
     name: 'get_conversation_context',
@@ -88,14 +131,16 @@ Use this to greet returning users appropriately and continue where you left off.
     parameters: {
       type: 'object',
       properties: {
-        elevenlabs_conversation_id: {
-          type: 'string',
-          description: 'The current conversation ID from ElevenLabs',
-        },
-        elevenlabs_agent_id: {
-          type: 'string',
-          description: 'Your agent ID',
-        },
+        elevenlabs_conversation_id: identityParam(
+          platformIdentity,
+          SYSTEM_CONVERSATION_ID,
+          'The current conversation ID from ElevenLabs',
+        ),
+        elevenlabs_agent_id: identityParam(
+          platformIdentity,
+          SYSTEM_AGENT_ID,
+          'Your agent ID',
+        ),
       },
       // NOTE: no user_id here on purpose. The server resolves the verified user identity
       // for this session (authed user or anon session) — the agent must not name a user.
@@ -104,7 +149,11 @@ Use this to greet returning users appropriately and continue where you left off.
   };
 }
 
-function saveMessageTool(webhookUrl: string, headers: Record<string, string>): ConvAITool {
+function saveMessageTool(
+  webhookUrl: string,
+  headers: Record<string, string>,
+  platformIdentity: boolean,
+): ConvAITool {
   return {
     type: 'webhook',
     name: 'save_message',
@@ -114,10 +163,11 @@ You don't need to call this for every single utterance — focus on substantive 
     parameters: {
       type: 'object',
       properties: {
-        conversation_id: {
-          type: 'string',
-          description: 'The ElevenLabs conversation ID',
-        },
+        conversation_id: identityParam(
+          platformIdentity,
+          SYSTEM_CONVERSATION_ID,
+          'The ElevenLabs conversation ID',
+        ),
         role: {
           type: 'string',
           enum: ['user', 'assistant'],
@@ -133,7 +183,11 @@ You don't need to call this for every single utterance — focus on substantive 
   };
 }
 
-function updateTopicTool(webhookUrl: string, headers: Record<string, string>): ConvAITool {
+function updateTopicTool(
+  webhookUrl: string,
+  headers: Record<string, string>,
+  platformIdentity: boolean,
+): ConvAITool {
   return {
     type: 'webhook',
     name: 'update_conversation_topic',
@@ -143,10 +197,11 @@ This helps you remember what you were discussing when the user returns.`,
     parameters: {
       type: 'object',
       properties: {
-        conversation_id: {
-          type: 'string',
-          description: 'The ElevenLabs conversation ID',
-        },
+        conversation_id: identityParam(
+          platformIdentity,
+          SYSTEM_CONVERSATION_ID,
+          'The ElevenLabs conversation ID',
+        ),
         topic: {
           type: 'string',
           description: 'Brief description of the current topic',
@@ -157,7 +212,11 @@ This helps you remember what you were discussing when the user returns.`,
   };
 }
 
-function recallMemoryTool(webhookUrl: string, headers: Record<string, string>): ConvAITool {
+function recallMemoryTool(
+  webhookUrl: string,
+  headers: Record<string, string>,
+  platformIdentity: boolean,
+): ConvAITool {
   return {
     type: 'webhook',
     name: 'recall_memory',
@@ -167,10 +226,11 @@ Use this when you need to remember something specific they've told you before.`,
     parameters: {
       type: 'object',
       properties: {
-        conversation_id: {
-          type: 'string',
-          description: 'The current ElevenLabs conversation ID (the server derives whose memory to read from it)',
-        },
+        conversation_id: identityParam(
+          platformIdentity,
+          SYSTEM_CONVERSATION_ID,
+          'The current ElevenLabs conversation ID (the server derives whose memory to read from it)',
+        ),
         query: {
           type: 'string',
           description: 'What you want to remember (e.g., "their budget", "family situation", "business goals")',
@@ -181,7 +241,11 @@ Use this when you need to remember something specific they've told you before.`,
   };
 }
 
-function saveMemoryTool(webhookUrl: string, headers: Record<string, string>): ConvAITool {
+function saveMemoryTool(
+  webhookUrl: string,
+  headers: Record<string, string>,
+  platformIdentity: boolean,
+): ConvAITool {
   return {
     type: 'webhook',
     name: 'save_memory',
@@ -191,10 +255,11 @@ Use this for key facts, preferences, decisions, or anything you should remember 
     parameters: {
       type: 'object',
       properties: {
-        conversation_id: {
-          type: 'string',
-          description: 'The current ElevenLabs conversation ID (the server derives whose memory to write from it)',
-        },
+        conversation_id: identityParam(
+          platformIdentity,
+          SYSTEM_CONVERSATION_ID,
+          'The current ElevenLabs conversation ID (the server derives whose memory to write from it)',
+        ),
         memory: {
           type: 'string',
           description: 'The fact or insight to remember',

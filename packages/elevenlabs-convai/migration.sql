@@ -305,7 +305,16 @@ BEGIN
   INTO memories_json
   FROM (
     SELECT * FROM convai_memory
-    WHERE agent_id = p_agent_id
+    -- agent_id IS NULL is INCLUDED on purpose, and it is the fix for the failure users actually
+    -- report: recall works mid-call, and the next session knows nothing.
+    --
+    -- The server-baked identity path (`resolveToolIdentity`) documents agentId as OPTIONAL — omit it
+    -- and recall spans the whole user, which is the correct choice for one-agent-per-user. So
+    -- handleSaveMemory inserts agent_id NULL for every fact the agent saves through its tools. A
+    -- strict `agent_id = p_agent_id` then hides exactly those rows from the connect-time context,
+    -- while `has_history` still reports true off the conversation row — the agent is told it has met
+    -- you and handed nothing to say about it.
+    WHERE (agent_id = p_agent_id OR agent_id IS NULL)
       AND user_id = p_user_id
       AND active = true
     ORDER BY importance DESC, created_at DESC
@@ -461,6 +470,33 @@ BEGIN
   ) THEN
     ALTER TABLE convai_memory ALTER COLUMN agent_id DROP NOT NULL;
     RAISE NOTICE 'convai_memory.agent_id: dropped NOT NULL (memory writes were failing the constraint)';
+  END IF;
+END $$;
+
+-- get_conversation_context: the agent_id predicate must admit NULL.
+--
+-- The §8 definition above is CREATE OR REPLACE, so re-running THIS file patches any database using
+-- the default convai_* names. It cannot reach a product that CLONED the function against renamed
+-- tables (Kira's kira_memory / kira_agent_id is the live example) — that copy lives in the product's
+-- own migrations and keeps the strict predicate until the product changes it.
+--
+-- So: detect and say so, loudly, rather than assume. A WARNING and not an exception, because the
+-- clone belongs to the consumer; failing their migration on our diagnosis would be the wrong owner
+-- taking the wrong action.
+DO $$
+DECLARE
+  stale TEXT;
+BEGIN
+  SELECT string_agg(format('%s.%s', n.nspname, p.proname), ', ')
+  INTO stale
+  FROM pg_proc p
+  JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE p.proname = 'get_conversation_context'
+    AND pg_get_functiondef(p.oid) LIKE '%agent_id = p_agent_id%'
+    AND pg_get_functiondef(p.oid) NOT LIKE '%agent_id IS NULL%';
+
+  IF stale IS NOT NULL THEN
+    RAISE WARNING 'get_conversation_context (%) still filters agent_id = p_agent_id with no NULL branch. Tool-saved memories carry agent_id NULL, so cross-session recall returns has_history=true with an EMPTY memory list. Apply the same (agent_id = p_agent_id OR agent_id IS NULL) change to that definition.', stale;
   END IF;
 END $$;
 

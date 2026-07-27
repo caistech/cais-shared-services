@@ -248,3 +248,45 @@ quietly does nothing is indistinguishable from one that passed.
 **Config** (CLI flag, else env, else `.vercel/project.json`): `VERCEL_TOKEN` (read scope),
 `VERCEL_PROJECT_ID` / `VERCEL_TEAM_ID`, `PUBLIC_ALIAS` (a **publicly reachable** production URL —
 not a protected alias), `APP_MARKER`, and the expected ref from `GITHUB_SHA` or `git rev-parse HEAD`.
+
+---
+
+## Voice memory loop — does the agent actually remember? (v0.9.0)
+
+```bash
+portfolio-gate-memory-loop --base-url https://app.example.com          # reads ./memory-loop.config.json
+portfolio-gate-memory-loop --base-url ... --distil                     # also assert the transcript leg
+```
+
+Runs `probeMemoryLoop` from `@caistech/elevenlabs-convai/testing` against a deployment. It skips
+cleanly where the repo declares no voice dependency, and where the repo has recorded
+`"memoryLoop": false` — an opt-out for a product whose agent legitimately holds no cross-session
+memory.
+
+**`./memory-loop.config.json` is now read automatically.** It was previously honoured only when
+`--config` was passed, so a bare `--base-url` run bypassed the opt-out and probed a product that had
+already declared, on the record, that there was nothing to probe. An opt-out that depends on the
+caller remembering to point at it is not an opt-out.
+
+**What the run prints, every time:** the resolved target URL, identity mode, uid and post-call URL.
+Three runs were once spent diagnosing a red that came from a misnamed variable pointing the probe at
+an empty string; a gate that does not say what it tested cannot be debugged from its output.
+
+**Config keys** (all optional except where noted):
+
+| Key | Why it exists |
+|---|---|
+| `memoryLoop: false` | The recorded opt-out. Explicit, never inferred. |
+| `webhookPath` | Where the convai routes are mounted. Default `/api/convai/webhooks`. |
+| `identityMode` | `uid` (one agent per user, identity baked at provision) or `conversation` (one agent per site, platform-filled id resolved against a connect-time binding). Both are real shapes; a gate that knows one declares the other broken. |
+| `conversationId` | Required by `conversation` mode — only the product can create a binding. |
+| `agentId` | The canonical start route requires it and answers "Agent not found" without it. Resolved from `agentsTable` when omitted. |
+| `postCallPath` | Origin-relative — the portable way to say "post-call is not under the tool path" (Kira: tools at `/api/kira/webhooks/*`, post-call at `/api/convai/webhooks/post-call`). Prefer this in a committed config. |
+| `postCallUrl` | Absolute. Pins the file to one environment, so it is wrong the moment the gate runs against a preview — use `postCallPath` unless you mean exactly one host. Post-call is commonly a *sibling* of the tool routes, not a child, and a wrong path used to score as a security pass. |
+| `expectDistil` | Assert transcript → post-call → next connect. Needs `ELEVENLABS_WEBHOOK_SECRET`. Performs real writes. |
+| `memoryTable` / `conversationsTable` / `agentsTable` | For products that renamed the canonical `convai_*` set. |
+| `toolSecretHeader` | For products that named their own header (Kira: `x-kira-tool-secret`). |
+
+**A `SKIP` is not a pass.** Checks that cannot be asserted from outside — continuity in
+`conversation` mode, for instance — print at the same weight as failures and are excluded from the
+verdict rather than counted as green.
