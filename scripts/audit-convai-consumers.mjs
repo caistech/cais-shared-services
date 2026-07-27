@@ -53,7 +53,21 @@ function grepAny(files, patterns) {
   return false;
 }
 
+// Repos whose GitHub remote is ARCHIVED (read-only: push returns 403, and no CI runs there).
+// They keep surfacing in this audit because the dependency is still in a local clone's
+// package.json, so every sweep re-reports them as gaps and someone writes a config that can never
+// be pushed — which is what happened to MMCBuild on 2026-07-27. An archived repo cannot be fixed
+// and cannot fail a gate, so the correct action is to stop enumerating it, not to keep configuring
+// it. Verified archived via `gh repo view --json isArchived` before being listed here.
+const ARCHIVED = new Set([
+  'MMCBuild',                    // dennissolver/mmcbuild — archived (CAS→MMC handover, 2026-05-25)
+  'mmcbuild-prod',               // dennissolver/mmc-market — archived
+  'HairStylistAI',               // dennissolver/HairStylistAI — archived
+  '_deprecated-mmcbuild-webapp', // dennissolver/mmcbuild-webapp — superseded, name says so
+]);
+
 const repos = readdirSync(ROOT).filter((d) => {
+  if (ARCHIVED.has(d)) return false;
   const pj = join(ROOT, d, 'package.json');
   if (!existsSync(pj)) return false;
   try {
