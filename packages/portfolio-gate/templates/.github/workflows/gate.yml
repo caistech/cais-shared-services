@@ -169,6 +169,11 @@ jobs:
       - name: Voice memory-loop gate (skips where there is no voice agent)
         env:
           MEMORY_LOOP_UID: ${{ secrets.QA_TEST_USER_ID }}
+          # The test user's provisioned agent id. Not a secret, but environment-specific — the
+          # canonical start route requires it and answers "Agent not found" without one, so leaving
+          # it unset makes the continuity check SKIP rather than assert. Omit only where the repo
+          # gives a service-role client, which lets the probe read it from the agents table.
+          MEMORY_LOOP_AGENT_ID: ${{ secrets.MEMORY_LOOP_AGENT_ID }}
           CONVAI_TOOL_SECRET: ${{ secrets.CONVAI_TOOL_SECRET }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -189,7 +194,11 @@ jobs:
             echo "::warning title=Voice memory loop NOT verified::@caistech/portfolio-gate in this repo predates the memory-loop gate (needs >=0.7.0). The voice memory loop is not being checked here. Bump the dependency to enable it."
             exit 0
           fi
-          "$BIN" --config memory-loop.config.json --base-url "$PORTFOLIO_GATE_PREVIEW_URL"
+          # No --config: portfolio-gate >=0.9.0 auto-discovers ./memory-loop.config.json, and an
+          # EXPLICIT --config that cannot be read is an argument error (exit 2). Naming the file here
+          # therefore turned "this repo has no config yet" into a hard argument failure instead of the
+          # intended "missing configuration FAILS with a message naming what is missing".
+          "$BIN" --base-url "$PORTFOLIO_GATE_PREVIEW_URL"
 
       # Static counterpart to the runtime probe. The Mnemo dual-write happens in the POST-CALL
       # path, which probeMemoryLoop never triggers — so a product missing the semantic leg passes
