@@ -279,6 +279,22 @@ projects:
     envs:
       PLATFORM_TRUST_PROJECT_ID: { ref: "$secret:platform_trust_project_id_kira" }
 
+  # The orchestrator. Its OWN Supabase (xuzvurmprexhalnxgsdu) and its own repo, deliberately, so it
+  # can be unplugged and replaced without unpicking its tables from another product's.
+  # Deliberately NOT inheriting PLATFORM_TRUST_* — it has no Platform Trust integration, and the
+  # onboarding template's default would create env vars for a service it never calls.
+  # RESEND_API_KEY is its own (per-product, like every other Resend key in the portfolio), and the
+  # sender identity it uses is the TENANT's, read from the database, not the shared EMAIL_SENDER_*.
+  - name: orchestrator
+    vercel_project_id: "prj_jHqRPUYBJhnlI9CSGNf35iYALocL"
+    supabase_project_ref: "xuzvurmprexhalnxgsdu"
+    inherit_shared:
+      - GITHUB_PACKAGES_TOKEN
+    envs:
+      NEXT_PUBLIC_SUPABASE_URL: { from_supabase: url }
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: { from_supabase: anon_key }
+      SUPABASE_SERVICE_ROLE_KEY: { from_supabase: service_role_key }
+
   - name: bucketlyst
     # Transferred from the operator's personal Vercel team into Corporate AI Solutions on
     # 2026-07-27. It had only ever been on the hobby team because that was the CLI default at

@@ -74,6 +74,7 @@ REPOS=(
   # Its repo + Vercel project moved to CAS the same day, which is what made it
   # reachable from here at all.
   BucketLyst
+  orchestrator
 )
 
 # Map GitHub repo folder → Vercel project slug (they differ in several cases)
@@ -102,6 +103,7 @@ declare -A VERCEL_SLUG=(
   [executorai]=executorai
   [pipeline]=pipeline
   [BucketLyst]=bucketlyst
+  [orchestrator]=orchestrator
 )
 
 # --- Step 1: write .env.local per repo ----------------------------------------
