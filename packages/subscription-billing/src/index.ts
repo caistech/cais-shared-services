@@ -27,12 +27,27 @@ export type {
 } from './types.js'
 
 export type {
+  ArrearsPriceLineItem,
   CheckoutLineItem,
   CreateCheckoutSessionOptions,
   DynamicPriceLineItem,
   FixedPriceLineItem,
 } from './checkout.js'
 export { createBillingPortalSession, createSubscriptionCheckoutSession } from './checkout.js'
+
+export type {
+  CancelWithWaiverOptions,
+  EnsureBillingMeterOptions,
+  EnsureMeteredPriceOptions,
+  MeterAggregation,
+  ReportPeriodOwedOptions,
+} from './arrears.js'
+export {
+  cancelWithWaiver,
+  ensureBillingMeter,
+  ensureMeteredPrice,
+  reportPeriodOwed,
+} from './arrears.js'
 
 export type { HandleSubscriptionWebhookOptions, IdempotencyStore } from './webhook.js'
 export { handleSubscriptionWebhook, normalizeStatus } from './webhook.js'

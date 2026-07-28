@@ -10,6 +10,8 @@
 
 import type Stripe from 'stripe'
 
+import { ensureBillingMeter, ensureMeteredPrice } from './arrears.js'
+
 /** A line item priced by an existing Stripe Price object. */
 export interface FixedPriceLineItem {
   priceId: string
@@ -31,7 +33,34 @@ export interface DynamicPriceLineItem {
   quantity?: number
 }
 
-export type CheckoutLineItem = FixedPriceLineItem | DynamicPriceLineItem
+/**
+ * A line item billed IN ARREARS — the period is owed from day one and invoiced when it closes,
+ * and a cancellation before the bill falls due waives it. See `./arrears.ts` for the model and
+ * why it cannot be a flag on `DynamicPriceLineItem`: Checkout's inline `price_data.recurring`
+ * has no `usage_type` and no `meter`, so the Price must exist before the session does.
+ *
+ * The price is still computed per customer — it is resolved to a reusable Price object keyed on
+ * the band, not to a new one per checkout.
+ */
+export interface ArrearsPriceLineItem {
+  /** Discriminator. Set it explicitly: arrears is a commercial decision, not a default. */
+  arrears: true
+  /** Meter event name, stable per product (e.g. `kira_subscription_month`). */
+  meterEventName: string
+  /** ISO currency code; case-insensitive. */
+  currency: string
+  /** Amount in the currency's MINOR unit (cents) for ONE period. Round before passing. */
+  unitAmount: number
+  interval?: 'day' | 'week' | 'month' | 'year'
+  productName: string
+  productDescription?: string
+  /** Namespace for the generated price `lookup_key` — pass the product slug. */
+  lookupKeyPrefix: string
+  /** Dashboard label for the meter, if it has to be created. */
+  meterDisplayName?: string
+}
+
+export type CheckoutLineItem = FixedPriceLineItem | DynamicPriceLineItem | ArrearsPriceLineItem
 
 export interface CreateCheckoutSessionOptions {
   /** Stripe SDK instance — the caller constructs it (and pins the API version). */
@@ -63,6 +92,41 @@ function isFixedPrice(item: CheckoutLineItem): item is FixedPriceLineItem {
   return 'priceId' in item
 }
 
+function isArrears(item: CheckoutLineItem): item is ArrearsPriceLineItem {
+  return 'arrears' in item && item.arrears === true
+}
+
+/**
+ * Resolve an arrears line item to a Checkout line.
+ *
+ * Two Stripe constraints are load-bearing here and both fail confusingly if broken: a metered price
+ * cannot be created inline via `price_data`, and a metered line item must NOT carry `quantity`
+ * (Stripe rejects the session — the quantity comes from reported usage, not from the cart).
+ */
+async function arrearsLine(
+  stripe: Stripe,
+  item: ArrearsPriceLineItem,
+): Promise<Stripe.Checkout.SessionCreateParams.LineItem> {
+  const meter = await ensureBillingMeter({
+    stripe,
+    eventName: item.meterEventName,
+    displayName: item.meterDisplayName,
+  })
+
+  const price = await ensureMeteredPrice({
+    stripe,
+    meterId: meter.id,
+    currency: item.currency,
+    unitAmount: item.unitAmount,
+    interval: item.interval,
+    productName: item.productName,
+    productDescription: item.productDescription,
+    lookupKeyPrefix: item.lookupKeyPrefix,
+  })
+
+  return { price: price.id }
+}
+
 /**
  * Build and create a subscription Checkout Session.
  *
@@ -89,20 +153,35 @@ export async function createSubscriptionCheckoutSession(
     billingAddressCollection = 'auto',
   } = opts
 
-  const line: Stripe.Checkout.SessionCreateParams.LineItem = isFixedPrice(lineItem)
-    ? { price: lineItem.priceId, quantity: lineItem.quantity ?? 1 }
-    : {
-        price_data: {
-          currency: lineItem.currency.toLowerCase(),
-          unit_amount: lineItem.unitAmount,
-          recurring: { interval: lineItem.interval ?? 'month' },
-          product_data: {
-            name: lineItem.productName,
-            ...(lineItem.productDescription ? { description: lineItem.productDescription } : {}),
-          },
+  // A trial and arrears are contradictory offers, and the contradiction is invisible for thirty
+  // days: a trial gives the first period away, arrears bills it in retrospect. Refuse rather than
+  // silently pick one — the wrong choice here is a month of revenue per customer.
+  if (isArrears(lineItem) && trialDays != null) {
+    throw new Error(
+      'trialDays cannot be combined with an arrears line item: a trial gives the first period ' +
+        'away, whereas arrears bills it when the period closes. Choose one.',
+    )
+  }
+
+  let line: Stripe.Checkout.SessionCreateParams.LineItem
+  if (isArrears(lineItem)) {
+    line = await arrearsLine(stripe, lineItem)
+  } else if (isFixedPrice(lineItem)) {
+    line = { price: lineItem.priceId, quantity: lineItem.quantity ?? 1 }
+  } else {
+    line = {
+      price_data: {
+        currency: lineItem.currency.toLowerCase(),
+        unit_amount: lineItem.unitAmount,
+        recurring: { interval: lineItem.interval ?? 'month' },
+        product_data: {
+          name: lineItem.productName,
+          ...(lineItem.productDescription ? { description: lineItem.productDescription } : {}),
         },
-        quantity: lineItem.quantity ?? 1,
-      }
+      },
+      quantity: lineItem.quantity ?? 1,
+    }
+  }
 
   const subscriptionData: Stripe.Checkout.SessionCreateParams.SubscriptionData = {}
   if (trialDays != null) subscriptionData.trial_period_days = trialDays

@@ -60,6 +60,63 @@ Put the identifiers you'll need later in **`subscriptionMetadata`**, not just `m
 metadata only appears on `checkout.session.completed`, while subscription metadata rides on every
 subsequent lifecycle event.
 
+## 2b. Arrears — "you are never billed for the month you are in" (v0.2.0)
+
+The default shapes above bill **in advance**. If your commercial model is that the period is **owed
+from day one and invoiced when it closes**, with a cancellation before the bill falls due **waiving**
+that month, use the arrears line item.
+
+```ts
+const session = await createSubscriptionCheckoutSession({
+  stripe,
+  lineItem: {
+    arrears: true,
+    meterEventName: 'kira_subscription_month', // stable per product
+    currency: 'AUD',
+    unitAmount: Math.round(quote.monthly * 100),
+    productName: 'Kira Business Plan',
+    lookupKeyPrefix: 'kira',
+  },
+  // NO trialDays — it is the opposite offer, and passing both throws.
+  successUrl, cancelUrl,
+})
+```
+
+Then report each period as it **begins**, and waive on cancellation:
+
+```ts
+import { cancelWithWaiver, reportPeriodOwed } from '@caistech/subscription-billing'
+
+await reportPeriodOwed({
+  stripe,
+  eventName: 'kira_subscription_month',
+  stripeCustomerId,
+  identifier: `${subscriptionId}:${periodStartUnix}`, // dedupes a retried webhook
+})
+
+await cancelWithWaiver({ stripe, subscriptionId }) // prorate:false + invoice_now:false
+```
+
+### Four things that bite
+
+1. **A trial is not arrears.** They look identical for thirty days and then invert: the day-30
+   charge under a trial buys days 30–60, under arrears it pays for days 0–30. A product that means
+   arrears and ships `trialDays: 30` under-bills by one month per customer, forever. Passing both
+   throws rather than silently picking one.
+2. **Arrears can't be an inline `price_data` flag.** Checkout's `price_data.recurring` accepts only
+   `interval`/`interval_count` — no `usage_type`, no `meter` — so the Price must exist before the
+   session does. That is what `ensureMeteredPrice` is for, and it is keyed on a deterministic
+   `lookup_key` so a per-customer price doesn't create a new Price object per checkout.
+3. **Dropping `trialDays` without switching to arrears charges immediately.** The full amount comes
+   out at checkout — the exact opposite of the intent. Change both together.
+4. **An unreported period invoices $0 and bills nobody**, against a subscription that looks
+   completely healthy. `reportPeriodOwed` throws on failure so the caller can assert it happened;
+   treat it as an error path, not a promise you may ignore.
+
+The waiver is `cancelWithWaiver`, not two options set correctly at a call site, because a promise
+that can be forgotten is not a promise. An invoice landing after a customer cancelled and was told
+the month was on us is the failure this shape exists to make structurally impossible.
+
 `createBillingPortalSession` is also exported — every subscription product owes its customers a way
 to cancel and update their card.
 
