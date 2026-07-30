@@ -1245,6 +1245,86 @@
       },
       "fixed_at": "2026-07-26",
       "fixed_by": "claude-code (f2k estate archive audit-trail check)"
+    },
+    {
+      "id": "sayfix-diagnosis-plan-with-no-activate-button",
+      "product": "SayFix",
+      "error_pattern": "Console diagnosis card announces a drafted fix plan, but there is no control to activate it or take the ticket forward",
+      "error_symptoms": "A ticket shows \"Code fix — plan drafted\" with no plan text beneath it and no Approve plan → build button anywhere. The Scope with Claude panel — the only forward path — is not rendered, and the card tells the operator to use a button \"in the scope panel below\" that is not on the page. The degraded diagnosis also asserts an unrelated prior fix as the root cause.",
+      "attempts": [
+        {
+          "tried": "Assumed the promote route was broken or blocked by write permissions",
+          "result": "FAILED — /api/tickets/[id]/scope/promote works and already accepts an explicit { plan } in the request body"
+        },
+        {
+          "tried": "Assumed the Investigate pass had not produced a plan message",
+          "result": "PARTLY — it posts the plan as an assistant message ONLY when verdict is code_fix AND plan_markdown exists; the degraded keyword path returns code_fix with no plan, so nothing is ever posted and the button can never light up"
+        }
+      ],
+      "solution": {
+        "approach": "Three coupled defects, all on the console ticket surface. (1) The plan drafted by Investigate lives on tickets.diagnosis.plan_markdown, but the only promote control read a \"## Plan\" out of an assistant message in the scope thread — a different source — so a plan could be displayed with nothing to action it. Put the button ON the plan being displayed, posting it to the existing promote route via its { plan } body. (2) The scope panel was gated to escalated/failure states or an existing thread, so an open ticket (state preparing, no messages) had no forward path at all; render it for every non-closed state. (3) The keyword fallback returned verdict code_fix with no plan_markdown while the badge hardcoded the label \"Code fix — plan drafted\", announcing work that was never done. The fallback must never claim code_fix (that verdict promises a promotable plan it cannot write), and a keyword KB hit is an unverified LEAD, not a root cause — asserting one produced a magic-link email failure \"explained\" by an unrelated note about estate registration pages (degrade-don't-fake, DATA_STANDARD R4).",
+        "code_path": "src/components/console/PromotePlan.tsx (new); src/lib/console/diagnosis.ts + src/lib/__tests__/console-diagnosis.test.ts (new — pins the badge honesty rule); src/app/console/[id]/page.tsx; src/app/api/tickets/[id]/investigate/route.ts"
+      },
+      "fixed_at": "2026-07-30",
+      "fixed_by": "claude"
+    },
+    {
+      "id": "kira-task-status-object-written-into-status-column",
+      "product": "kira",
+      "date": "2026-07-30",
+      "error_pattern": "kira_tasks.status contains a JSON object ({\"taskGroupId\":...,\"status\":\"queued\",\"draft\":{...}}) instead of one of the six TaskState strings",
+      "error_symptoms": "Tasks are in the database and on NO page. /admin/asked-for looks calm, the approval flow finds nothing, the owner is told his email was drafted and it never sends. Rows have handled_by='orchestrator' and a non-terminal status. Nothing errors; no log line; the row looks healthy in the table. Only rows older than the 15-minute grace window are affected, which makes it look like a dispatch bug when the dispatch was fine.",
+      "attempts": [
+        {
+          "tried": "Inspected the dispatch-time writer (lib/kira/swarm/tool-handlers.ts mirrorTask, status: result.status) and the wire adapter (orchestrator-adapter.ts) and the orchestrator's own /v1/dispatch route",
+          "result": "FAILED to explain it - all three are correct on disk. Led to a false 'the deployed build must differ from main' theory. It did not; deployed == origin/main."
+        },
+        {
+          "tried": "Compared deployed Vercel production against origin/main HEAD",
+          "result": "Ruled out deploy drift - no unpushed commits, latest prod deploy is the current HEAD"
+        },
+        {
+          "tried": "Grepped for EVERY writer of the table rather than the obvious two",
+          "result": "SUCCESS - found a third writer nobody had checked: the reconcile cron"
+        }
+      ],
+      "solution": {
+        "approach": "app/api/cron/reconcile-tasks/route.ts called coordinator.getTaskState(), which returns a TaskStatus OBJECT, then wrote `status: live` (the object) instead of `live.status`. The guard hid it: `live === task.status` compares an object to a string, so it is NEVER equal, every row looked changed, and every 20-minute run rewrote the same damage. Fix: read live.status, validate it with a new runtime validator asTaskState() (a bare `x as TaskState` cast validates nothing and is what let an object through), skip the row when unreadable, and add a CHECK constraint on kira_tasks.status so the write errors instead of persisting. GENERAL LESSON: when a column holds a serialised object, enumerate EVERY writer of that table - the culprit is the one nobody thought was a writer - and never trust an equality guard that compares across types.",
+        "code_path": "app/api/cron/reconcile-tasks/route.ts; lib/kira/swarm/coordinator.ts (asTaskState); supabase/migrations/20260730090000_kira_tasks_status_integrity.sql"
+      }
+    },
+    {
+      "id": "supabase-auth-smtp-pass-stale-after-resend-key-rotation",
+      "product": "f2k-projects",
+      "date": "2026-07-30",
+      "error_pattern": "Supabase Auth /otp and /recover return 500 unexpected_failure \"Error sending magic link email\"; auth_logs show gomail: could not send email 1: 550 \"The updates.corporateaisolutions.com domain is not verified. Please, add and verify your domain on https://resend.com/domains\"",
+      "error_symptoms": "Admin cannot log in; magic link and forgot-password produce no email while password login still works; the app's OWN Resend sends (registration acknowledgements, digests) keep delivering fine; DNS for the sending subdomain (SPF, DKIM, feedback MX) is fully intact; Supabase auth config looks healthy (custom SMTP enabled, rate_limit_email_sent 30, redirect allowlist correct); no deploy failed and production is running the current commit",
+      "attempts": [
+        {
+          "tried": "Suspected the domain lost verification (the message says so, and a prior SayFix fix had exactly that cause) — checked SPF/DKIM/MX for updates.corporateaisolutions.com via DNS",
+          "result": "WRONG PATH. All records present and correct (SPF include:amazonses.com, resend._domainkey DKIM, feedback-smtp MX in ap-northeast-1). The 550 does not mean DNS is broken."
+        },
+        {
+          "tried": "Suspected the admin allowlist or the auth_user_id link broke in the Seoul->Sydney migration — joined public.admin_users to auth.users",
+          "result": "Ruled out. uwe@factory2key.com.au is super_admin, linked to a confirmed auth user with a password, last sign-in 2026-06-30."
+        },
+        {
+          "tried": "Suspected middleware / callback drift or a stale production deploy — reviewed src/middleware.ts, /api/auth/callback (PKCE) and /api/auth/confirm (token_hash), and compared the deployed commit SHA to origin/main",
+          "result": "Ruled out. Minted a magiclink token_hash with admin/generate_link and walked it through /api/auth/confirm on production: 307 -> /admin, session cookie set, /admin rendered. Every code path works; only DELIVERY was broken."
+        },
+        {
+          "tried": "Read Supabase auth_logs (Management API analytics/endpoints/logs.all) for the failing request id",
+          "result": "FOUND IT. The 550 came from Resend at send time, meaning the SMTP credential authenticated but its account has no verified sending domain."
+        },
+        {
+          "tried": "Compared the Vercel RESEND_API_KEY updatedAt to the last successful app email and the last successful admin login",
+          "result": "CONFIRMED. RESEND_API_KEY was rotated in Vercel 2026-06-29 11:50 UTC to a key from a different Resend account (the mcmdennis org). Supabase Auth's own smtp_pass copy was never updated, so it kept the OLD account's key. All auth email dead from 2026-06-29; unnoticed for a month because password login still worked."
+        }
+      ],
+      "solution": {
+        "approach": "Supabase Auth stores its OWN copy of the Resend API key in smtp_pass, independent of the app's Vercel RESEND_API_KEY. Rotating the app's key does not update Supabase's, and nothing surfaces the divergence. THE DISCRIMINATOR for the identical 550/400 'domain is not verified' message: call GET https://api.resend.com/domains with THAT SPECIFIC KEY. If the domain is absent, the key is from the wrong Resend account (this bug — fix the key). If it is present but status != verified, verification genuinely lapsed (fix DNS — the earlier SayFix case). Do not start with DNS. Fix: PATCH https://api.supabase.com/v1/projects/{ref}/config/auth {smtp_pass: <current key>} with the management token from ~/.supabase-token, then PROVE it by POSTing /auth/v1/otp and confirming a 200 plus a delivered status in the Resend API — a saved config is not a working send.",
+        "code_path": "scripts/repair-auth-smtp.mjs (f2k-projects) — reads RESEND_API_KEY from .env.local without printing it, refuses to push a key whose account lacks the verified domain, PATCHes Supabase Auth, then verifies with a real send. Diagnosis path: GET /v1/projects/{ref}/analytics/endpoints/logs.all?sql=select ... from auth_logs — the only place the underlying SMTP error is visible; the client only ever sees a generic 500."
+      }
     }
   ],
   "usage": "Before fixing ANY bug, grep this file for matching error patterns. Also check SayFix DB for product-specific attempts.",
