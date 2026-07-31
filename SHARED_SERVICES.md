@@ -30,7 +30,20 @@
 >
 > **Install:** registry is GitHub Packages (`@caistech:registry=https://npm.pkg.github.com`, token
 > `NODE_AUTH_TOKEN`/`GITHUB_PACKAGES_TOKEN`). `npm install @caistech/<name>`. Consumers import the
-> compiled `dist/`, never source. **Last updated:** 2026-07-25 (53 packages).
+> compiled `dist/`, never source. **Last updated:** 2026-07-31 (53 packages).
+>
+> **OPEN EXTRACTION CANDIDATES — second occurrence reached, package not yet built.** Listed here so a
+> third implementation is a deliberate choice rather than an accident:
+> - **`@caistech/google-workspace`** (Drive + Gmail + Contacts over one OAuth client). Two live
+>   implementations: **F2K-Checkpoint** `src/lib/drive/client.ts` (single identity, one script-minted
+>   refresh token in env — right for one company's own mailbox) and **orchestrator**
+>   `src/connectors/google.ts` (multi-tenant, per-owner consent, tokens in `connections`). Checkpoint's
+>   is the more mature client; the orchestrator's is the correct tenancy model. Setup shape, scope set
+>   and the silent-failure traps are canonical in **`GOOGLE_WORKSPACE_CONNECTOR.md`** — read it before
+>   writing any Google integration.
+> - **Document text extraction** (PDF/docx/xlsx → text). Belongs in `@caistech/dataroom-core`'s
+>   already-documented-but-unshipped `/ingest` subpath, NOT forked per product.
+>   `@caistech/document-ingest` is not it — that one is specialised to AU subdivision approvals.
 
 ---
 
