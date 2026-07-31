@@ -208,6 +208,102 @@ start it before you need it.
 
 ---
 
+## 6.5 Onboarding a CLIENT — who does what
+
+Written because the question keeps being asked as *"how do we get the client's Google credentials?"*,
+and the answer is that in the normal case **there are none to get.** One app, many consents: the
+client authorises OUR app against THEIR account. They never create a Cloud project, an OAuth client,
+or a secret, and no credential of theirs is ever sent to us or held by us.
+
+Two scenarios. Almost every client is Scenario A.
+
+---
+
+### Scenario A — the default: the client consents to our app
+
+**Client-side work: one click, about thirty seconds, no console, no IT involvement.**
+
+| # | Who | Work | When |
+|---|---|---|---|
+| 1 | **Us, once ever** | Cloud project, consent screen, OAuth client, scope set (§2), verification (§6) | Before the first client |
+| 2 | **Us, per client** | Nothing. The tenant row is auto-provisioned on first use | — |
+| 3 | **Client** | Click *Connect Google*, choose the right account, tick the permissions, done | At onboarding |
+| 4 | **Us** | Confirm the connection reports the access we expected — granted, not requested | Immediately after |
+
+**The two things that actually go wrong here are both the client's choice at the consent screen**,
+and neither announces itself afterwards:
+
+- **The wrong Google account.** Owners are routinely signed into several. Connecting the wrong one is
+  not a visible failure — it is a Drive with none of their documents in it. `login_hint` is passed to
+  pre-select, which is why setup asks which address they use for the business rather than assuming
+  the one they signed up with.
+- **A permission unticked.** Google lets them decline individual scopes and still complete the flow,
+  so a connection can read "connected" while granting nothing useful. Always read back the GRANTED
+  scope and show it. Kira's Settings states Drive access level, Gmail, and contacts separately for
+  exactly this reason: a declined contacts scope is otherwise invisible in use, felt only as the
+  product being forgetful, with a remedy nobody would think to try.
+
+#### Copy-paste instructions for the client
+
+> **Connecting your Google account**
+>
+> 1. Open **Settings → Connected accounts** and click **Connect Google**.
+> 2. **Choose the Google account you use for the business.** If you have more than one, this matters
+>    — pick the one your work documents and email live in.
+> 3. You will see a list of permissions. **Leave them all ticked.** If you untick one, that part
+>    simply will not work, and it will not be obvious which.
+> 4. Click **Continue**. You will land back on the Settings page.
+> 5. Check that it says the account you expected, and that Drive, Gmail and Contacts are listed.
+>
+> You are not giving anyone a password, and you can disconnect at any time — from that same page, or
+> from your Google account under Security → Third-party apps.
+>
+> **If you see a screen saying the app is not verified**, stop and tell us rather than clicking
+> through: it means you have reached a build that is not ready for you yet.
+
+---
+
+### Scenario B — the client insists on their own Cloud project
+
+Rare, and worth pushing back on before agreeing: it moves the console work, the verification, and the
+ongoing maintenance onto someone who does it once and never again. Legitimate reasons are data
+residency, their own API quota, an internal policy against third-party OAuth apps, or a white-label
+deployment they own and operate (the `CLIENT_HANDOVER_KIT` case).
+
+**Their work is console-only and cannot be automated** (§1) — no API creates a consent screen or
+mints an OAuth client, deliberately.
+
+| # | Who | Work |
+|---|---|---|
+| 1 | **Client** | Create a Cloud project |
+| 2 | **Client** | Enable Drive, Gmail and **People** APIs (contacts live in People; there is no "Contacts API") |
+| 3 | **Client** | Configure the consent screen: app name, support email, developer contact, **and the privacy policy + terms URLs** — mandatory for verification, and a submission without them is rejected |
+| 4 | **Client** | Add the §2 scopes via the **Pasted Scopes** box, not the picker — the console's scope table is mis-sorted and omits several, including both contacts scopes |
+| 5 | **Client** | Create a **Web application** client. Leave JavaScript origins empty; the flow is server-side |
+| 6 | **Client** | Register the exact redirect URI we give them, character for character |
+| 7 | **Client** | Send us the client ID and secret **over a password manager or an encrypted channel — never plain email** |
+| 8 | **Client** | Choose Internal or External, and if External, own the verification (§6) — weeks, plus a paid third-party security assessment for restricted scopes |
+| 9 | **Us** | Set the two env vars, run the preflight (§1), confirm the redirect URI is registered before anyone tries to connect |
+
+**Tell them about the verification cost at step 1, not step 8.** Restricted scopes (`drive`,
+`drive.readonly`, `gmail.readonly`) require a demo video, per-scope justification and a CASA security
+assessment. A client who wanted "their own project for control" often stops wanting it once that is
+priced. **If they proceed, ask whether `drive.file` will do** — it is non-sensitive, needs no
+assessment, and covers any flow where the user picks the files. It is the difference between
+connecting this month and connecting next quarter.
+
+---
+
+### What we never ask a client for
+
+- A Google password, or a "service account for their Drive". Neither is how this works, and being
+  asked for either is a phishing signature — say so plainly, because they may be right to be wary.
+- Their client secret over email or chat. Password manager or encrypted channel (`PRODUCT_STANDARDS`
+  §9), same as any live credential.
+- Anything at all in Scenario A beyond the consent click.
+
+---
+
 ## 7. Reference implementations
 
 - **Multi-tenant, per-owner consent** — Kira / orchestrator: `src/connectors/google.ts`,
