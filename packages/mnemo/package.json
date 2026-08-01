@@ -1,6 +1,6 @@
 {
   "name": "@caistech/mnemo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "The one Mnemo client — transport only (add/search, fail-soft, never throws). Each consumer owns its own SCOPE POLICY, because planning (shared+jurisdiction-keyed), bug-knowledge (portfolio-wide), voice memory (per-user) and SayFix (per-website) are deliberately different isolation models.",
   "type": "module",
   "main": "dist/index.js",

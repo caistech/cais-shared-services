@@ -151,3 +151,64 @@ describe('normaliseFact', () => {
     expect(normaliseFact('developing X')).not.toBe(normaliseFact('currently developing X'))
   })
 })
+
+describe('forgetting a fact', () => {
+  // A product whose users can delete a fact could delete it everywhere except here. Kira's owner
+  // removes a line from his Genome — it leaves the page, his recall and his export — and the
+  // dual-written copy in the semantic lane survived, so she could still bring it up later. He would
+  // have taken it back from everything he could see and been wrong.
+
+  it('keeps the memory ids that search throws away', async () => {
+    const fetchImpl = okFetch({
+      results: [
+        { memoryId: 'm-1', content: 'the yard is sublet' },
+        { memoryId: 'm-2', content: 'pricing is cost plus 18%' },
+      ],
+    })
+    const mnemo = createMnemoClient({ apiKey: 'k', fetchImpl: fetchImpl as never })
+    expect(await mnemo.find(SCOPE, 'yard')).toEqual([
+      { id: 'm-1', content: 'the yard is sublet' },
+      { id: 'm-2', content: 'pricing is cost plus 18%' },
+    ])
+  })
+
+  it('drops results missing either half', async () => {
+    // An id with no content cannot be shown to anyone for confirmation; content with no id cannot
+    // be acted on. Neither is usable, so neither is returned.
+    const fetchImpl = okFetch({
+      results: [{ memoryId: 'm-1' }, { content: 'orphan' }, { memoryId: 'm-2', content: 'keep me' }],
+    })
+    const mnemo = createMnemoClient({ apiKey: 'k', fetchImpl: fetchImpl as never })
+    expect(await mnemo.find(SCOPE, 'q')).toEqual([{ id: 'm-2', content: 'keep me' }])
+  })
+
+  it('deletes by id', async () => {
+    const fetchImpl = vi.fn(async () => new Response('', { status: 200 }))
+    const mnemo = createMnemoClient({ apiKey: 'k', fetchImpl: fetchImpl as never })
+    expect(await mnemo.forget('m-1')).toBe(true)
+    const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toMatch(/\/v1\/memories\/m-1$/)
+    expect(init.method).toBe('DELETE')
+  })
+
+  it('treats a missing memory as forgotten', async () => {
+    // The caller wanted it gone and it is gone. Reporting failure would turn an already-correct
+    // state into a retry loop.
+    const fetchImpl = vi.fn(async () => new Response('', { status: 404 }))
+    const mnemo = createMnemoClient({ apiKey: 'k', fetchImpl: fetchImpl as never })
+    expect(await mnemo.forget('gone')).toBe(true)
+  })
+
+  it('reports failure rather than throwing, so a partial redaction is never claimed as done', async () => {
+    const fetchImpl = vi.fn(async () => new Response('', { status: 500 }))
+    const mnemo = createMnemoClient({ apiKey: 'k', fetchImpl: fetchImpl as never })
+    expect(await mnemo.forget('m-1')).toBe(false)
+  })
+
+  it('no-ops without a key or an id', async () => {
+    const fetchImpl = okFetch()
+    const mnemo = createMnemoClient({ apiKey: 'k', fetchImpl: fetchImpl as never })
+    expect(await mnemo.forget('')).toBe(false)
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+})

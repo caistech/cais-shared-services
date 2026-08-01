@@ -51,6 +51,12 @@ export interface MnemoClientOptions {
   label?: string;
 }
 
+/** A memory with the id needed to act on it. Returned by `find`, consumed by `forget`. */
+export interface MnemoMemory {
+  id: string;
+  content: string;
+}
+
 export interface MnemoClient {
   /** Is a key configured? Consumers use this to skip work, not to decide whether it's safe to call. */
   enabled(): boolean;
@@ -58,6 +64,36 @@ export interface MnemoClient {
   add(scope: MnemoScope, contents: string[]): Promise<number>;
   /** Semantic search. Returns the matching contents, or [] when disabled or on any failure. */
   search(scope: MnemoScope, query: string, limit?: number): Promise<string[]>;
+  /**
+   * Semantic search that keeps the memory ids.
+   *
+   * The same call as `search`, which throws the ids away. That was fine while the only verb was
+   * "read", and it is what made a redaction impossible: a product could see a fact in Mnemo and had
+   * no handle to act on it.
+   *
+   * `search` is deliberately left alone rather than widened — four consumers depend on its
+   * `string[]` return, and a shared package earns its keep by not making them all edit.
+   */
+  find(scope: MnemoScope, query: string, limit?: number): Promise<MnemoMemory[]>;
+  /**
+   * Forget one memory. Returns true when Mnemo accepted it.
+   *
+   * WHY THIS EXISTS. A product whose users can delete a fact could delete it everywhere except
+   * here. Kira's owner can remove a line from his Business Genome — it leaves the page, his recall
+   * and his export — and the dual-written copy in the semantic lane survived, so she could still
+   * bring it up in a later conversation. He would have taken it back from everything he could see
+   * and been wrong. For an owner whose most sensitive line is that he is selling and has told
+   * nobody, that gap is the product failing at the one promise it makes about his privacy.
+   *
+   * Mnemo's DELETE is a SOFT delete inside a recoverable window, which is the same posture the
+   * consumers already take (Kira parks the row rather than dropping it) — so a mistaken removal is
+   * recoverable on both sides rather than only one.
+   *
+   * Fail-soft like everything else, and that cuts BOTH ways here: a failure returns false rather
+   * than throwing, so the caller decides whether a partial redaction is worth telling the user
+   * about. It must not be reported to him as done.
+   */
+  forget(id: string): Promise<boolean>;
 }
 
 const DEFAULT_URL = 'https://api.mnemohq.com';
@@ -116,6 +152,53 @@ export function createMnemoClient(options: MnemoClientOptions = {}): MnemoClient
       } catch (error) {
         console.warn(`[${label}] search failed:`, error instanceof Error ? error.message : error);
         return [];
+      }
+    },
+
+    async find(scope, query, limit = 6) {
+      const apiKey = key();
+      if (!apiKey || !scope?.id || !query?.trim()) return [];
+
+      try {
+        const res = await doFetch(`${url()}/v1/search`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ q: query, scope, limit }),
+        });
+        if (!res.ok) {
+          console.warn(`[${label}] find failed: ${res.status}`);
+          return [];
+        }
+        const data = (await res.json()) as { results?: { memoryId?: string; content?: string }[] };
+        return (data.results ?? [])
+          .map((r) => ({ id: String(r?.memoryId ?? '').trim(), content: String(r?.content ?? '').trim() }))
+          // Both halves are required: an id with no content cannot be shown to anyone for
+          // confirmation, and content with no id cannot be acted on.
+          .filter((m) => m.id && m.content);
+      } catch (error) {
+        console.warn(`[${label}] find failed:`, error instanceof Error ? error.message : error);
+        return [];
+      }
+    },
+
+    async forget(id) {
+      const apiKey = key();
+      const memoryId = String(id ?? '').trim();
+      if (!apiKey || !memoryId) return false;
+
+      try {
+        const res = await doFetch(`${url()}/v1/memories/${encodeURIComponent(memoryId)}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${apiKey}` },
+        });
+        // 404 counts as success: the caller wanted this memory gone, and a memory that is not there
+        // is gone. Reporting failure would make a retry loop out of an already-correct state.
+        if (res.ok || res.status === 404) return true;
+        console.warn(`[${label}] forget failed: ${res.status}`);
+        return false;
+      } catch (error) {
+        console.warn(`[${label}] forget failed:`, error instanceof Error ? error.message : error);
+        return false;
       }
     },
   };
