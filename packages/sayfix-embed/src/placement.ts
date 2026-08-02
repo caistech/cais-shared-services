@@ -41,8 +41,16 @@ export interface Size {
   height: number;
 }
 
-/** Why an obstacle matters — feeds the scoring weight. */
-export type ObstacleKind = 'fixed' | 'interactive';
+/**
+ * Why an obstacle matters — feeds the scoring weight.
+ *
+ * `content` was added 2026-08-02. The engine avoided CONTROLS and was blind to CONTENT: a heading, a
+ * price, a voucher code, an image or a chart was invisible to it, so it would park the launcher on
+ * the single most important string on the page and report `conflicts: 0` — correct by its own model,
+ * which is worse than a crash. Recorded as a known limit until the operator ruled it a defect:
+ * "it's meant to avoid both."
+ */
+export type ObstacleKind = 'fixed' | 'interactive' | 'content';
 
 /** A host-page element the launcher should avoid overlapping / crowding. */
 export interface Obstacle {
@@ -350,6 +358,124 @@ export function collectObstacles(
     }
   } catch {
     // Return whatever we gathered; placement degrades gracefully to the preferred corner.
+  }
+
+  return obstacles;
+}
+
+/* ============================= CONTENT OCCLUSION ============================= */
+
+/**
+ * Weight for a content conflict — deliberately BELOW `interactive` (1).
+ *
+ * Covering a button breaks the page; covering a paragraph obscures it. Both are real, they are not
+ * equal, and a content hit must still be able to lose to a strongly-preferred clean corner.
+ */
+const CONTENT_WEIGHT = 0.6;
+
+/** Elements that ARE content in their own right, with no text node to inspect. */
+const CONTENT_TAGS = new Set(['IMG', 'SVG', 'CANVAS', 'VIDEO', 'PICTURE', 'IFRAME']);
+
+/** Host opt-out: anything inside this is declared safe to cover. */
+const AVOID_OPT_OUT = '[data-sayfix-avoid="false"]';
+
+/**
+ * Does this element itself carry something a reader would miss if it were covered?
+ *
+ * ⚠️ SECURITY — this asks WHETHER a text node is non-empty, never WHAT it says. Existence, not
+ * value: nothing is read into a variable that outlives the check, nothing is classified by meaning,
+ * nothing is transmitted. That distinction is what keeps the file-level guarantee intact while
+ * running on third-party customer sites, and it is why importance cannot be ranked by reading the
+ * words — a price and a footnote are indistinguishable here, by design.
+ */
+function carriesContent(el: Element): boolean {
+  if (CONTENT_TAGS.has(el.tagName)) return true;
+  for (const node of Array.from(el.childNodes)) {
+    if (node.nodeType === 3 && (node.nodeValue ?? '').trim().length > 0) return true;
+  }
+  return false;
+}
+
+/**
+ * WHAT WOULD THE LAUNCHER BE COVERING, AND IS THERE SOMEWHERE COVERING LESS?
+ *
+ * The obvious fix — add every text element to the obstacle list — does not work, and it is worth
+ * saying why so nobody tries it again. On a content page EVERYTHING is text: every candidate takes
+ * an overlap hit, `OVERLAP_PENALTY` swamps every preference bonus, all four corners score equally
+ * terrible, and the choice degenerates to candidate order. "Never cover any content" is unsatisfiable
+ * for a floating overlay.
+ *
+ * So the question is inverted. Instead of finding all the content and avoiding it, hit-test the
+ * handful of places the launcher can actually go and ask what is underneath each. `elementsFromPoint`
+ * gives the topmost element at a point; if it is a leaf carrying content, that candidate is covering
+ * something. If it is `body` or an empty layout container, that spot is free.
+ *
+ * This also catches images, canvases and videos, which the two existing passes miss entirely — and
+ * it is CHEAPER than they are: roughly nine hit-tests per candidate against two 400-element scans.
+ *
+ * Returns obstacles carrying the FOUND ELEMENT's rect rather than the sample point, so an element
+ * spanning two candidate positions correctly penalises both.
+ */
+export function collectContentConflicts(
+  doc: Document,
+  viewport: Viewport,
+  button: Size,
+  candidates: Position[],
+  margin = DEFAULT_MARGIN,
+  excludeSelector = '[data-sayfix-widget]',
+): Obstacle[] {
+  const obstacles: Obstacle[] = [];
+  const seen = new Set<Element>();
+
+  // Feature-detected rather than assumed: jsdom and older browsers may not implement it, and a
+  // missing API must degrade to the previous behaviour rather than throw inside a host page.
+  if (typeof doc.elementsFromPoint !== 'function') return obstacles;
+
+  try {
+    for (const position of candidates) {
+      const rect = rectForPosition(position, viewport, button, margin);
+      // Corners, edge midpoints and centre — nine points. Inset by a pixel so a sample on the
+      // boundary does not hit the neighbouring element instead of the one actually covered.
+      const xs = [rect.left + 1, (rect.left + rect.right) / 2, rect.right - 1];
+      const ys = [rect.top + 1, (rect.top + rect.bottom) / 2, rect.bottom - 1];
+
+      for (const x of xs) {
+        for (const y of ys) {
+          if (x < 0 || y < 0 || x > viewport.width || y > viewport.height) continue;
+          let stack: Element[];
+          try {
+            stack = doc.elementsFromPoint(x, y) ?? [];
+          } catch {
+            continue;
+          }
+          // The topmost element that is not ours. Our own launcher is at this point by definition
+          // once it has rendered, so skipping the subtree is what makes the check re-runnable.
+          const top = stack.find((el) => !(excludeSelector && el.closest(excludeSelector)));
+          if (!top || seen.has(top)) continue;
+          if (top === doc.body || top === doc.documentElement) continue;
+          if (top.closest(AVOID_OPT_OUT)) continue;
+          if (!carriesContent(top)) continue;
+
+          seen.add(top);
+          let domRect: DOMRect;
+          try {
+            domRect = top.getBoundingClientRect();
+          } catch {
+            continue;
+          }
+          const { hint } = classify(top);
+          obstacles.push({
+            rect: toRect(domRect),
+            kind: 'content',
+            weight: CONTENT_WEIGHT,
+            hint: hint ?? 'content',
+          });
+        }
+      }
+    }
+  } catch {
+    // Same posture as the structural scan: return what we have. A placement engine that throws
+    // inside someone else's page is worse than one that picks a slightly worse corner.
   }
 
   return obstacles;

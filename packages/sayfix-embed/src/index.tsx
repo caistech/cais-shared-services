@@ -37,6 +37,7 @@ export type { SayFixWidgetProps } from './SayFixWidget';
 export {
   computePlacement,
   collectObstacles,
+  collectContentConflicts,
   scorePosition,
   rectForPosition,
   intersectionArea,

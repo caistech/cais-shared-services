@@ -16,6 +16,7 @@ import type { CSSProperties } from 'react';
 import { MessageSquare } from './icons';
 import {
   collectObstacles,
+  collectContentConflicts,
   computePlacement,
   DEFAULT_DESKTOP_CANDIDATES,
   DEFAULT_MOBILE_CANDIDATES,
@@ -136,7 +137,15 @@ function usePlacement(
 
       let obstacles: Obstacle[];
       try {
-        obstacles = collectObstacles(document, viewport);
+        // TWO SCANS, DELIBERATELY. The structural pass finds CONTROLS (fixed/sticky floaters and
+        // interactive elements); the occlusion pass hit-tests the handful of places the launcher can
+        // actually go and asks what is underneath each. The engine avoided controls and was blind to
+        // content until 2026-08-02, so it would park itself on the most important string on the page
+        // and report zero conflicts — correct by its own model, which is worse than a crash.
+        obstacles = [
+          ...collectObstacles(document, viewport),
+          ...collectContentConflicts(document, viewport, sizeRef.current, candidates, undefined),
+        ];
       } catch {
         obstacles = [];
       }

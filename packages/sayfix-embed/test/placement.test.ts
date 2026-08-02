@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  collectContentConflicts,
   computePlacement,
   rectForPosition,
   intersectionArea,
@@ -170,5 +171,78 @@ describe('memory / preference tie-breaks', () => {
     const result = computePlacement({ viewport: DESKTOP, button: PILL, obstacles: [], candidates: [] });
     expect(result.position).toBeTruthy();
     expect(result.rect).toBeTruthy();
+  });
+});
+
+describe('content occlusion (the engine avoided controls and was blind to content)', () => {
+  const viewport = { width: 1440, height: 900 };
+  const button = { width: 160, height: 44 };
+
+  /** A minimal stand-in for the bits of Document the occlusion pass touches. */
+  function fakeDoc(hits: Record<string, Element[]>) {
+    const body = { tagName: 'BODY', closest: () => null } as unknown as Element;
+    return {
+      body,
+      documentElement: { tagName: 'HTML' } as unknown as Element,
+      elementsFromPoint: (x: number, y: number) => hits[`${Math.round(x)},${Math.round(y)}`] ?? [body],
+    } as unknown as Document;
+  }
+
+  function el(tagName: string, rect: { left: number; top: number; right: number; bottom: number }, text?: string) {
+    return {
+      tagName,
+      id: '',
+      className: '',
+      childNodes: text ? [{ nodeType: 3, nodeValue: text }] : [],
+      getAttribute: () => null,
+      closest: () => null,
+      getBoundingClientRect: () => rect as DOMRect,
+    } as unknown as Element;
+  }
+
+  it('returns nothing when every sample lands on the body', () => {
+    expect(collectContentConflicts(fakeDoc({}), viewport, button, ['bottom-right'])).toEqual([]);
+  });
+
+  it('flags a heading sitting under a candidate position', () => {
+    const heading = el('H1', { left: 1200, top: 800, right: 1420, bottom: 880 }, 'Sell it for what it is worth');
+    const doc = fakeDoc({ '1257,833': [heading], '1336,833': [heading] });
+    const found = collectContentConflicts(doc, viewport, button, ['bottom-right']);
+    expect(found.length).toBeGreaterThan(0);
+    expect(found[0].kind).toBe('content');
+    // Below `interactive` on purpose: covering a button breaks the page, covering a paragraph
+    // obscures it. Both real, not equal.
+    expect(found[0].weight).toBeLessThan(1);
+  });
+
+  // The two existing passes miss these entirely — an <img> is neither fixed nor interactive.
+  it('flags an image, which has no text node to inspect', () => {
+    const img = el('IMG', { left: 1200, top: 800, right: 1420, bottom: 880 });
+    const doc = fakeDoc({ '1257,833': [img] });
+    expect(collectContentConflicts(doc, viewport, button, ['bottom-right'])).toHaveLength(1);
+  });
+
+  it('ignores an empty layout container', () => {
+    const wrapper = el('DIV', { left: 1200, top: 800, right: 1420, bottom: 880 });
+    const doc = fakeDoc({ '1257,833': [wrapper] });
+    expect(collectContentConflicts(doc, viewport, button, ['bottom-right'])).toEqual([]);
+  });
+
+  // Degrading to the previous behaviour beats throwing inside someone else's page.
+  it('returns nothing where elementsFromPoint is unavailable', () => {
+    const doc = { body: {}, documentElement: {} } as unknown as Document;
+    expect(collectContentConflicts(doc, viewport, button, ['bottom-right'])).toEqual([]);
+  });
+
+  it('lets a covered candidate lose to a clean one', () => {
+    const heading = el('H1', { left: 1200, top: 800, right: 1420, bottom: 880 }, 'important');
+    const obstacles = collectContentConflicts(
+      fakeDoc({ '1257,833': [heading], '1336,833': [heading], '1415,833': [heading] }),
+      viewport,
+      button,
+      ['bottom-right'],
+    );
+    const result = computePlacement({ viewport, button, obstacles, candidates: ['bottom-right', 'bottom-left'] });
+    expect(result.position).toBe('bottom-left');
   });
 });
