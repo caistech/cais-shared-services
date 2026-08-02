@@ -19,7 +19,8 @@
 > **Maintenance rule.** When a new skill is installed or an existing one changes what it's for,
 > update the row here in the same session — an un-catalogued skill is an invisible skill.
 >
-> **Last updated:** 2026-07-10.
+> **Last updated:** 2026-08-02 (+8 design skills; the design-system ownership decision — §2 "Design
+> system").
 
 ---
 
@@ -62,7 +63,8 @@ the full reference behind it.
 | **Diff ready, quality-only cleanup** | `/simplify` | Reuse / simplification / efficiency / altitude — no bug hunt. |
 | **Pre-landing PR review (paranoid pass)** | `/review` | gstack pre-landing bug + logic review. |
 | **Security-sensitive change** | `/security-review` · `/cso` | Security review of the branch; CSO mode for deeper posture. |
-| **UI built, before "done"** | `/design-review` · `/naive-tester` · `/qa` | Visual/interaction QA · human-persona walkthrough · full browser QA. |
+| **Starting or restyling a UI and no design system exists** | the **design-system chain** (§2) | Author it ONCE, then commit it. Do NOT reach for a generic design skill first — without a system every session re-derives the look, which is what makes a product read "inconsistent". |
+| **UI built, before "done"** | `/design-review` · `/naive-tester` · `/qa` · `web-design-guidelines` | Visual/interaction QA · human-persona walkthrough · full browser QA · Web Interface Guidelines audit. |
 | **Voice agent in the build** | `/voice-auditor` | MANDATORY before voice sign-off — placement + memory-loop check (both portals). |
 | **Public web surface, distribution question** | `/gtm-auditor` | Does the output create the next user? D3 distribution evidence. |
 | **DX / developer-facing surface** | `/devex-review` | Live developer-experience audit. |
@@ -93,8 +95,46 @@ Grouped by what the skill is *for*. `(auto)` = applies without asking (safety). 
 | `/plan-devex-review` | Validate developer-experience of the plan. |
 | `/plan-tune` | Self-tune the plan-review question sensitivity. |
 | `/autoplan` | Run the four plan reviews sequentially with auto-decisions. |
-| `/design-consultation` | Propose a full design system (type/colour/layout/motion) mid-decision. |
+| `/design-consultation` | Propose a full design system (type/colour/layout/motion) mid-decision. **In the chain below this is step 2, not step 1.** |
 | `/design-shotgun` | Generate multiple design variants + comparison board. |
+
+### Design system — the authoring chain (8 skills installed 2026-08-02)
+
+**⚠️ Read the decision before invoking any of these, or two skills will give two answers.** Both
+`/design-consultation` and `design-system` match on the phrase *"design system"*.
+
+**DECIDED 2026-08-02 — option "C sequenced into D".** Run the chain **in this order**; the artefact it
+produces then becomes **ours**:
+
+| # | Step | Skill | Why this one |
+|---|---|---|---|
+| 1 | **Author** a data-backed starting point | `ui-ux-pro-max` (`search.py --design-system --persist`) | Deterministic — same query, same answer. 84 styles · 192 palettes · 74 font pairings · 98 UX rules, with explicit anti-patterns. Cheap: no LLM in the loop. |
+| 2 | **Interrogate** it against the real ICP | `/design-consultation` | Step 1 *selects* from known styles; it does not know your customer. **Not optional** — a smoke run for Kira returned AI-purple/pink and a landing pattern whose third section was "tailored testimonials", for an ICP of 60–70-year-old trade-business owners, recommending the exact thing that product had removed as an overclaim. |
+| 3 | **Emit tokens + the validator** | `design-system` | Three-layer tokens (primitive→semantic→component) → `tokens.css`, plus **`validate-tokens.cjs`, which scans code for hardcoded values.** This is the load-bearing step: a `DESIGN.md` nobody validates is *prose with no mechanism*. |
+| 4 | **Implement** | `ui-styling` | shadcn/ui + Tailwind; consumes component tokens → Tailwind config. ⚠️ Wants **Tailwind v4 + Vite**. A v3 repo is a breaking migration, not a setup step — decide it separately. |
+| 5 | **Audit** | `/design-review` · `web-design-guidelines` | Designer's-eye (AI-slop, spacing, hierarchy) · Web Interface Guidelines + accessibility. |
+
+**Then D — the end state that makes it stick:** the authored system is committed **here, in
+`cais-shared-services`, as our own skill**, and every repo and agent mounts it. At that point the
+skills above demote to *inputs*: the answer lives in the repo, not in a skill's judgement, so
+"two skills, two answers" stops being possible. *Once it's in the repo you no longer need the
+authoring tool.*
+
+| Skill | When |
+|---|---|
+| `ui-ux-pro-max` | Step 1 above. Also a **lookup** — query the DB for palettes/font pairings/UX rules mid-build. ⚠️ Invoke by full path: `~/.claude/skills/ui-ux-pro-max/scripts/search.py` — the SKILL.md's `${CLAUDE_PLUGIN_ROOT}` path does **not** resolve for a direct install. Needs Python 3 (`python`, not `python3`, on this box). |
+| `design-system` | Step 3 — tokens + `validate-tokens.cjs`. |
+| `ui-styling` | Step 4 — shadcn/Tailwind. **Tailwind v4 only.** |
+| `web-design-guidelines` | Step 5 — Vercel's Web Interface Guidelines audit ("review my UI", "check accessibility"). |
+| `design` | Logo (55 styles), corporate identity programme, icons, social images. ⚠️ Calls **Gemini image models — needs an API key**, deliberately not configured. |
+| `brand` | Brand voice, messaging frameworks, style guides, brand-consistency checks. |
+| `design-system` → `slides` | Strategic HTML presentations with Chart.js, built on the tokens. |
+| `banner-design` | Social/ad/hero/print banners. |
+
+**Why these were installed at all:** the `ui-ux-pro-max-skill` repo is **seven skills, not one**, and
+it nests them at `.claude/skills/<name>/SKILL.md` — three levels deep. A first attempt to "just use
+these docs" silently did nothing, because Claude Code only discovers `~/.claude/skills/<name>/SKILL.md`,
+exactly one level down. **Right folder, wrong depth, and it looks identical from the outside.**
 
 ### Build / edit-time
 | Skill | When |
@@ -190,6 +230,6 @@ Keep this list current: the moment one of these becomes a real installed skill, 
 
 ---
 
-**One line:** *~60 skills are installed; this doc is their real inventory + the stage that should
+**One line:** *~70 skills are installed; this doc is their real inventory + the stage that should
 trigger each, and the session asks "want me to run /X?" at that stage — safety skills apply
 without asking, and anything not listed here isn't installed.*

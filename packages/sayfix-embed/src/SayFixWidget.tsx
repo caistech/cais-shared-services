@@ -254,6 +254,15 @@ export function SayFixWidget({
     zIndex: 2147483000,
     display: 'inline-flex',
     alignItems: 'center',
+    justifyContent: 'center',
+    // ⚠️ 44px FLOOR ON BOTH AXES — iOS HIG / WCAG 2.5.5, and this control is the one that is ALWAYS
+    // on screen. Collapsed, the edge tab computed to 42×42 (12px padding either side of an 18px
+    // icon) and a tester measured it: "touch targets on a phone are supposed to be at least 44 —
+    // this is under, and it's the one control that's *always* there." A minimum rather than new
+    // padding, so the expanded pill is untouched and the number cannot drift back when the icon
+    // changes size.
+    minWidth: 44,
+    minHeight: 44,
     gap: showLabel ? 8 : 0,
     background: color,
     color: '#ffffff',
@@ -268,6 +277,7 @@ export function SayFixWidget({
     textDecoration: 'none',
     cursor: 'pointer',
     transition: 'padding 150ms ease, gap 150ms ease',
+    // Above the 44 floor, so the cap never fights the minimum.
     maxWidth: isEdgeTab && !expanded ? 48 : 360,
     whiteSpace: 'nowrap',
     overflow: 'hidden',
