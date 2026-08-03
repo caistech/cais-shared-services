@@ -8,6 +8,7 @@ export {
   launcherLabel,
   panelHeader,
   shouldUseTextFallback,
+  DEFAULT_FALLBACK_AFTER_MS,
   placementClass,
   statusLabel,
   WIDGET_CSS,

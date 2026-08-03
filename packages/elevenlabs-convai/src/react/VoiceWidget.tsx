@@ -16,6 +16,7 @@ import {
   panelHeader,
   placementClass,
   shouldUseTextFallback,
+  DEFAULT_FALLBACK_AFTER_MS,
   statusLabel,
   WIDGET_CSS,
 } from './widget-logic.js';
@@ -55,8 +56,30 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
   });
 
   const status = convo.status as VoiceConnectionStatus;
-  const fallback = shouldUseTextFallback(props, status);
   const connected = status === 'connected';
+
+  // STALL TIMER — the reason a mic-less visitor is ever offered the text box.
+  //
+  // The fallback used to require `status === 'error'`, so a connection that neither succeeded
+  // nor failed left the panel dead forever. See DEFAULT_FALLBACK_AFTER_MS for the measurements.
+  // The timer starts when the panel opens, is cancelled the moment voice connects, and resets
+  // when the panel closes so a later reopen gets a fresh attempt rather than an instant fallback.
+  const [stalled, setStalled] = useState(false);
+  useEffect(() => {
+    if (connected) {
+      setStalled(false);
+      return;
+    }
+    if (!open) {
+      setStalled(false);
+      return;
+    }
+    const after = props.fallbackAfterMs ?? DEFAULT_FALLBACK_AFTER_MS;
+    const timer = setTimeout(() => setStalled(true), after);
+    return () => clearTimeout(timer);
+  }, [open, connected, props.fallbackAfterMs]);
+
+  const fallback = shouldUseTextFallback(props, status, { stalled });
 
   // Hand the consumer imperative controls into the live conversation, once, on connect. Lets it
   // push a user turn or a contextual nudge (e.g. a timed wrap-up) the user didn't type.

@@ -274,6 +274,13 @@ export interface VoiceConfigBase {
   mode?: VoiceMode;
   /** Fall back to a text input when the ElevenLabs key / voice is unavailable. */
   textFallback?: boolean;
+  /**
+   * Milliseconds to wait for a connection before offering the text box anyway.
+   * Defaults to DEFAULT_FALLBACK_AFTER_MS (8s). Only meaningful with `textFallback`.
+   * Without this timer the box appears ONLY if the connection errors, so a connection
+   * that hangs leaves a visitor without a microphone stuck on a panel they cannot use.
+   */
+  fallbackAfterMs?: number;
 }
 
 /**

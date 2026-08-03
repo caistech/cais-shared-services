@@ -86,6 +86,35 @@ describe('shouldUseTextFallback', () => {
       shouldUseTextFallback({ getSignedUrl: async () => 'wss://signed', textFallback: true }, 'disconnected'),
     ).toBe(false);
   });
+
+  // ── the stall timer ───────────────────────────────────────────────────────────────────────
+  // Before this, the fallback required `status === 'error'`. A connection that neither succeeded
+  // nor failed therefore left a visitor without a microphone on a panel they could not use, with
+  // no way to type — permanently. Measured live: the box appeared 0–100% of the time across six
+  // sweeps on unchanged code, tracking whether the connection happened to error.
+
+  it('offers the box once the connection has STALLED, with no error ever arriving', () => {
+    // The whole point. `connecting` is not an error and never becomes one in the failing case.
+    expect(
+      shouldUseTextFallback({ ...base, textFallback: true }, 'connecting', { stalled: true }),
+    ).toBe(true);
+  });
+
+  it('does NOT offer the box while a connection is merely in progress', () => {
+    expect(shouldUseTextFallback({ ...base, textFallback: true }, 'connecting')).toBe(false);
+  });
+
+  it('never interrupts a LIVE conversation, even if the stall timer fired late', () => {
+    // The opposite failure, and the worse one: stealing the voice UI from someone who does have a
+    // microphone degrades the primary experience for everyone to protect a subset.
+    expect(
+      shouldUseTextFallback({ ...base, textFallback: true }, 'connected', { stalled: true }),
+    ).toBe(false);
+  });
+
+  it('still respects the opt-in — a stall cannot conjure a box the consumer never asked for', () => {
+    expect(shouldUseTextFallback({ ...base }, 'connecting', { stalled: true })).toBe(false);
+  });
 });
 
 describe('placementClass / statusLabel', () => {

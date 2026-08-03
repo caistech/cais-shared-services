@@ -70,12 +70,40 @@ export function panelHeader(props: VoiceWidgetProps): string {
  * Whether to show the text-input fallback instead of the voice UI: only when the consumer
  * opted in AND voice can't run (no agent configured, or the connection errored).
  */
-export function shouldUseTextFallback(props: VoiceWidgetProps, status: VoiceConnectionStatus): boolean {
+export function shouldUseTextFallback(
+  props: VoiceWidgetProps,
+  status: VoiceConnectionStatus,
+  opts: { stalled?: boolean } = {},
+): boolean {
   if (!props.textFallback) return false;
   // Voice can run if there is any connect source: a public agentId, a signed URL, or a resolver.
   const canConnect = Boolean(props.agentId || props.signedUrl || props.getSignedUrl);
-  return !canConnect || status === 'error';
+  // A live conversation must never be interrupted by a stall timer that fired late.
+  if (status === 'connected') return false;
+  return !canConnect || status === 'error' || opts.stalled === true;
 }
+
+/**
+ * How long the widget waits for a connection before offering the text box anyway.
+ *
+ * WHY A TIMEOUT EXISTS AT ALL. Until this, the fallback was reachable ONLY via
+ * `status === 'error'` — the box a visitor without a microphone needs was gated on the
+ * voice connection FAILING first. A connection that neither connects nor errors therefore
+ * left them with a panel they could not use, permanently.
+ *
+ * That is not theoretical. Measured on a live product across six sweeps in one afternoon on
+ * unchanged code, the text box appeared 0%, 40%, 50%, 70%, 80% and 100% of the time — the
+ * variance tracking whether the connection happened to fail. When it did appear it took
+ * ~570ms; when it did not, it never came, verified out to 30 seconds. A tester's verdict on
+ * the same widget: he typed the question his whole purchase turned on, and it went into a hole.
+ *
+ * WHY 8 SECONDS. The fallback REPLACES the voice UI, so firing early would steal a slow but
+ * working connection from someone who does have a microphone — the opposite failure, and a
+ * worse one, because it degrades the primary experience for everyone to protect a subset.
+ * Successful connections settle in well under this; 8s is comfortably past them and still
+ * far short of "never", which is what it replaces. Override per widget with `fallbackAfterMs`.
+ */
+export const DEFAULT_FALLBACK_AFTER_MS = 8_000;
 
 /** CSS class for the launcher container, by placement. */
 export function placementClass(placement?: VoicePlacement): string {
