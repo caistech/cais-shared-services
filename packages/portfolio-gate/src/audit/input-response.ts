@@ -398,17 +398,42 @@ export async function runInputResponseAudit(
         (o) => o.requestsAfterSubmit.length === 0 && o.textGrowth < MIN_RESPONSE_CHARS
       )
 
-      const rate = answered.length / attempts
+      // AN ERROR IS NOT A PRODUCT FAILURE, and the denominator is where that distinction lives.
+      //
+      // Rate was `answered / attempts`, so five attempts that never reached the site — a dropped
+      // network, ERR_NETWORK_IO_SUSPENDED, a navigation timeout — were reported as
+      // "answered in only 0 of 5 attempts (0%)". The check accused a working product of total
+      // failure on the strength of never having contacted it. A gate that cries wolf on a blip is
+      // a gate somebody disables, which costs more than the check was ever worth.
+      //
+      // So the rate is over attempts that were actually EXERCISED, and a run where nothing could be
+      // exercised reports that instead of inventing a verdict about the product.
+      const exercised = attempts - errored.length
+      const rate = exercised > 0 ? answered.length / exercised : 0
       const breakdown =
         `${attempts} attempts: ${answered.length} answered, ${silent.length} took the text and ` +
         `said nothing, ${noInput.length} had no input to type into, ${errored.length} errored`
+
+      if (exercised === 0) {
+        findings.push({
+          severity: 'fail',
+          message: `${route.urlPath} could NOT be exercised — all ${attempts} attempts errored before reaching the page.`,
+          file: route.file,
+          detail:
+            `${breakdown}. This says nothing about the product: the browser never got there. ` +
+            'Usual causes are a dropped network, a navigation timeout, or an unreachable base URL. ' +
+            'It still FAILS, because a run that established nothing must never be reported as a ' +
+            `pass — but fix the connection, not the page. First error: ${errored[0]?.error ?? 'unknown'}`,
+        })
+        continue
+      }
 
       // Silence is the original defect and is never acceptable at any rate: the visitor typed the
       // question their purchase turns on and the box cleared. One occurrence is a failure.
       if (silent.length > 0) {
         findings.push({
           severity: 'fail',
-          message: `${route.urlPath} accepted a submission and gave nothing back in ${silent.length} of ${attempts} attempts.`,
+          message: `${route.urlPath} accepted a submission and gave nothing back in ${silent.length} of ${exercised} exercised attempts.`,
           file: route.file,
           detail:
             `${breakdown}. The value was taken and the page neither called anything nor said ` +
@@ -427,10 +452,10 @@ export async function runInputResponseAudit(
       // sweep and 8/10 an hour later — so a run of five can pass on luck while a fifth of real
       // visitors are getting nothing.
       const revealFailures = noInput.length
-      if (revealFailures > 0 && revealFailures / attempts > REVEAL_TOLERANCE) {
+      if (revealFailures > 0 && revealFailures / exercised > REVEAL_TOLERANCE) {
         findings.push({
           severity: 'fail',
-          message: `${route.urlPath} opened without any text input in ${revealFailures} of ${attempts} attempts (${Math.round((revealFailures / attempts) * 100)}%).`,
+          message: `${route.urlPath} opened without any text input in ${revealFailures} of ${exercised} exercised attempts (${Math.round((revealFailures / exercised) * 100)}%).`,
           file: route.file,
           detail:
             `${breakdown}. The control was clicked and revealed nothing to type into. This is a ` +
@@ -443,7 +468,7 @@ export async function runInputResponseAudit(
       if (rate < minPassRate) {
         findings.push({
           severity: 'fail',
-          message: `${route.urlPath} answered in only ${answered.length} of ${attempts} attempts (${Math.round(rate * 100)}%, minimum ${Math.round(minPassRate * 100)}%).`,
+          message: `${route.urlPath} answered in only ${answered.length} of ${exercised} exercised attempts (${Math.round(rate * 100)}%, minimum ${Math.round(minPassRate * 100)}%).`,
           file: route.file,
           detail:
             `${breakdown}. A surface that works some of the time is not a working surface: the ` +
@@ -454,7 +479,7 @@ export async function runInputResponseAudit(
       } else if (rate < 1) {
         findings.push({
           severity: 'warn',
-          message: `${route.urlPath} answered in ${answered.length} of ${attempts} attempts (${Math.round(rate * 100)}%).`,
+          message: `${route.urlPath} answered in ${answered.length} of ${exercised} exercised attempts (${Math.round(rate * 100)}%).`,
           file: route.file,
           detail: `${breakdown}. Above the threshold, but not every visitor is getting through.`,
         })
@@ -471,10 +496,10 @@ export async function runInputResponseAudit(
         })
       }
 
-      if (noInput.length === attempts) {
+      if (noInput.length === exercised) {
         findings.push({
           severity: 'fail',
-          message: `${route.urlPath} is marked ${INPUT_MARKER} but no visible text input was found in ANY of ${attempts} attempts.`,
+          message: `${route.urlPath} is marked ${INPUT_MARKER} but no visible text input was found in ANY of ${exercised} exercised attempts.`,
           file: route.file,
           detail: route.openSelector
             ? `Clicked "${route.openSelector}" first and still found nothing. Either the selector ` +
