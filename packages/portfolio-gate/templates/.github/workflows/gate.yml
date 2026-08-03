@@ -258,3 +258,34 @@ jobs:
           fi
           # --wait on push: poll until the deployment for this commit settles.
           "$BIN" ${{ github.event_name == 'push' && '--wait' || '' }}
+
+      # ── Public-route reachability ────────────────────────────────────────────────────────────
+      # Can a visitor with NO session actually open the pages we publish?
+      #
+      # The browser-facing twin of the machine-route audit. ExecutorAI shipped a public marketing
+      # page (/for-advisers) without adding it to the middleware allowlist, so every visitor was
+      # 307'd to /login — and the whole verification stack went green over it:
+      #   `curl -L` FOLLOWED the redirect and returned 200; the deploy gate's --app-marker matched,
+      #   because the login page carries the product name too; and deploy-status passed, correctly,
+      #   since production really was serving the expected SHA.
+      # Only refusing to follow the redirect exposes it, which is what this step does.
+      #
+      # Repo setup: mark each publicly-reachable page with `@public-route` in a comment. SKIPS
+      # cleanly when nothing is marked; FAILS when pages are marked but no URL is configured,
+      # because an unverified public page is the bug itself.
+      #
+      # Ordered AFTER deploy-status deliberately: on push that step polls with --wait, so by the
+      # time this runs the URL is serving THIS commit rather than the previous one.
+      - name: Public routes reachable without a session
+        if: github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        env:
+          PUBLIC_ALIAS: ${{ vars.PUBLIC_ALIAS }}
+          PORTFOLIO_GATE_PREVIEW_URL: ${{ vars.PORTFOLIO_GATE_PREVIEW_URL }}
+        run: |
+          # Same direct resolution + loud skip as the probes above.
+          BIN=node_modules/.bin/portfolio-gate-audit-public-routes
+          if [ ! -x "$BIN" ]; then
+            echo "::warning title=Public routes NOT verified::@caistech/portfolio-gate in this repo predates the public-route audit (needs >=0.11.0). A public page silently gated behind auth would pass every other check here. Bump the dependency to enable it."
+            exit 0
+          fi
+          "$BIN"

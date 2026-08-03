@@ -64,6 +64,12 @@ export { runResponsiveAudit } from './audit/responsive.js'
 export { runCommitmentPanelAudit } from './audit/commitment-panel.js'
 export { runVoiceAgentAudit } from './audit/voice-agent.js'
 export { runMachineRoutesAudit, MACHINE_MARKER } from './audit/machine-routes.js'
+export {
+  runPublicRoutesAudit,
+  findMarkedPublicRoutes,
+  probePublicRoute,
+  PUBLIC_MARKER,
+} from './audit/public-routes.js'
 export { formatAuditResult } from './audit/shared.js'
 export type { AuditResult, AuditFinding } from './audit/shared.js'
 
