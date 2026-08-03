@@ -151,11 +151,57 @@ export async function findMarkedInputRoutes(rootDir: string): Promise<MarkedInpu
   return marked
 }
 
-interface ProbeOutcome {
+export interface ProbeOutcome {
   inputsFound: number
   requestsAfterSubmit: string[]
   textGrowth: number
   error?: string
+}
+
+export interface AttemptSummary {
+  attempts: number
+  /** Attempts that actually reached the page. THE denominator for every rate. */
+  exercised: number
+  answered: number
+  silent: number
+  noInput: number
+  errored: number
+  /** answered / exercised, or 0 when nothing could be exercised. */
+  rate: number
+  firstError: string | null
+}
+
+/**
+ * Tally a set of attempts into the numbers every verdict is computed from.
+ *
+ * Extracted so the arithmetic is testable without a browser, because this is precisely where the
+ * check's worst defect lived: the rate was `answered / attempts`, so five attempts that never
+ * reached the site reported "answered in only 0 of 5 attempts (0%)" — a confident accusation about
+ * a product it had never contacted. An error is not a product failure, and that distinction lives
+ * entirely in the denominator.
+ */
+export function summariseAttempts(outcomes: ProbeOutcome[]): AttemptSummary {
+  const errored = outcomes.filter((o) => o.error)
+  const reached = outcomes.filter((o) => !o.error)
+  const noInput = reached.filter((o) => o.inputsFound === 0)
+  const submitted = reached.filter((o) => o.inputsFound > 0)
+  const answered = submitted.filter(
+    (o) => o.requestsAfterSubmit.length > 0 || o.textGrowth >= MIN_RESPONSE_CHARS
+  )
+  const silent = submitted.filter(
+    (o) => o.requestsAfterSubmit.length === 0 && o.textGrowth < MIN_RESPONSE_CHARS
+  )
+  const exercised = reached.length
+  return {
+    attempts: outcomes.length,
+    exercised,
+    answered: answered.length,
+    silent: silent.length,
+    noInput: noInput.length,
+    errored: errored.length,
+    rate: exercised > 0 ? answered.length / exercised : 0,
+    firstError: errored[0]?.error ?? null,
+  }
 }
 
 /**
@@ -388,31 +434,18 @@ export async function runInputResponseAudit(
         outcomes.push(await probePage(browser, url, route, settleMs))
       }
 
-      const errored = outcomes.filter((o) => o.error)
-      const noInput = outcomes.filter((o) => !o.error && o.inputsFound === 0)
-      const submittedOutcomes = outcomes.filter((o) => !o.error && o.inputsFound > 0)
-      const answered = submittedOutcomes.filter(
-        (o) => o.requestsAfterSubmit.length > 0 || o.textGrowth >= MIN_RESPONSE_CHARS
-      )
-      const silent = submittedOutcomes.filter(
-        (o) => o.requestsAfterSubmit.length === 0 && o.textGrowth < MIN_RESPONSE_CHARS
-      )
-
       // AN ERROR IS NOT A PRODUCT FAILURE, and the denominator is where that distinction lives.
-      //
-      // Rate was `answered / attempts`, so five attempts that never reached the site — a dropped
-      // network, ERR_NETWORK_IO_SUSPENDED, a navigation timeout — were reported as
-      // "answered in only 0 of 5 attempts (0%)". The check accused a working product of total
-      // failure on the strength of never having contacted it. A gate that cries wolf on a blip is
-      // a gate somebody disables, which costs more than the check was ever worth.
-      //
-      // So the rate is over attempts that were actually EXERCISED, and a run where nothing could be
-      // exercised reports that instead of inventing a verdict about the product.
-      const exercised = attempts - errored.length
-      const rate = exercised > 0 ? answered.length / exercised : 0
+      // The arithmetic is in summariseAttempts() so it can be regression-tested without a browser —
+      // see the top of that function for the defect it exists to prevent recurring.
+      const s = summariseAttempts(outcomes)
+      const { exercised, rate } = s
+      const errored = outcomes.filter((o) => o.error)
+      const noInput = { length: s.noInput }
+      const answered = { length: s.answered }
+      const silent = { length: s.silent }
       const breakdown =
-        `${attempts} attempts: ${answered.length} answered, ${silent.length} took the text and ` +
-        `said nothing, ${noInput.length} had no input to type into, ${errored.length} errored`
+        `${attempts} attempts: ${s.answered} answered, ${s.silent} took the text and ` +
+        `said nothing, ${s.noInput} had no input to type into, ${s.errored} errored`
 
       if (exercised === 0) {
         findings.push({

@@ -187,6 +187,23 @@ export function measureVisibleText(html: string): PaintMeasurement {
   }
 }
 
+/**
+ * Does this measurement count as a painted page?
+ *
+ * Extracted from the audit runner so it can be tested without a deployment. The disjunction below
+ * is a decision with a rationale, and a decision buried inside a network-bound loop is a decision
+ * nobody can regression-test — which is how three defects reached production in checks written to
+ * catch defects reaching production.
+ */
+export function paintPasses(
+  measurement: PaintMeasurement,
+  minChars: number = DEFAULT_MIN_CHARS
+): boolean {
+  return (
+    measurement.contentChars >= minChars || measurement.heading.length >= MIN_HEADING_CHARS
+  )
+}
+
 export async function runFirstPaintAudit(
   options: FirstPaintOptions = {}
 ): Promise<AuditResult> {
@@ -284,8 +301,7 @@ export async function runFirstPaintAudit(
     // So: enough text, OR a heading that tells the visitor where they are. That is the line the
     // tester actually drew — "fifteen seconds of white ... and I have no way to tell the
     // difference." Having no way to tell is the defect; sparseness is not.
-    const hasHeading = measured.heading.length >= MIN_HEADING_CHARS
-    if (measured.contentChars >= minChars || hasHeading) continue
+    if (paintPasses(measured, minChars)) continue
 
     // Compare chrome against the CONTENT, not against the minimum. "A header and a footer with
     // nothing between them" is the diagnosis worth printing, and it is true whenever chrome

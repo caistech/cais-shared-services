@@ -55,13 +55,14 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
-    "test": "npm run build && node --input-type=module -e \"import { runAuthSmoke, formatAuthResult } from './dist/smoke/auth.js'; const r = await runAuthSmoke({baseUrl: process.env.TEST_BASE_URL || 'https://example.vercel.app', loginPath: '/login', signupPath: '/signup', forgotPasswordPath: '/forgot-password', magicLinkPath: '/login', loginActionPath: '/api/auth/login', signupActionPath: '/api/auth/signup', forgotPasswordActionPath: '/api/auth/forgot', magicLinkActionPath: '/api/auth/magic-link'}); console.log(formatAuthResult(r)); process.exit(r.passed ? 0 : 1)\"",
+    "test": "vitest run",
     "test:auth": "npm run test",
     "test:routes": "npm run build && node --input-type=module -e \"import { runRouteSmoke, formatRouteResult } from './dist/smoke/routes.js'; const r = await runRouteSmoke({baseUrl: process.env.TEST_BASE_URL || 'https://example.vercel.app', routes: [{path: '/'}]}); console.log(formatRouteResult(r)); process.exit(r.passed ? 0 : 1)\"",
     "test:session": "npm run build && node --input-type=module -e \"import { runAuthSessionSmoke, formatSessionResult } from './dist/smoke/session.js'; const r = await runAuthSessionSmoke({baseUrl: process.env.TEST_BASE_URL || 'https://example.vercel.app', loginPath: '/login', loginActionPath: '/api/auth/login', protectedRoutes: ['/dashboard'], testEmail: process.env.TEST_EMAIL || '', testPassword: process.env.TEST_PASSWORD || ''}); console.log(formatSessionResult(r)); process.exit(r.passed ? 0 : 1)\"",
     "test:all": "npm run test:auth && npm run test:routes && npm run test:session",
     "prepare": "npm run build",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "test:smoke": "npm run build && node --input-type=module -e \"import { runAuthSmoke, formatAuthResult } from './dist/smoke/auth.js'; const r = await runAuthSmoke({baseUrl: process.env.TEST_BASE_URL || 'https://example.vercel.app', loginPath: '/login', signupPath: '/signup', forgotPasswordPath: '/forgot-password', magicLinkPath: '/login', loginActionPath: '/api/auth/login', signupActionPath: '/api/auth/signup', forgotPasswordActionPath: '/api/auth/forgot', magicLinkActionPath: '/api/auth/magic-link'}); console.log(formatAuthResult(r)); process.exit(r.passed ? 0 : 1)\""
   },
   "dependencies": {
     "@caistech/health-probe": "^0.3.0"
@@ -91,7 +92,8 @@
     "@types/node": "^20.0.0",
     "next": "^15.0.0",
     "playwright": "^1.62.1",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "vitest": "^1.6.1"
   },
   "files": [
     "dist/",
