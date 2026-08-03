@@ -25,6 +25,16 @@ jobs:
       # the next one, but do not rely on it to neutralise a prepare script. Found by
       # the test workflow, from a clean checkout.
       - name: Install workspace deps
+        # NODE_AUTH_TOKEN is needed to READ @caistech/* during install, not only to
+        # publish at the end. It was set on the publish step alone, so `npm ci`
+        # 401'd fetching @caistech/health-probe — a dependency of portfolio-gate
+        # that resolves from the registry rather than a workspace sibling.
+        #
+        # This is why v0.8.0 failed too. Publishing from this repo has been broken
+        # for over a week and nothing noticed, because a tag is pushed rarely and
+        # nobody was watching the run.
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm ci --ignore-scripts
       # Shared with test.yml — the curated build ordering lives in one script
       # rather than duplicated across two workflows, where it would drift towards
