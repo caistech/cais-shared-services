@@ -41,16 +41,23 @@ jobs:
           registry-url: 'https://npm.pkg.github.com'
           scope: '@caistech'
 
-      # --ignore-scripts is REQUIRED, not tidiness.
+      # --ignore-scripts is defence in depth here, and NOT what fixed the install.
       #
-      # Several packages run `prepare: npm run build`, which npm fires during
-      # install — before any sibling has been built. portfolio-gate's tsc then
-      # dies on `Cannot find module '@caistech/elevenlabs-convai/testing'`,
-      # because that peer's dist does not exist yet. The workflow's own build
-      # steps cannot help: prepare has already run and failed the install.
+      # portfolio-gate declared `prepare: npm run build`, which npm fires during
+      # install — before any sibling is built — so its tsc died on
+      # `Cannot find module '@caistech/elevenlabs-convai/testing'` and took the
+      # whole install with it. Adding --ignore-scripts did NOT suppress it: the
+      # run log shows the flag on the command line and the build executing anyway,
+      # because it fires during the workspace link phase. The actual fix was
+      # deleting that `prepare` — the package already has `prepublishOnly` running
+      # the same build, so it was redundant, and it is the only package in the
+      # repo that had one.
       #
-      # Nothing had ever run `npm ci` on this repo from a clean checkout, so this
-      # was invisible. publish.yml installs the same way and would hit it too.
+      # The flag stays as a guard against the next one, but it is not load-bearing
+      # and should not be trusted to neutralise a prepare script.
+      #
+      # Nothing had ever run `npm ci` on this repo from a clean checkout, so none
+      # of this had surfaced. publish.yml installs the same way.
       - name: Install workspace deps
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

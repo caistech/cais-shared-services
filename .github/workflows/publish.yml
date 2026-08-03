@@ -18,12 +18,12 @@ jobs:
           node-version: '20'
           registry-url: 'https://npm.pkg.github.com'
           scope: '@caistech'
-      # --ignore-scripts: several packages run `prepare: npm run build`, which npm
-      # fires during install, before any sibling has been built — portfolio-gate's
-      # tsc then dies on a peer's missing dist and takes the whole install with it.
-      # The explicit foundation build below is what handles ordering; prepare
-      # running first actively defeats it. Proven by the test workflow, which
-      # failed on exactly this from a clean checkout.
+      # --ignore-scripts: defence in depth. portfolio-gate declared `prepare: npm run
+      # build`, which npm fired during install before siblings were built, breaking
+      # the install. NOTE the flag alone did NOT suppress it — the prepare script was
+      # deleted (prepublishOnly already ran the same build). Kept as a guard against
+      # the next one, but do not rely on it to neutralise a prepare script. Found by
+      # the test workflow, from a clean checkout.
       - name: Install workspace deps
         run: npm ci --ignore-scripts
       # Build foundation packages first so downstream workspaces can resolve
