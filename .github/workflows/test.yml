@@ -25,14 +25,25 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      # Needed to READ @caistech/* from GitHub Packages during install. Not every
+      # dependency resolves to a workspace sibling — a package pinned to an older
+      # published range (elevenlabs-convai ^0.9.0 while the workspace carries
+      # 0.11.2) is fetched from the registry, so without this the install 404s
+      # against registry.npmjs.org. That is exactly how this workflow failed on
+      # its first run.
+      packages: read
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@caistech'
 
       - name: Install workspace deps
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm ci
 
       # Some suites import a sibling package's compiled output rather than its
