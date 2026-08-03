@@ -41,14 +41,30 @@ jobs:
           registry-url: 'https://npm.pkg.github.com'
           scope: '@caistech'
 
+      # --ignore-scripts is REQUIRED, not tidiness.
+      #
+      # Several packages run `prepare: npm run build`, which npm fires during
+      # install — before any sibling has been built. portfolio-gate's tsc then
+      # dies on `Cannot find module '@caistech/elevenlabs-convai/testing'`,
+      # because that peer's dist does not exist yet. The workflow's own build
+      # steps cannot help: prepare has already run and failed the install.
+      #
+      # Nothing had ever run `npm ci` on this repo from a clean checkout, so this
+      # was invisible. publish.yml installs the same way and would hit it too.
       - name: Install workspace deps
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm ci
+        run: npm ci --ignore-scripts
 
-      # Some suites import a sibling package's compiled output rather than its
-      # source, so the build has to happen first or those tests fail on a missing
-      # dist rather than on anything real. Mirrors publish.yml's ordering.
+      # npm's --workspaces runner walks the workspace map ALPHABETICALLY, not
+      # topologically, so anything imported by an earlier-named sibling has to be
+      # built by hand first. Kept deliberately short — this is the ordering the
+      # tests need, not a copy of publish.yml's full foundation list.
+      - name: Build packages the tests depend on
+        run: |
+          npm run build --workspace=@caistech/elevenlabs-convai
+          npm run build --workspace=@caistech/portfolio-gate
+
       - name: Build all workspaces
         run: npm run build --workspaces --if-present
 
