@@ -1,0 +1,47 @@
+name: Test @caistech/* workspaces
+
+# WHY THIS EXISTS, given publish.yml now also runs the tests.
+#
+# publish.yml fires only on a `v*` tag. As a last gate before a version reaches
+# the registry that is the right place for it — but it means a broken test sits
+# undetected until somebody cuts a release, which is the worst possible moment to
+# discover it: mid-publish, under time pressure, with the tag already pushed.
+#
+# This runs on every push and every PR, so the substrate's 33 test files are
+# exercised when the change is made rather than when it ships. Fifteen packages
+# carry suites covering things that are expensive to get wrong — Stripe webhook
+# idempotency, the Spam Act compliance throw, first-touch attribution's wire
+# format, the voice memory-loop probe, the deal model's golden figures — and
+# until now not one of them ran anywhere except on an author's own machine.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install workspace deps
+        run: npm ci
+
+      # Some suites import a sibling package's compiled output rather than its
+      # source, so the build has to happen first or those tests fail on a missing
+      # dist rather than on anything real. Mirrors publish.yml's ordering.
+      - name: Build all workspaces
+        run: npm run build --workspaces --if-present
+
+      # `--if-present` so packages without a test script are simply unaffected,
+      # rather than this becoming a reason not to add tests to them.
+      - name: Test all workspaces
+        run: npm run test --workspaces --if-present

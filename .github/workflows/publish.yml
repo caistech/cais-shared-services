@@ -53,6 +53,29 @@ jobs:
           npm run build --workspace=@caistech/portfolio-gate
       - name: Build all workspaces
         run: npm run build --workspaces --if-present
+
+      # Run the tests BEFORE publishing. Until now this workflow went
+      # install -> build -> publish, so every version of every package in this
+      # substrate was published without a single test having run.
+      #
+      # That was not a small gap. Fifteen packages ship vitest suites — 33 test
+      # files covering the Stripe webhook idempotency guard, the Spam Act
+      # compliance throw, the first-touch attribution wire format, the voice
+      # memory-loop probe and the deal model's golden conformance figures — and
+      # they ran only when somebody remembered to run them on their own machine.
+      # A guard nobody runs is the failure this repo has already documented
+      # twice: probeMemoryLoop shipped in convai 0.7.0 and ran in ZERO repos, and
+      # ExecutorAI served a month-old production build because nothing asserted
+      # the deployed SHA. Same shape, one level down, in the substrate every
+      # product depends on.
+      #
+      # BLOCKING, deliberately. `--if-present` means packages without a test
+      # script are unaffected, so this cannot become a reason to avoid adding
+      # tests elsewhere. Verified green across all 15 suites at the time of
+      # wiring — which is precisely why it goes in now, while it costs nothing,
+      # rather than after something breaks and the step is never added at all.
+      - name: Test all workspaces
+        run: npm run test --workspaces --if-present
       # Per-workspace publish loop with "skip if already-published" check.
       # Needed for the bootstrap phase where we republish orphaned packages
       # one at a time — each tag after the first would otherwise fail on the
