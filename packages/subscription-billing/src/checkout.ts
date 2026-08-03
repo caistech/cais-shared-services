@@ -86,6 +86,27 @@ export interface CreateCheckoutSessionOptions {
   subscriptionMetadata?: Record<string, string>
   allowPromotionCodes?: boolean
   billingAddressCollection?: 'auto' | 'required'
+  /**
+   * Your own sentence on Stripe's hosted checkout page.
+   *
+   * EXISTS FOR ONE SPECIFIC FAILURE, worth stating so it is used for the right thing. An ARREARS
+   * subscription must be priced with a Billing Meter, and Stripe then renders the page honestly and
+   * alarmingly: "Price varies", "billed monthly based on usage", "A$0.00 due today". Every one is
+   * true — the amount genuinely is not known until the period closes — and together they read, to a
+   * cautious buyer at the moment he hands over a card, as a company that will not say what it
+   * charges. `productName` and `productDescription` cannot answer it: Stripe substitutes its own
+   * subtitle for metered prices, and a Product it auto-created can never be edited afterwards.
+   *
+   * `submit.message` sits directly beside the pay button, which is the one place left to say the
+   * fixed figure in plain words. Keep it to the number and the timing; it is not a place for terms.
+   *
+   * Stripe caps each field at 1200 characters and rejects longer.
+   */
+  customText?: {
+    submit?: { message: string }
+    afterSubmit?: { message: string }
+    termsOfServiceAcceptance?: { message: string }
+  }
 }
 
 function isFixedPrice(item: CheckoutLineItem): item is FixedPriceLineItem {
@@ -151,6 +172,7 @@ export async function createSubscriptionCheckoutSession(
     subscriptionMetadata,
     allowPromotionCodes,
     billingAddressCollection = 'auto',
+    customText,
   } = opts
 
   // A trial and arrears are contradictory offers, and the contradiction is invisible for thirty
@@ -200,6 +222,17 @@ export async function createSubscriptionCheckoutSession(
     ...(clientReferenceId ? { client_reference_id: clientReferenceId } : {}),
     ...(metadata ? { metadata } : {}),
     ...(allowPromotionCodes != null ? { allow_promotion_codes: allowPromotionCodes } : {}),
+    ...(customText
+      ? {
+          custom_text: {
+            ...(customText.submit ? { submit: customText.submit } : {}),
+            ...(customText.afterSubmit ? { after_submit: customText.afterSubmit } : {}),
+            ...(customText.termsOfServiceAcceptance
+              ? { terms_of_service_acceptance: customText.termsOfServiceAcceptance }
+              : {}),
+          },
+        }
+      : {}),
   })
 }
 

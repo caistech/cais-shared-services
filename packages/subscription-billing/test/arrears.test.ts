@@ -229,3 +229,64 @@ describe('cancelWithWaiver', () => {
     })
   })
 })
+
+// ─── custom_text ─────────────────────────────────────────────────────────────
+
+describe('customText', () => {
+  /**
+   * WHY THIS FIELD EXISTS AT ALL. An arrears subscription must be priced with a Billing Meter, and
+   * Stripe then renders "Price varies", "billed monthly based on usage" and "$0.00 due today" —
+   * accurate, and read by a cautious buyer as a company that will not say what it charges.
+   * productName/productDescription cannot answer it: Stripe substitutes its own subtitle for metered
+   * prices, and refuses to update a Product it auto-created. This is the one place left to speak.
+   */
+  it('passes the submit message through to Stripe, snake-cased', async () => {
+    const { stripe, created } = stubStripe()
+
+    await createSubscriptionCheckoutSession({
+      stripe,
+      lineItem: {
+        arrears: true,
+        meterEventName: 'kira_month',
+        lookupKeyPrefix: 'kira',
+        currency: 'aud',
+        unitAmount: 99900,
+        interval: 'month',
+        productName: 'Plan',
+      },
+      successUrl: 'https://x/ok',
+      cancelUrl: 'https://x/no',
+      customText: { submit: { message: 'A$999 + GST each month, after the month has finished.' } },
+    })
+
+    const params = created.sessions.mock.calls[0][0] as Record<string, any>
+    expect(params.custom_text.submit.message).toBe(
+      'A$999 + GST each month, after the month has finished.',
+    )
+    // Only the key that was supplied — Stripe rejects an empty object for the others.
+    expect(params.custom_text.after_submit).toBeUndefined()
+    expect(params.custom_text.terms_of_service_acceptance).toBeUndefined()
+  })
+
+  it('omits custom_text entirely when not supplied', async () => {
+    const { stripe, created } = stubStripe()
+
+    await createSubscriptionCheckoutSession({
+      stripe,
+      lineItem: {
+        arrears: true,
+        meterEventName: 'kira_month',
+        lookupKeyPrefix: 'kira',
+        currency: 'aud',
+        unitAmount: 99900,
+        interval: 'month',
+        productName: 'Plan',
+      },
+      successUrl: 'https://x/ok',
+      cancelUrl: 'https://x/no',
+    })
+
+    const params = created.sessions.mock.calls[0][0] as Record<string, any>
+    expect('custom_text' in params).toBe(false)
+  })
+})
