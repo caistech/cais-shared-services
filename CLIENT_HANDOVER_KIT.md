@@ -105,6 +105,54 @@ covered; recipient (MMC Build) self-serves Supabase/Anthropic/OpenAI/HF/Stripe/
 Resend/Inngest/Mapbox; operator pastes only the platform-trust + property-services
 backends.
 
+## 6.5 The client's SENDING DOMAIN is an onboarding step, and it is a FORM
+
+*(Codified 2026-08-03 from the Factory2Key setup on Kira. Applies to any product that sends mail
+**on a client's behalf** — a quote, an invoice, an outreach — as opposed to mail the product sends
+about itself.)*
+
+**The failure it prevents:** the product sends the client's mail from the *operator's* verified
+domain, so a builder's customer receives a $60k quote from an AI company's address, carrying the
+operator's ABN in the compliance footer. That is the `PRODUCT_STANDARDS` §9 "whose brand travels"
+gate and `REGULATORY_INCLUSIONS` Trigger A, in the one place a customer actually reads.
+
+**Collect it in a structured form, never in a voice conversation.** This is `DATA_STANDARD`'s
+decider applied to onboarding: *what is the cost of being approximately right?* For a DKIM public
+key, a subdomain or an ABN it is total (D1 → STRUCTURED). Voice-transcribing a 217-character base64
+key is a guaranteed defect. Reserve the conversation for the answers where nuance is the point.
+
+**What the form must collect** — each blocks a specific downstream failure:
+
+| Field | Why |
+|---|---|
+| Sending **sub**domain (`updates.<theirdomain>`) | Never the apex — that carries their real mail |
+| **Who controls their DNS** — self / registrar / IT provider | Decides whether you show them records or generate something they forward. F2K's went via an IT provider on a Freshdesk ticket, an entirely different workflow |
+| Legal entity, **ABN**, registered postal, phone, contact email | `@caistech/email-compliance` `senderFromEnv()` **throws** without name+email; the Spam Act footer is invalid without ABN and a reply-capable postal address |
+| The **sign-off name** the product uses on their behalf | Kira shipped with the profile name and the business sign-off name disagreeing — a quote about to go out signed by someone who does not work there |
+| Reply-to | Replies must reach them, not the operator |
+
+**Then the system does the rest:** create the domain via the provider API, emit the DNS rows as a
+**copy-paste block or downloadable file — never inline in prose** (F2K's values "kept getting
+mangled" in email, costing a round trip), and poll until verified.
+
+**Five traps, all paid for on 2026-08-03:**
+
+1. **Resend splits its records across TWO names** — SPF + MX at `send.<sub>.<domain>`, DKIM at
+   `resend._domainkey.<sub>.<domain>`. A checker querying only the bare subdomain gets SOA/no-data
+   and reports **"the provider never added them"** for a correctly-configured domain. This nearly
+   caused a ticket to be reopened against a supplier who had done the job right. Query both names.
+2. **Never instruct a provider to skip DKIM.** It is the record that authorises sending.
+3. **The zone serial is not a reliable tell** that a change landed — it read unchanged afterwards.
+4. **Verified ≠ delivering.** The step is not done until one real message is *observed arriving*.
+   A green dashboard is the same evidence that let a product send transactional mail to nowhere for
+   months against a domain nobody had verified.
+5. **No AU region exists** on Resend (Tokyo `ap-northeast-1` is closest), so the client's privacy
+   policy needs the overseas-processing disclosure per `REGULATORY_INCLUSIONS` I1 §4.
+
+**Multi-tenant limit, state it rather than discover it:** per-client sending only works for clients
+whose own domain is verified with the provider. With one real tenant that is invisible; the second
+one makes it the design question.
+
 ## 7. Shared-services target
 
 The wizard generator (manifest → `.env.restore.local.example`) and the push
