@@ -58,7 +58,8 @@ const baseOpts = (overrides: Partial<RenderOptions> = {}): RenderOptions => ({
  *
  * Surfaced 2026-08-03 by the first CI run this repo has ever had.
  */
-const skipInCi = process.env.CI ? it.skip : it
+// Temporarily un-skipped to test the Node-version hypothesis in CI.
+const skipInCi = it
 
 describe("renderPdf — end-to-end", () => {
   skipInCi("renders markdown into a parseable PDF with all key content present", async () => {
