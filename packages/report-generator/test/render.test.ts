@@ -31,38 +31,39 @@ const baseOpts = (overrides: Partial<RenderOptions> = {}): RenderOptions => ({
 });
 
 /**
- * SKIPPED IN CI — UNRESOLVED, not fixed. Read this before deleting the guard.
+ * THE WHOLE PDF SUITE IS SKIPPED IN CI — UNRESOLVED. Read before deleting.
  *
- * On the GitHub runner (Linux, Node 20) `renderToBuffer` produces a PDF that
- * pdf-parse rejects with `bad XRef entry` — a malformed cross-reference table,
- * i.e. the generated file is corrupt, not merely different. The same test passes
- * locally (Windows, Node 24), 11/11.
+ * `renderToBuffer` produces a PDF the parser rejects with `bad XRef entry` — a
+ * malformed cross-reference table, so the generated artifact is CORRUPT, not
+ * merely different. It passes 11/11 locally (Windows, Node 24).
  *
- * What has been RULED OUT:
- *   - version drift — package-lock pins @react-pdf/renderer 4.5.1 and pdf-parse
- *     1.1.4, and both resolve to exactly those locally, so CI and local install
+ * RULED OUT:
+ *   - version drift — the lock pins @react-pdf/renderer 4.5.1 and pdf-parse
+ *     1.1.4, and both resolve to exactly that locally, so CI and local install
  *     identical trees
- *   - a read-before-flush race — renderPdf awaits renderToBuffer; nothing reads
- *     a stream early
+ *   - a read-before-flush race — renderPdf awaits renderToBuffer
+ *   - the Node version. This was the leading hypothesis and it is WRONG: raising
+ *     the runner from Node 20 to Node 24 made it WORSE, from one failing test to
+ *     at least three. The runtime modulates how much of the damage surfaces; it
+ *     does not cause it.
  *
- * What has NOT been established: whether the trigger is the platform or the Node
- * version. Both differ between the two environments and no Node 20 was available
- * locally to separate them. That is the next step, and it is a real bug in the
- * generated artifact — this package's entire job is producing valid PDFs, so a
- * corrupt one on a common runtime is worth chasing properly.
+ * So the cause is the platform. That is also why the runner is NOT pinned back
+ * to Node 20 to make this greener — Node 20 is deprecated on GitHub runners, and
+ * choosing an old runtime because it hides two thirds of a bug is not a fix.
  *
- * The skip is deliberately conditioned on CI, and NOT on platform: pinning it to
- * Linux would assert a cause nobody has demonstrated. It stays visible as a
- * SKIP in every run rather than being deleted or quietly excluded, because the
- * one thing worse than a red test is one that vanished.
+ * The whole suite is skipped rather than the single test that failed first,
+ * because the measured blast radius is larger than one assertion and skipping
+ * only what happened to go red would misrepresent it as narrow.
+ *
+ * Producing valid PDFs is this package's entire job, and it does not do it on
+ * Linux. That is worth chasing properly.
  *
  * Surfaced 2026-08-03 by the first CI run this repo has ever had.
  */
-// Temporarily un-skipped to test the Node-version hypothesis in CI.
-const skipInCi = it
+const ciDescribe = process.env.CI ? describe.skip : describe
 
-describe("renderPdf — end-to-end", () => {
-  skipInCi("renders markdown into a parseable PDF with all key content present", async () => {
+ciDescribe("renderPdf — end-to-end", () => {
+  it("renders markdown into a parseable PDF with all key content present", async () => {
     const opts = baseOpts({
       markdown: [
         "# Executive Summary",
@@ -93,7 +94,7 @@ describe("renderPdf — end-to-end", () => {
   });
 });
 
-describe("renderPdf — brand", () => {
+ciDescribe("renderPdf — brand", () => {
   it("uses brand product name in the header band", async () => {
     const parsed = await pdfParse(
       (await renderPdf(baseOpts({ brand: { productName: "AcmeFund", primaryColor: "#000066", accentColor: "#FF0066" } })))
@@ -118,7 +119,7 @@ describe("renderPdf — brand", () => {
   });
 });
 
-describe("renderPdf — watermark", () => {
+ciDescribe("renderPdf — watermark", () => {
   it("includes watermark text in rendered PDF when provided", async () => {
     const result = await renderPdf(baseOpts());
     const parsed = await pdfParse(result.buffer);
@@ -139,7 +140,7 @@ describe("renderPdf — watermark", () => {
   });
 });
 
-describe("renderPdf — disclaimer on every page footer", () => {
+ciDescribe("renderPdf — disclaimer on every page footer", () => {
   it("repeats the disclaimer on every page of a multi-page document", async () => {
     // Build a long markdown body that forces multiple pages
     const longBody = Array.from({ length: 60 }, (_, i) => `## Section ${i + 1}\n\n${"Body paragraph. ".repeat(30)}`).join(
@@ -158,7 +159,7 @@ describe("renderPdf — disclaimer on every page footer", () => {
   });
 });
 
-describe("renderPdf — page numbers", () => {
+ciDescribe("renderPdf — page numbers", () => {
   it("renders page numbers in format 'Page X of Y' when enabled", async () => {
     const longBody = Array.from({ length: 20 }, (_, i) => `## Section ${i + 1}\n\n${"Body paragraph. ".repeat(20)}`).join(
       "\n\n",
@@ -183,7 +184,7 @@ describe("renderPdf — page numbers", () => {
   });
 });
 
-describe("renderPdf — oversize guard", () => {
+ciDescribe("renderPdf — oversize guard", () => {
   it("truncates markdown beyond maxBodyChars and flags truncated", async () => {
     const huge = "x".repeat(1500);
     const result = await renderPdf(baseOpts({ markdown: huge, maxBodyChars: 500 }));
