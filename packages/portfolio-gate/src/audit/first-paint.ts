@@ -169,6 +169,11 @@ export function measureVisibleText(html: string): PaintMeasurement {
       .replace(/&lt;/gi, '<')
       .replace(/&gt;/gi, '>')
       .replace(/&quot;/gi, '"')
+      // Numeric character references, BOTH forms. Handling only the decimal one was a real bug:
+      // Next.js emits apostrophes as the HEX form (`&#x27;`), so "what&#x27;s" was counted as
+      // eleven visible characters instead of six — inflating every measurement on any page with
+      // an apostrophe in it, which is most of them.
+      .replace(/&#x[0-9a-f]+;/gi, "'")
       .replace(/&#\d+;/g, ' ')
       .replace(/\s+/g, ' ')
       .trim()
@@ -225,6 +230,9 @@ export async function runFirstPaintAudit(
     }
   }
 
+  let measuredRoutes = 0
+  let unmeasuredRoutes = 0
+
   for (const route of marked) {
     const probe = await probePublicRoute(options.baseUrl, route.urlPath, route.file, {
       timeoutMs: options.timeoutMs,
@@ -240,9 +248,28 @@ export async function runFirstPaintAudit(
       continue
     }
 
-    // Reachability is public-routes' verdict, not this one. Reporting it here too would double-count
-    // one defect as two findings and obscure which check actually established what.
-    if (probe.status !== 200) continue
+    // Reachability is public-routes' verdict, not this one — reporting a 307-to-login as a
+    // first-paint defect would double-count one bug and obscure which check established what.
+    //
+    // But NOT MEASURED MUST NOT READ AS PASSED. Skipping silently is how this check reported a
+    // clean green against a Vercel-protected preview that redirected all eleven routes to an SSO
+    // wall: 0 findings, exit 0, nothing whatsoever verified. That is the exact failure the rest of
+    // this package rails against, reintroduced here on the first run. So an unmeasurable route is
+    // recorded as a warning, and the run FAILS below if none could be measured at all.
+    if (probe.status !== 200) {
+      unmeasuredRoutes += 1
+      findings.push({
+        severity: 'warn',
+        message: `${route.urlPath} answered ${probe.status} — first paint could NOT be measured.`,
+        file: route.file,
+        detail:
+          'Whether the route should answer 200 is public-routes’ verdict, not this one. What ' +
+          'matters here is that this page was not checked, which is not the same as it passing. A ' +
+          'protected preview redirects everything to an SSO wall and would otherwise score green.',
+      })
+      continue
+    }
+    measuredRoutes += 1
 
     const measured = measureVisibleText(probe.body)
 
@@ -279,6 +306,21 @@ export async function runFirstPaintAudit(
           'renders static content, the directive can usually move down to the one interactive child.'
         : 'The response carries almost no visible text at all. Either the page renders entirely on ' +
           `the client, or it is genuinely empty. Observed content: "${measured.sample}".`,
+    })
+  }
+
+  // Nothing was measured, so nothing was established. Reporting a pass here would be a lie told
+  // with a green tick, and it is the shape of lie this whole package was built to stop.
+  if (measuredRoutes === 0) {
+    findings.push({
+      severity: 'fail',
+      message: `First paint was verified on ZERO of ${marked.length} marked route(s) — ${unmeasuredRoutes} could not be measured.`,
+      detail:
+        'Every marked route answered something other than 200, so this audit checked nothing. The ' +
+        'usual cause is a preview behind Vercel deployment protection, which answers a redirect ' +
+        'or an SSO page for every path: supply a Protection-Bypass-for-Automation token, or point ' +
+        '--base-url at a publicly reachable deployment. Failing is deliberate — an audit that ' +
+        'verified nothing must never be reported as one that passed.',
     })
   }
 
