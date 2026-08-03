@@ -54,3 +54,6 @@ export { handleSubscriptionWebhook, normalizeStatus } from './webhook.js'
 
 export type { SubscriberColumns, SupabaseSubscriptionAdapterOptions } from './supabase.js'
 export { createSupabaseIdempotencyStore, createSupabaseSubscriptionAdapter } from './supabase.js'
+
+// Test/live mode switch — also available as the '@caistech/subscription-billing/mode' subpath.
+export * from './mode.js'
