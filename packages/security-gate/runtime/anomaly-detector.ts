@@ -10,7 +10,7 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js'
-import type { AnomalyAlert, SecurityEvent } from '../types'
+import type { AnomalyAlert, SecurityEvent } from '../types.js'
 
 export interface AnomalyConfig {
   /** Maximum tool calls per session before flagging */

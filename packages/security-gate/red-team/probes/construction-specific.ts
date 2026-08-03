@@ -6,7 +6,7 @@
  * compliance findings, cost estimates, and design recommendations.
  */
 
-import type { Probe } from "../types";
+import type { Probe } from "../types.js";
 
 const REFUSAL_PATTERNS = [
   /i (can't|cannot|won't|will not|am unable to)/i,

@@ -7,8 +7,8 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js'
-import type { SecurityEvent, ToolCall, ToolResult } from '../types'
-import type { ProvenanceTracker } from '../camel/policy-engine'
+import type { SecurityEvent, ToolCall, ToolResult } from '../types.js'
+import type { ProvenanceTracker } from '../camel/policy-engine.js'
 
 export interface ToolCallLogEntry {
   project_id: string

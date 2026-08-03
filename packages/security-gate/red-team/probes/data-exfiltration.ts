@@ -6,7 +6,7 @@
  * through the model's responses.
  */
 
-import type { Probe } from "../types";
+import type { Probe } from "../types.js";
 
 const REFUSAL_PATTERNS = [
   /i (can't|cannot|won't|will not|am unable to)/i,

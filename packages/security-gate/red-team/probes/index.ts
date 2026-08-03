@@ -2,12 +2,12 @@
  * Probe Library — all probes organized by category.
  */
 
-import { PROMPT_INJECTION_PROBES } from "./prompt-injection";
-import { ENCODING_BYPASS_PROBES } from "./encoding-bypass";
-import { TOOL_MANIPULATION_PROBES } from "./tool-manipulation";
-import { DATA_EXFILTRATION_PROBES } from "./data-exfiltration";
-import { CONSTRUCTION_SPECIFIC_PROBES } from "./construction-specific";
-import type { Probe, ProbeCategory } from "../types";
+import { PROMPT_INJECTION_PROBES } from "./prompt-injection.js";
+import { ENCODING_BYPASS_PROBES } from "./encoding-bypass.js";
+import { TOOL_MANIPULATION_PROBES } from "./tool-manipulation.js";
+import { DATA_EXFILTRATION_PROBES } from "./data-exfiltration.js";
+import { CONSTRUCTION_SPECIFIC_PROBES } from "./construction-specific.js";
+import type { Probe, ProbeCategory } from "../types.js";
 
 /** All probes in the library */
 export const ALL_PROBES: Probe[] = [
@@ -60,8 +60,8 @@ export function getProbeCounts(): Record<string, number> {
 }
 
 // Re-export individual sets
-export { PROMPT_INJECTION_PROBES } from "./prompt-injection";
-export { ENCODING_BYPASS_PROBES } from "./encoding-bypass";
-export { TOOL_MANIPULATION_PROBES } from "./tool-manipulation";
-export { DATA_EXFILTRATION_PROBES } from "./data-exfiltration";
-export { CONSTRUCTION_SPECIFIC_PROBES } from "./construction-specific";
+export { PROMPT_INJECTION_PROBES } from "./prompt-injection.js";
+export { ENCODING_BYPASS_PROBES } from "./encoding-bypass.js";
+export { TOOL_MANIPULATION_PROBES } from "./tool-manipulation.js";
+export { DATA_EXFILTRATION_PROBES } from "./data-exfiltration.js";
+export { CONSTRUCTION_SPECIFIC_PROBES } from "./construction-specific.js";

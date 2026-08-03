@@ -11,7 +11,7 @@
  */
 
 import { SupabaseClient } from '@supabase/supabase-js'
-import type { KillSwitchState, AnomalyAlert, PolicyViolation } from '../types'
+import type { KillSwitchState, AnomalyAlert, PolicyViolation } from '../types.js'
 
 export interface KillSwitchConfig {
   /** Auto-kill after this many policy violations */

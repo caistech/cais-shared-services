@@ -21,13 +21,13 @@ import type {
   SecurityPolicy,
   WrapInput,
   WrapResult,
-} from './types'
-import { resolvePolicy, PolicyEnforcer, ProvenanceTracker } from './camel/policy-engine'
-import { runQuarantine } from './camel/quarantine'
-import { runPlanner } from './camel/planner'
-import { ToolCallLogger } from './runtime/tool-call-logger'
-import { AnomalyDetector } from './runtime/anomaly-detector'
-import { KillSwitch } from './runtime/kill-switch'
+} from './types.js'
+import { resolvePolicy, PolicyEnforcer, ProvenanceTracker } from './camel/policy-engine.js'
+import { runQuarantine } from './camel/quarantine.js'
+import { runPlanner } from './camel/planner.js'
+import { ToolCallLogger } from './runtime/tool-call-logger.js'
+import { AnomalyDetector } from './runtime/anomaly-detector.js'
+import { KillSwitch } from './runtime/kill-switch.js'
 
 export interface SecurityGate {
   /** Run the full CaMeL pipeline */

@@ -10,7 +10,7 @@
  *   const report = await runner.run(["prompt_injection"]) // specific categories
  */
 
-import type { ModelCallFn } from "../types";
+import type { ModelCallFn } from "../types.js";
 import type {
   Probe,
   ProbeCategory,
@@ -18,8 +18,8 @@ import type {
   ProbeVerdict,
   RedTeamReport,
   RedTeamRun,
-} from "./types";
-import { ALL_PROBES, getProbes } from "./probes";
+} from "./types.js";
+import { ALL_PROBES, getProbes } from "./probes/index.js";
 
 export interface RedTeamRunnerConfig {
   /** The model call function to test */

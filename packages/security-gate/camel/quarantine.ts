@@ -9,9 +9,9 @@
  * send emails, or access any external systems.
  */
 
-import type { ModelCallFn, SecurityPolicy } from '../types'
-import { sanitizeInput, type SanitizeResult } from '../guardrails/input-sanitizer'
-import { validateQuarantineOutput, type ValidationResult } from '../guardrails/output-validator'
+import type { ModelCallFn, SecurityPolicy } from '../types.js'
+import { sanitizeInput, type SanitizeResult } from '../guardrails/input-sanitizer.js'
+import { validateQuarantineOutput, type ValidationResult } from '../guardrails/output-validator.js'
 
 export interface QuarantineInput {
   /** The untrusted content to process */

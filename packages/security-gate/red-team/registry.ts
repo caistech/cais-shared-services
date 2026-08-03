@@ -9,7 +9,7 @@
  */
 
 import { SupabaseClient } from "@supabase/supabase-js";
-import type { RegisteredEndpoint, ProbeCategory } from "./types";
+import type { RegisteredEndpoint, ProbeCategory } from "./types.js";
 
 export class EndpointRegistry {
   private supabase: SupabaseClient | null;

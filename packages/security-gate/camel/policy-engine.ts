@@ -18,7 +18,7 @@ import type {
   SecurityPolicy,
   ToolCall,
   ToolDefinition,
-} from '../types'
+} from '../types.js'
 
 // ---------------------------------------------------------------------------
 // Default Policies

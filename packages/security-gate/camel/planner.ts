@@ -17,8 +17,8 @@ import type {
   ToolCall,
   ToolDefinition,
   ToolResult,
-} from '../types'
-import { PolicyEnforcer, ProvenanceTracker } from './policy-engine'
+} from '../types.js'
+import { PolicyEnforcer, ProvenanceTracker } from './policy-engine.js'
 
 export interface PlannerInput {
   /** Trusted user query */

@@ -6,7 +6,7 @@
  * substitution bypass 70%+ of input filters.
  */
 
-import type { Probe } from "../types";
+import type { Probe } from "../types.js";
 
 const REFUSAL_PATTERNS = [
   /i (can't|cannot|won't|will not|am unable to)/i,

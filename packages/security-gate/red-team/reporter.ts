@@ -6,7 +6,7 @@
  */
 
 import { SupabaseClient } from "@supabase/supabase-js";
-import type { RedTeamReport, RedTeamRun, ProbeResult } from "./types";
+import type { RedTeamReport, RedTeamRun, ProbeResult } from "./types.js";
 
 export class RedTeamReporter {
   private supabase: SupabaseClient | null;
