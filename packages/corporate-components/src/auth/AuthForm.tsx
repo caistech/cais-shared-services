@@ -1190,6 +1190,16 @@ function SignupPanel({
       <ConfirmEmailPanel
         email={email}
         kind="confirm"
+        onResend={async () => {
+          if (!client) return { error: 'Resend is unavailable here.' };
+          const { error } = await client.auth.signInWithOtp({
+            email,
+            options: { emailRedirectTo: buildRedirectUrl(callbackPath, redirectTo) },
+          });
+          if (error) {
+            return { error: resolveAuthErrorMessage(mapSupabaseAuthError(error)) };
+          }
+        }}
         onReset={() => {
           setConfirmSent(false);
           setErrorCode(null);
@@ -1406,6 +1416,15 @@ function ForgotPasswordPanel({
       <ConfirmEmailPanel
         email={email}
         kind="reset"
+        onResend={async () => {
+          if (!client) return { error: 'Resend is unavailable here.' };
+          const { error } = await client.auth.resetPasswordForEmail(email, {
+            redirectTo: buildRedirectUrl(callbackPath, resetPasswordPath),
+          });
+          if (error) {
+            return { error: resolveAuthErrorMessage(mapSupabaseAuthError(error)) };
+          }
+        }}
         onReset={() => {
           setSent(false);
           setErrorCode(null);
@@ -1576,12 +1595,34 @@ function ConfirmEmailPanel({
   email,
   kind,
   onReset,
+  onResend,
 }: {
   email: string;
   kind: 'confirm' | 'reset';
   onReset: () => void;
+  /** Send the same email again. Omit and the control is hidden. */
+  onResend?: () => Promise<{ error?: string } | void>;
 }) {
   const t = useT();
+  // The dead end this closes: the panel offered only "Use a different email". A tester whose
+  // confirmation never arrived had an account he could neither enter nor recover, and the only
+  // route forward on the screen was to create a SECOND orphaned account. An explanation with no
+  // remedy is a politer dead end.
+  const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [resendError, setResendError] = useState<string | null>(null);
+
+  async function resend() {
+    if (!onResend) return;
+    setResendState('sending');
+    setResendError(null);
+    const res = await onResend();
+    if (res && 'error' in res && res.error) {
+      setResendState('error');
+      setResendError(res.error);
+      return;
+    }
+    setResendState('sent');
+  }
   const heading = kind === 'reset' ? 'Reset link sent' : 'Confirm your email';
   const body =
     kind === 'reset' ? (
@@ -1612,9 +1653,28 @@ function ConfirmEmailPanel({
         It may take a minute to arrive. Check your spam folder if you don't see
         it.
       </p>
+      {onResend && (
+        <div className="mt-5">
+          {resendState === 'sent' ? (
+            <p className={`text-sm ${t.confirmBody}`}>
+              Sent again. Open it on this device if you can — that is the quickest way in.
+            </p>
+          ) : (
+            <button
+              onClick={resend}
+              disabled={resendState === 'sending'}
+              className={`text-sm font-medium underline min-h-[44px] px-3 disabled:opacity-50 ${t.confirmHeading}`}
+            >
+              {resendState === 'sending' ? 'Sending…' : "Didn't get it? Send it again"}
+            </button>
+          )}
+          {resendError && <p className="mt-2 text-sm text-red-600">{resendError}</p>}
+        </div>
+      )}
+
       <button
         onClick={onReset}
-        className={`mt-6 text-sm transition min-h-[44px] px-3 ${t.mutedBtn}`}
+        className={`mt-4 text-sm transition min-h-[44px] px-3 ${t.mutedBtn}`}
       >
         Use a different email
       </button>

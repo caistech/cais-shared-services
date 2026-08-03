@@ -22,6 +22,9 @@ export const AUTH_ERROR_CODES = [
   'password_too_short',
   'consent_required',
   'rate_limited',
+  'invalid_email',
+  'email_exists',
+  'weak_password',
   'provider_error',
   'network_error',
   'generic',
@@ -47,6 +50,12 @@ const COPY: Record<AuthErrorCode, string> = {
     'Please tick the box to accept the terms before creating your account.',
   rate_limited:
     "We've sent too many emails to this address recently. Wait a few minutes, then try again.",
+  invalid_email:
+    "That email address doesn't look right. Check it for typos — a missing @ or something like 'gmial.con' — and try again.",
+  email_exists:
+    "There's already an account with that email. Try signing in, or use the reset-password option below.",
+  weak_password:
+    'That password is too easy to guess. Use a longer one, or add a number or symbol.',
   provider_error:
     "We couldn't reach the auth provider. Try again in a moment.",
   network_error:
@@ -127,8 +136,48 @@ export function mapSupabaseAuthError(err: unknown): AuthErrorCode {
     return 'email_not_confirmed';
   }
 
-  // Anything else — treat as a generic provider error
-  return 'provider_error';
+  // Address the provider rejected (Supabase: "Unable to validate email address: invalid format",
+  // "email_address_invalid"). This was the defect: it fell to `provider_error` below and told
+  // someone who had typed "@gmial.con" that we could not reach the auth provider and to try again
+  // in a moment — so they waited, retried, and got the same thing forever.
+  if (
+    message.includes('validate email') ||
+    message.includes('email_address_invalid') ||
+    message.includes('invalid email') ||
+    message.includes('email address is invalid')
+  ) {
+    return 'invalid_email';
+  }
+
+  // Already registered (Supabase: "User already registered", "email_exists")
+  if (
+    message.includes('already registered') ||
+    message.includes('email_exists') ||
+    message.includes('already been registered')
+  ) {
+    return 'email_exists';
+  }
+
+  // Password rejected by policy (Supabase: "Password should be at least...", "weak_password")
+  if (
+    message.includes('weak_password') ||
+    message.includes('password should be') ||
+    message.includes('password is too weak')
+  ) {
+    return 'weak_password';
+  }
+
+  // Anything else is GENERIC, not `provider_error`.
+  //
+  // The fallback used to be `provider_error`, whose copy says "we couldn't reach the auth
+  // provider" — a claim about the NETWORK that this function has no evidence for. It reached that
+  // conclusion for every unrecognised message, including ones where the provider answered
+  // perfectly well and rejected the input. Telling someone to "try again in a moment" when the
+  // problem is what they typed is worse than saying nothing: it sends them into a loop.
+  //
+  // `provider_error` is now reserved for cases a caller can actually establish — a 5xx or an
+  // unreachable host — and is set explicitly, not guessed.
+  return 'generic';
 }
 
 function extractMessage(err: unknown): string {
