@@ -210,7 +210,28 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
             </form>
           ) : preConnect ? (
             <button className="convai-btn" onClick={connect} aria-label={launcherLabel(props.mode)}>
-              <span aria-hidden>🎙️</span>
+              {/* An inline SVG, not 🎙️.
+                  The emoji rendered as the only emoji on an otherwise deliberately sober page — a
+                  tester walking a product aimed at owners in their sixties noticed exactly that,
+                  and it reads as a stray rather than a choice. It also renders differently on every
+                  platform (Apple, Windows and Android each draw a different microphone at a
+                  different weight), so a product cannot control how its primary call-to-action
+                  looks. `aria-hidden` because the button already carries an aria-label. */}
+              <svg
+                aria-hidden
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <line x1="12" y1="19" x2="12" y2="22" />
+              </svg>
               {launcherLabel(props.mode)}
             </button>
           ) : (
