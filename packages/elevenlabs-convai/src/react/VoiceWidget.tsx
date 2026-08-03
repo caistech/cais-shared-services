@@ -60,24 +60,38 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
 
   // STALL TIMER — the reason a mic-less visitor is ever offered the text box.
   //
-  // The fallback used to require `status === 'error'`, so a connection that neither succeeded
-  // nor failed left the panel dead forever. See DEFAULT_FALLBACK_AFTER_MS for the measurements.
-  // The timer starts when the panel opens, is cancelled the moment voice connects, and resets
-  // when the panel closes so a later reopen gets a fresh attempt rather than an instant fallback.
+  // The fallback used to require `status === 'error'`, so a connection that neither succeeded nor
+  // failed left the panel dead forever. See DEFAULT_FALLBACK_AFTER_MS for those measurements.
+  //
+  // ⚠️ IT KEYS OFF "SOMEONE ASKED TO TALK", NOT "THE PANEL IS OPEN", and the difference is the whole
+  // defect this replaces. `open` is TRUE FROM MOUNT for the embedded placements (line ~31:
+  // `useState(embedded)`), so keying on it started the clock at page load. Measured on a live
+  // landing page, with nothing clicked at all:
+  //
+  //     +8s   "Talk to the assistant"
+  //     +11s  a text box
+  //
+  // The product turned itself into a chatbot while the visitor was still reading — and the visitor
+  // this page is written for reads the whole page before touching anything, so he was never offered
+  // voice at all. A timer meant to rescue a hung connection was instead pre-empting one that had
+  // never been attempted.
+  //
+  // `attempted` is state rather than the existing `startedRef`, because a ref does not re-render and
+  // the fallback has to appear when it flips. Cancelled the moment voice connects; reset when the
+  // panel closes so a reopen gets a fresh attempt rather than an instant fallback.
+  const [attempted, setAttempted] = useState(false);
   const [stalled, setStalled] = useState(false);
   useEffect(() => {
-    if (connected) {
+    if (connected || !open) {
       setStalled(false);
+      if (!open) setAttempted(false);
       return;
     }
-    if (!open) {
-      setStalled(false);
-      return;
-    }
+    if (!attempted) return; // nobody has asked to talk yet — there is nothing to rescue
     const after = props.fallbackAfterMs ?? DEFAULT_FALLBACK_AFTER_MS;
     const timer = setTimeout(() => setStalled(true), after);
     return () => clearTimeout(timer);
-  }, [open, connected, props.fallbackAfterMs]);
+  }, [open, connected, attempted, props.fallbackAfterMs]);
 
   const fallback = shouldUseTextFallback(props, status, { stalled });
 
@@ -105,6 +119,9 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
   async function connect() {
     if (fallback || startedRef.current || status === 'connected') return;
     startedRef.current = true;
+    // The moment that starts the stall clock: someone has asked to talk, so a connection that
+    // neither succeeds nor fails is now worth rescuing with a text box.
+    setAttempted(true);
     try {
       const opts = buildStartOptions(props);
       // Private, owner-gated agents connect via a signed URL (authorized server-side) rather than a
