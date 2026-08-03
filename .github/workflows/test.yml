@@ -63,17 +63,12 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm ci --ignore-scripts
 
-      # npm's --workspaces runner walks the workspace map ALPHABETICALLY, not
-      # topologically, so anything imported by an earlier-named sibling has to be
-      # built by hand first. Kept deliberately short — this is the ordering the
-      # tests need, not a copy of publish.yml's full foundation list.
-      - name: Build packages the tests depend on
-        run: |
-          npm run build --workspace=@caistech/elevenlabs-convai
-          npm run build --workspace=@caistech/portfolio-gate
-
+      # Shared with publish.yml. npm's --workspaces runner is alphabetical, not
+      # topological, so the foundation packages must be built by hand first — and
+      # that curated ordering lives in one script rather than duplicated across
+      # two workflows, where it would drift towards whichever one runs less often.
       - name: Build all workspaces
-        run: npm run build --workspaces --if-present
+        run: bash scripts/build-workspaces.sh
 
       # `--if-present` so packages without a test script are simply unaffected,
       # rather than this becoming a reason not to add tests to them.
