@@ -70,6 +70,12 @@ export {
   probePublicRoute,
   PUBLIC_MARKER,
 } from './audit/public-routes.js'
+export {
+  runFirstPaintAudit,
+  measureVisibleText,
+  DEFAULT_MIN_CHARS,
+} from './audit/first-paint.js'
+export type { PaintMeasurement, FirstPaintOptions } from './audit/first-paint.js'
 export { formatAuditResult } from './audit/shared.js'
 export type { AuditResult, AuditFinding } from './audit/shared.js'
 
