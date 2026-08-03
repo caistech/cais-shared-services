@@ -43,6 +43,8 @@ FOUNDATION=(
   '@caistech/elevenlabs-convai'
   # portfolio-migrator's default template consumes portfolio-gate.
   '@caistech/portfolio-gate'
+  # openrouter-client reports token usage through usage-meter, and 'o' < 'u'.
+  '@caistech/usage-meter'
 )
 
 for pkg in "${FOUNDATION[@]}"; do
