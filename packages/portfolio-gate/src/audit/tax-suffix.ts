@@ -35,23 +35,30 @@
  * valuation, and this audit refuses to assert which — an unprovable finding is worse than a
  * missing one, because it teaches people the check is wrong.
  *
- * ⚠️ KNOWN LIMIT — IT ONLY SEES SERVER-RENDERED PRICES, and that matters more than it sounds.
- * This reads the HTML the server sends, so a price computed on the client is invisible to it.
- * Measured against Kira: the landing carries "$499 + GST to $4,999 + GST /month" and is checked,
- * while `/plan` and `/business-valuation` return ZERO currency amounts to a fetch because their
- * prices are rendered after hydration — and `/plan` is precisely where the original `+ GST + GST`
- * shipped. So this audit would NOT have caught the defect that motivated it, in situ.
+ * TRANSPORT: it RENDERS each page in a browser and reads `innerText`, falling back to served HTML
+ * when no browser is available (and warning loudly, because partial coverage reported as a clean
+ * pass is the failure this package exists to stop). Rendering matters — a fetch of Kira's
+ * `/business-valuation` returns zero currency amounts while the rendered page returns 1,116
+ * characters of copy.
  *
- * That is stated plainly rather than buried, because a check whose coverage is assumed to be
- * total is worse than one whose limit is known: it converts "we did not look there" into "there
- * is nothing there". Closing it means rendering the page in a browser, as the input-response
- * audit does — worth doing, and a deliberate follow-up rather than a silent gap. Until then, the
- * unit tests carry the defect strings themselves, so the PATTERNS are proven even where the
- * transport cannot reach.
+ * ⚠️ KNOWN LIMIT, and it is NOT "client-rendered prices" — that was the first guess and it was
+ * wrong. The real limit is that A PRICED PAGE CAN SIT BEHIND PRODUCT STATE. Kira's `/plan` is
+ * where the original "+ GST + GST" shipped, and rendering it yields 352 characters and no price at
+ * all: without a completed valuation in the visitor's own browser storage it shows "let's find
+ * your number first" instead of the priced hero. No transport reaches that. Only driving the
+ * eleven-question flow, or seeding the state, would — and neither belongs in a check that has to
+ * run on every push.
+ *
+ * So: this audit covers prices a visitor can reach without first becoming a user. That is a real
+ * and useful boundary, stated here rather than buried, because a check whose coverage is assumed
+ * total converts "we did not look there" into "there is nothing there". The unit tests carry the
+ * defect strings from both products directly, so the PATTERNS remain proven even where the
+ * transport cannot go.
  */
 import { type AuditFinding, type AuditResult } from './shared.js'
 import { findMarkedPublicRoutes, probePublicRoute } from './public-routes.js'
 import { measureVisibleText } from './first-paint.js'
+import { launchChromium, renderVisibleText } from './browser.js'
 
 /**
  * Tax labels recognised as qualifiers, by jurisdiction.
@@ -113,6 +120,11 @@ export interface TaxSuffixOptions {
   baseUrl?: string
   timeoutMs?: number
   fetchImpl?: typeof fetch
+  /**
+   * Injected playwright factory. Pass `null` to force the fetch-only path — used by tests, and by
+   * anyone who wants the cheap check without paying for a browser.
+   */
+  browserFactory?: (() => Promise<unknown>) | null
 }
 
 export interface PriceFinding {
@@ -194,19 +206,58 @@ export async function runTaxSuffixAudit(options: TaxSuffixOptions = {}): Promise
     }
   }
 
-  let measured = 0
-  for (const route of marked) {
-    const probe = await probePublicRoute(options.baseUrl, route.urlPath, route.file, {
-      timeoutMs: options.timeoutMs,
-      fetchImpl: options.fetchImpl,
+  // Prefer a RENDERED page; fall back to served HTML and say so.
+  //
+  // Kira's /plan returns zero currency amounts to a fetch because its price is computed after
+  // hydration — and /plan is where the original "+ GST + GST" shipped. A fetch-only audit would
+  // therefore have passed over its own motivating defect while looking green.
+  //
+  // Degrading rather than failing (unlike input-response) because server-rendered prices are
+  // genuinely worth checking on their own: half the coverage is real value, whereas an
+  // unexercised input is simply the bug. What is not acceptable is degrading SILENTLY, so the
+  // reduced coverage is reported as a warning naming exactly what went unchecked.
+  const launched = options.browserFactory === null ? null : await launchChromium(options.browserFactory)
+  const browser = launched && 'via' in launched ? launched.browser : null
+  if (launched && !browser) {
+    findings.push({
+      severity: 'warn',
+      message: 'No browser available — only SERVER-RENDERED prices were checked.',
+      detail:
+        `${(launched as { reason: string }).reason} Client-rendered prices are invisible to a ` +
+        'plain fetch, and on at least one product that is exactly where the priced page lives. ' +
+        'This run is partial coverage, not a clean bill of health.',
     })
-    if (probe.error || probe.status !== 200) continue
-    measured += 1
+  }
 
-    // allText, not contentText: a price in a footer or a nav is still a price.
-    const { allText } = measureVisibleText(probe.body)
+  let measured = 0
+  try {
+    for (const route of marked) {
+      let text: string | null = null
 
-    for (const defect of findPriceDefects(allText)) {
+      if (browser) {
+        const rendered = await renderVisibleText(browser, `${options.baseUrl.replace(/\/+$/, '')}${route.urlPath}`)
+        if (rendered.text !== null) text = rendered.text
+        else
+          findings.push({
+            severity: 'warn',
+            message: `${route.urlPath} could not be rendered — ${rendered.error}`,
+            file: route.file,
+          })
+      }
+
+      if (text === null) {
+        const probe = await probePublicRoute(options.baseUrl, route.urlPath, route.file, {
+          timeoutMs: options.timeoutMs,
+          fetchImpl: options.fetchImpl,
+        })
+        if (probe.error || probe.status !== 200) continue
+        // allText, not contentText: a price in a footer or a nav is still a price.
+        text = measureVisibleText(probe.body).allText
+      }
+
+      measured += 1
+
+    for (const defect of findPriceDefects(text)) {
       if (defect.kind === 'doubled') {
         findings.push({
           severity: 'fail',
@@ -231,7 +282,10 @@ export async function runTaxSuffixAudit(options: TaxSuffixOptions = {}): Promise
             'not gain a suffix; this audit only judges amounts quoted per period.',
         })
       }
+      }
     }
+  } finally {
+    if (browser) await browser.close().catch(() => undefined)
   }
 
   if (measured === 0) {
