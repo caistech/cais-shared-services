@@ -265,8 +265,20 @@ async function probePage(
     //
     // Playwright's auto-waiting is used deliberately here rather than a fixed sleep: waiting for
     // the first candidate to attach is what makes this deterministic.
+    // THE AUDIT MUST OUTLAST THE CONSUMER'S OWN FALLBACK TIMER, or it reports a fixed product
+    // as broken.
+    //
+    // This was 10s, which was fine while a mic-less visitor's text box appeared in ~570ms (it was
+    // gated on the connection erroring, which happened fast or never). @caistech/elevenlabs-convai
+    // 0.12.0 then added an 8-second stall timer so the box appears even when no error ever arrives
+    // — and measured against the fixed build, the box now lands at 9.2s, 11.3s and 12.8s in exactly
+    // the cases that previously never produced one at all.
+    //
+    // With a 10s budget the audit failed the fix that repaired the defect it had found. 20s clears
+    // an 8s fallback plus render and polling slack, and is still bounded. A check whose patience is
+    // shorter than the behaviour it measures does not measure it.
     const candidates = page.locator('input, textarea')
-    await candidates.first().waitFor({ state: 'attached', timeout: 10_000 }).catch(() => undefined)
+    await candidates.first().waitFor({ state: 'attached', timeout: 20_000 }).catch(() => undefined)
 
     const total: number = await candidates.count()
     let target: any = null
