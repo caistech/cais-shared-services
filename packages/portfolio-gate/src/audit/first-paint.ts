@@ -84,6 +84,16 @@ export interface PaintMeasurement {
   heading: string
   /** First ~80 characters of the content text, for a legible failure message. */
   sample: string
+  /**
+   * All visible text, chrome included, whitespace-collapsed.
+   *
+   * Exposed so other audits can read a page's words without re-implementing the scanner — the
+   * tax-suffix audit needs prices wherever they appear, INCLUDING a footer or a nav, which is
+   * exactly the text `contentText` deliberately excludes.
+   */
+  allText: string
+  /** Visible text outside the chrome, whitespace-collapsed. */
+  contentText: string
 }
 
 /**
@@ -179,11 +189,14 @@ export function measureVisibleText(html: string): PaintMeasurement {
       .trim()
 
   const contentText = clean(content)
+  const allText = clean(total)
   return {
-    totalChars: clean(total).length,
+    totalChars: allText.length,
     contentChars: contentText.length,
     heading: clean(heading),
     sample: contentText.slice(0, 80),
+    allText,
+    contentText,
   }
 }
 

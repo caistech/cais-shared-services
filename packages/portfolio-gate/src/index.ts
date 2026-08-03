@@ -83,6 +83,12 @@ export {
   INPUT_MARKER,
   PROBE_TEXT,
 } from './audit/input-response.js'
+export {
+  runTaxSuffixAudit,
+  findPriceDefects,
+  TAX_LABELS,
+} from './audit/tax-suffix.js'
+export type { PriceFinding, TaxSuffixOptions } from './audit/tax-suffix.js'
 export { formatAuditResult } from './audit/shared.js'
 export type { AuditResult, AuditFinding } from './audit/shared.js'
 
