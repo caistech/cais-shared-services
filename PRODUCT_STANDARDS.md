@@ -73,6 +73,18 @@ with a recorded reason (`--not-applicable "<reason>"`). Wired into the shared
 `templates/.github/workflows/gate.yml` on push/schedule, plus a daily cron so token expiry is
 caught without a push. *(Codified 2026-07-26; `@caistech/portfolio-gate` ≥0.8.0.)*
 
+### ⚠️ Before you spend a run: `TESTING_STANDARD.md`
+
+**Read `cais-shared-services/TESTING_STANDARD.md` first.** It is the pre-run checklist and the
+verification ruleset, written from a day in which a tester found eight defects, four of them shipped
+that morning by a session that had verified every one of its own changes and reported truthfully
+that it had. It covers gate zero (is production serving your code?), walking the user's path before
+spending the run, the five verification failures that produced those eight, the claims discipline
+("state the assertion, not the conclusion", plus a mandatory *Not verified* list), and — the one
+most runs get wrong — **what your chosen persona structurally cannot reach.** A conversion persona
+who will not create an account can never test the authenticated product, which is how a product ends
+up with its funnel tested twice and its paid surfaces zero times.
+
 ### Primary tester: `/naive-tester`
 
 Walks the product as a real human persona **and** cross-checks every UI-observable item in this checklist, closing with a **Standards Check** (✅ / ❌ / — per item). **Any ❌ is a release-blocking finding.**

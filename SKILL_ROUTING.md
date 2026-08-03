@@ -64,6 +64,7 @@ the full reference behind it.
 | **Pre-landing PR review (paranoid pass)** | `/review` | gstack pre-landing bug + logic review. |
 | **Security-sensitive change** | `/security-review` · `/cso` | Security review of the branch; CSO mode for deeper posture. |
 | **Starting or restyling a UI and no design system exists** | the **design-system chain** (§2) | Author it ONCE, then commit it. Do NOT reach for a generic design skill first — without a system every session re-derives the look, which is what makes a product read "inconsistent". |
+| **About to spend a tester run** | **`TESTING_STANDARD.md`** (read, don't invoke) | Gate zero, walk the path yourself first, and what your persona structurally cannot reach. A run spent on defects a script would have found is a run half wasted. |
 | **UI built, before "done"** | `/design-review` · `/naive-tester` · `/qa` · `web-design-guidelines` | Visual/interaction QA · human-persona walkthrough · full browser QA · Web Interface Guidelines audit. |
 | **Voice agent in the build** | `/voice-auditor` | MANDATORY before voice sign-off — placement + memory-loop check (both portals). |
 | **Public web surface, distribution question** | `/gtm-auditor` | Does the output create the next user? D3 distribution evidence. |
