@@ -48,8 +48,11 @@ const COPY: Record<AuthErrorCode, string> = {
     'Your password is too short. Use at least 8 characters.',
   consent_required:
     'Please tick the box to accept the terms before creating your account.',
+  // Covers both real causes: the per-address cooldown (about a minute) and the hourly cap. The
+  // wording has to be true of the common case — a single retry a few seconds later — without
+  // promising a duration we cannot read from the error.
   rate_limited:
-    "We've sent too many emails to this address recently. Wait a few minutes, then try again.",
+    "We've just sent an email to this address. Please wait about a minute before asking for another one.",
   invalid_email:
     "That email address doesn't look right. Check it for typos — a missing @ or something like 'gmial.con' — and try again.",
   email_exists:
@@ -95,6 +98,35 @@ function isAuthErrorCode(value: string): value is AuthErrorCode {
  */
 export function mapSupabaseAuthError(err: unknown): AuthErrorCode {
   if (!err) return 'generic';
+
+  // THE MACHINE-READABLE CODE FIRST. Supabase returns a stable `code` alongside a prose `message`,
+  // and matching only the prose is how a handled error reports as unhandled: a magic-link request
+  // inside the per-address cooldown comes back as
+  //
+  //   code: 'over_email_send_rate_limit'
+  //   message: 'For security purposes, you can only request this after 55 seconds.'
+  //
+  // The message contains no "rate limit", no "too many" — so every keyword below missed it, it fell
+  // through to `generic`, and the user was told "Something went wrong. Please try again." while the
+  // provider had said exactly what was wrong and exactly how long to wait. Measured on ExecutorAI
+  // 2026-08-07, where it read for two days as a broken magic link rather than a 60-second wait.
+  //
+  // Codes are contract; messages are copy that can be reworded upstream at any time.
+  const code =
+    typeof err === 'object' && err !== null && 'code' in err
+      ? String((err as { code?: unknown }).code ?? '').toLowerCase()
+      : '';
+  if (code) {
+    if (code.includes('rate_limit') || code.includes('too_many')) return 'rate_limited';
+    if (code === 'invalid_credentials') return 'invalid_credentials';
+    if (code === 'email_not_confirmed') return 'email_not_confirmed';
+    if (code === 'user_already_exists' || code === 'email_exists') return 'email_exists';
+    if (code === 'email_address_invalid') return 'invalid_email';
+    if (code === 'weak_password') return 'weak_password';
+    // Deliberately NOT mapped by code: otp_expired and validation_failed. The first has no member
+    // in this union, and the second is a catch-all Supabase uses for several unrelated causes — a
+    // code that means more than one thing is worse than falling through to the message check.
+  }
 
   const message = extractMessage(err).toLowerCase();
   if (!message) return 'generic';
