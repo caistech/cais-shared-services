@@ -692,10 +692,27 @@ function ExtraField({
   }
 
   if (field.type === 'checkbox') {
+    // SIZING IS LOAD-BEARING HERE, which is why it is commented rather than left as classes.
+    //
+    // This branch renders CONSENT — in practice "I agree to the Terms and Privacy Policy", the one
+    // control on the form with legal consequences. It shipped at `text-xs` (12px) with an `h-4 w-4`
+    // (16px) box, which fails the portfolio responsive rule on both counts (≥16px base text on
+    // mobile, ≥44×44px touch targets) at exactly the place it matters most. Measured in a live
+    // browser at 375px on ExecutorAI, 2026-08-06 — a product whose users are commonly in their
+    // sixties and seventies, ticking a box about what happens to their estate.
+    //
+    //   text-base sm:text-sm  16px on mobile where the rule applies and reading is hardest;
+    //                         14px from `sm` up, so a desktop form stays proportionate.
+    //   min-h-[44px] py-2     the LABEL is the tap target (htmlFor makes the whole row clickable),
+    //                         so the row — not the box — is what must clear 44px. Growing the box
+    //                         itself to 44px would look like a checkbox for a toddler.
+    //   h-5 w-5               a slightly larger box, which is about being findable, not tappable.
+    //
+    // Purely visual: no prop, no behaviour and no metadata shape changes.
     return (
       <label
         htmlFor={id}
-        className={`flex items-start gap-2 text-xs cursor-pointer ${t.footerMuted}`}
+        className={`flex items-start gap-3 min-h-[44px] py-2 text-base sm:text-sm cursor-pointer ${t.footerMuted}`}
       >
         <input
           id={id}
@@ -705,7 +722,7 @@ function ExtraField({
           checked={value === true}
           onChange={(e) => onChange(e.target.checked)}
           style={{ accentColor: 'var(--cais-auth-accent)' }}
-          className="mt-0.5 h-4 w-4 flex-shrink-0"
+          className="mt-0.5 h-5 w-5 flex-shrink-0"
         />
         <span>{field.label}</span>
       </label>
