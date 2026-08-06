@@ -147,7 +147,10 @@ interface SupabaseAuthLike {
   }): Promise<{ data: unknown; error: { message: string } | null }>;
   signInWithOtp(args: {
     email: string;
-    options?: { emailRedirectTo?: string };
+    // `data` writes user_metadata when the OTP creates the account — the magic-link
+    // equivalent of signUp's options.data. Without it, a magic-link signup records none of
+    // the extra fields the form collected (e.g. which terms version was accepted).
+    options?: { emailRedirectTo?: string; data?: Record<string, unknown> };
   }): Promise<{ data: unknown; error: { message: string } | null }>;
   signUp(args: {
     email: string;
@@ -1114,6 +1117,41 @@ function SignupPanel({
 
   if (!client) return <MissingClientBox />;
 
+  /**
+   * The required-consent gate, as a function rather than an inline check.
+   *
+   * It has to be reachable from BOTH submit paths. Native `required` only blocks the button that
+   * submits the <form>; the magic-link button is a separate handler, so an unticked consent box
+   * sailed straight past it — a live naive-tester run on ExecutorAI fired `signInWithOtp` with the
+   * box unchecked (2026-08-06). A gate with a second door is not a gate.
+   */
+  function findMissingConsent() {
+    return checkboxFields.find((f) => f.required && fieldValues[f.name] !== true);
+  }
+
+  /**
+   * Extra-field values as user_metadata (checkbox → "true"/"false").
+   *
+   * Shared for the same reason: the magic-link path collected nothing, so a magic-link signup
+   * recorded no consent, no terms version and no name — the account looked identical to one
+   * created before the fields existed.
+   */
+  function collectMetadata(): Record<string, unknown> {
+    const metadata: Record<string, unknown> = {};
+    for (const f of extraFields ?? []) {
+      // Constant fields carry context the user never types (e.g. which terms version they
+      // accepted) and are always written, since there is no input for them to have touched.
+      if (f.value !== undefined) {
+        metadata[f.name] = f.value;
+        continue;
+      }
+      const v = fieldValues[f.name];
+      if (v === undefined) continue;
+      metadata[f.name] = typeof v === 'boolean' ? (v ? 'true' : 'false') : v;
+    }
+    return metadata;
+  }
+
   async function onSignupSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!client) return;
@@ -1124,9 +1162,7 @@ function SignupPanel({
     }
     // Hard gate on any required consent checkbox (native `required` also blocks
     // submit, but guard here too so a programmatic submit can't bypass it).
-    const missingConsent = checkboxFields.find(
-      (f) => f.required && fieldValues[f.name] !== true
-    );
+    const missingConsent = findMissingConsent();
     if (missingConsent) {
       setErrorCode('consent_required');
       return;
@@ -1134,19 +1170,7 @@ function SignupPanel({
     setSubmitting(true);
     try {
       const emailRedirectTo = buildRedirectUrl(callbackPath, redirectTo);
-      // Collect extra-field values into user_metadata (checkbox → "true"/"false").
-      const metadata: Record<string, unknown> = {};
-      for (const f of extraFields ?? []) {
-        // Constant fields carry context the user never types (e.g. which terms version they
-        // accepted) and are always written, since there is no input for them to have touched.
-        if (f.value !== undefined) {
-          metadata[f.name] = f.value;
-          continue;
-        }
-        const v = fieldValues[f.name];
-        if (v === undefined) continue;
-        metadata[f.name] = typeof v === 'boolean' ? (v ? 'true' : 'false') : v;
-      }
+      const metadata = collectMetadata();
       const { data, error } = await client.auth.signUp({
         email,
         password,
@@ -1182,13 +1206,26 @@ function SignupPanel({
       setErrorCode('generic');
       return;
     }
+    // The SAME gate as the password path. This is the SIGNUP form — a magic link here CREATES the
+    // account — so consent must be given before it fires, and the collected fields must land on the
+    // account. Both were missing: the box could be left unticked, and even when ticked nothing was
+    // recorded, so the terms version never reached the profile.
+    const missingConsent = findMissingConsent();
+    if (missingConsent) {
+      setErrorCode('consent_required');
+      return;
+    }
     setErrorCode(null);
     setMagicSubmitting(true);
     try {
       const emailRedirectTo = buildRedirectUrl(callbackPath, redirectTo);
+      const metadata = collectMetadata();
       const { error } = await client.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo },
+        options: {
+          emailRedirectTo,
+          ...(Object.keys(metadata).length ? { data: metadata } : {}),
+        },
       });
       if (error) {
         setErrorCode(mapSupabaseAuthError(error));
