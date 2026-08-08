@@ -139,6 +139,10 @@ sentence out loud.
 
 ## First consumer — the driplet (six beats)
 
+> **The locked FORMAT — masthead, line-break rules, the twelve rules and the hard limits — is
+> , derived from post №1 over six drafts. This section is the VOICE;
+> that file is the shape. Read both before writing one.**
+
 Series: **"Just Ship It. It'll be Fine."** — *What we were sure of, what happened next, and what we changed so
 it can't go the same way twice.*
 

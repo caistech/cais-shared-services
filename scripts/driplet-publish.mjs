@@ -70,13 +70,13 @@ export function render(post, seriesNumber) {
   // it is free. It lives here rather than in the body text so the name has ONE home and a
   // rename propagates — baking it into eight bodies is how a series ends up with two names.
   const masthead = post.masthead ? `${SERIES.name} №${seriesNumber}\n\n` : '';
-  // With a masthead up top, repeating the number at the bottom is noise. Keep the tagline,
-  // which is the part that says what the series is FOR.
+  // The footer repeats the name and number even when a masthead is present. Tried it as
+  // tagline-only on the grounds that repetition is noise; the operator wants both, and he
+  // is right — the masthead is for the scroller who never opens it, the footer is for the
+  // reader who finished. They are different people and each needs to be told what this is.
   const footer = post.footerOverride
     ? String(post.footerOverride)
-    : post.masthead
-      ? SERIES.tagline
-      : `${SERIES.name} №${seriesNumber}\n${SERIES.tagline}`;
+    : `${SERIES.name} №${seriesNumber}\n${SERIES.tagline}`;
 
   return `${masthead}${body}\n\n—\n${footer}`;
 }
@@ -160,7 +160,7 @@ function selfTest(config, sanitise) {
   check('render appends the series footer', render({ body: 'x' }, 3).includes('№3'));
   check('footerOverride replaces the number', !render({ body: 'x', footerOverride: 'starts here' }, 3).includes('№'));
   check('masthead puts the series above the hook', render({ body: 'hook', masthead: true }, 2).startsWith(SERIES.name));
-  check('masthead means the number is not repeated below', render({ body: 'hook', masthead: true }, 2).split('№').length === 2);
+  check('masthead does not suppress the footer', render({ body: 'hook', masthead: true }, 2).split('№').length === 3);
 
   const long = 'word '.repeat(700);
   check('over-length is caught', preflight(long, config, sanitise).some((p) => p.includes('LinkedIn rejects')));
