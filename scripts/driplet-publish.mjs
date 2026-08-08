@@ -40,7 +40,7 @@ const QUEUE_PATH = join(REPO, 'driplets', 'queue.json');
 const POSTS_PATH = join(REPO, 'driplets', 'posts.json');
 
 export const SERIES = {
-  name: "Ship It, It's Fine.",
+  name: "Just Ship It. It'll be Fine.",
   tagline: "What we were sure of, what happened next, and what we changed so it can't go the same way twice.",
 };
 

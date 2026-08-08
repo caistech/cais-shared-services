@@ -1,6 +1,6 @@
 ---
 Load this file when the skill: writes anything in DENNIS'S OWN FIRST PERSON — LinkedIn posts, the
-"Ship It, It's Fine." newsletter, replies to inbound mail, personal outreach, conference bios, or any
+"Just Ship It. It'll be Fine." newsletter, replies to inbound mail, personal outreach, conference bios, or any
 sentence that begins "I".
 Do NOT load this file when the skill: writes BRAND copy where the speaker is the company — product
 landing pages, ad copy, investor memos, pitch decks. That is `creator-style.md`, which is a different
@@ -139,7 +139,7 @@ sentence out loud.
 
 ## First consumer — the driplet (six beats)
 
-Series: **"Ship It, It's Fine."** — *What we were sure of, what happened next, and what we changed so
+Series: **"Just Ship It. It'll be Fine."** — *What we were sure of, what happened next, and what we changed so
 it can't go the same way twice.*
 
 | # | Beat | Budget |
