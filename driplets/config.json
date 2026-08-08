@@ -1,0 +1,61 @@
+{
+  "_readme": [
+    "Config for scripts/driplet-harvest.mjs — the 'Ship It, It's Fine.' lesson pipeline.",
+    "",
+    "denylist is a HARD GATE, not a warning. Any candidate whose material matches one of",
+    "these terms is marked status:blocked and can never be drafted or published. It is",
+    "deliberately CONSERVATIVE — over-blocking costs a review click, under-blocking costs",
+    "a relationship (MONETISATION_RULES R3: NDA + sanitisation, default-deny). Pruning a",
+    "term is a deliberate review action, not a convenience.",
+    "",
+    "allowlist wins over denylist and exists for the one product that is ours to name."
+  ],
+
+  "allowlist": ["kira"],
+
+  "denylist": {
+    "people": [
+      "gareth", "newman", "shah", "hussain", "jeff", "leggett", "kurt", "cantello",
+      "andrew cooke", "trinh", "anneke", "ray", "richard", "sara davison", "tyler fisk",
+      "kathryn", "chris newton", "steve muni", "mel miller", "andrew hadden", "joey"
+    ],
+    "orgs_and_clients": [
+      "mmc", "mmcbuild", "mmc build", "plausible gaming", "gps-ai", "brainverse",
+      "unison", "wachs", "naturezen", "blackline", "agrifutures", "hiviz",
+      "resilient agriculture", "prelabs", "prelabz"
+    ],
+    "non_owned_products": [
+      "sayfix", "mnemo", "minimo", "lingopure", "singify", "bucketlyst", "executorai",
+      "dealfindrs", "deal-findrs", "f2k", "factory2key", "checkpoint", "raiseready",
+      "prelabzai", "investorpilot", "partnerpilot", "tenderwatch", "storyverse",
+      "connexions", "pubguard", "launchready", "ndis", "sda"
+    ],
+    "places_and_sites": [
+      "branscombe", "galeands", "milton avenue", "port lincoln", "shenton",
+      "geraldton", "underwood", "dudley", "lot 442", "claremont"
+    ]
+  },
+
+  "sources": {
+    "bugKnowledge": "bug-knowledge.json",
+    "memoryGlobRoot": "~/.claude/projects",
+    "standardsDocs": [
+      "TESTING_STANDARD.md",
+      "SHARED_SERVICES.md",
+      "PRODUCT_STANDARDS.md",
+      "DATA_STANDARD.md"
+    ],
+    "commitRepos": ["~/PycharmProjects/kira", "~/PycharmProjects/cais-shared-services"],
+    "commitSubjectPattern": "^(fix|bug|hotfix|revert|security|perf)"
+  },
+
+  "failureMarkers": [
+    "silently", "silent", "passed", "green", "looked fine", "looked healthy",
+    "never ran", "nobody", "no error", "did not error", "went unnoticed",
+    "false negative", "false positive", "we assumed", "turned out",
+    "the obvious", "would have caught", "should have caught", "in production",
+    "shipped broken", "invisible", "swallow", "swallowed", "stale", "hid ", "hidden"
+  ],
+
+  "minMaterialChars": 220
+}
