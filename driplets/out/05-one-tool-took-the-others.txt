@@ -1,0 +1,39 @@
+Just Ship It. It'll be Fine. №4
+
+We gave her one new tool. It quietly took away all the others.
+
+Completely routine — adding a single capability to an agent that already had a dozen.
+
+Deployed it, moved on, thought about it no further.
+
+A week or so later I noticed she'd stopped doing something she used to do well: handing a long job to the background worker instead of sitting on it.
+
+Nothing had touched that code.
+
+The call that attaches a tool doesn't add one. It replaces the entire list.
+
+It's named like an add and behaves like a set — so every re-provision since had been shipping whatever list happened to be sitting in one script.
+
+Its sibling is worse.
+
+An agent came out of provisioning with no tools at all, while the log recorded success.
+
+An agent with no tools looks completely normal. She talks, she's pleasant, she's contextually sharp.
+
+She simply cannot do anything. And she doesn't mention it.
+
+The obvious fix is to remember that the list is a replacement.
+
+That's a rule. And a rule holds right up until one in the morning with someone waiting.
+
+The list is single-sourced with the prompt now, and provisioning reads back what it made. An agent with an empty tool list is a failure, not a success with nothing in it.
+
+A week is a long time not to notice.
+
+If a capability quietly dropped off yours tonight, what would catch it?
+
+Genuinely asking. Everything I had said it was fine.
+
+—
+Just Ship It. It'll be Fine. №4
+What we were sure of, what happened next, and what we changed so it can't go the same way twice.

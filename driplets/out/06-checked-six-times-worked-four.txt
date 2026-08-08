@@ -1,0 +1,39 @@
+Just Ship It. It'll be Fine. №5
+
+I checked it six times. It worked four.
+
+Kira offers you a text box if you haven't got a microphone.
+
+I'd checked it was there. Then I was back in that file later, checked again out of habit, and it wasn't.
+
+So I ran it six times across one afternoon, with no changes in between.
+
+Nothing. Then 40%. Then 50, 70, 80, 100.
+
+My honest first reaction was that I must be testing it wrong. Nobody's first thought is that identical code is behaving differently.
+
+It wasn't me.
+
+The box only appeared once the voice connection had actually errored — and a connection that neither connects nor fails, just sits there, never triggers that.
+
+So the same build handed a working widget to one visitor and a dead one to the next.
+
+And it self-selected beautifully. The people it failed are the ones without a microphone, who don't write in to complain.
+
+They just go.
+
+The obvious fix is to test that the fallback appears.
+
+It does. About a third of the time.
+
+It now falls back on a timer as well as an error. Eight seconds, not two, because firing early would steal a slow-but-working connection from someone who does have a mic.
+
+The fix took an hour.
+
+Trusting a single green run — for years — is the part I'd take back.
+
+What are you testing exactly once?
+
+—
+Just Ship It. It'll be Fine. №5
+What we were sure of, what happened next, and what we changed so it can't go the same way twice.

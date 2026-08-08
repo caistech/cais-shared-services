@@ -1,0 +1,45 @@
+Just Ship It. It'll be Fine. №2
+
+She told the customer she couldn't. She could.
+
+An owner said Kira couldn't reach his documents.
+
+I didn't believe him. I'd wired that myself, tested it, watched it work.
+
+I spent longer than I'd like defending the software to the person using it.
+
+He was right.
+
+Kira reads a business owner's files, contacts and mail on his own account, with his permission. The access was live.
+
+She simply told him it wasn't.
+
+And she did it fluently — no error, no hedging, a calm and confident account of a limitation that did not exist.
+
+Then it got worse in a way I hadn't considered.
+
+That exchange went into her memory, and she'd distilled it into a fact about him. Filed under his business, as though the missing capability were a feature of his situation rather than a mistake of hers.
+
+The wrong answer was now durable. And it would shape the next one.
+
+The obvious fix is to test that the tools work.
+
+We had. They did — every tool answered every direct call correctly.
+
+What we'd never tested is whether she believed she had them. And an agent's belief about its own capabilities is not something any integration test touches.
+
+She now has to record why she declined, as a separate act. "She refused" and "she never had the capability" used to look identical from outside.
+
+And her own excuses are no longer eligible to become facts about a customer.
+
+Still open, honestly — she logs it more often than she used to. Not always.
+
+The bit I keep chewing on isn't that she got it wrong.
+
+It's that her mistake became a fact about him.
+
+What stops your system learning from its own errors?
+
+—
+Just Ship It. It'll be Fine. №2
+What we were sure of, what happened next, and what we changed so it can't go the same way twice.

@@ -7,6 +7,7 @@
 //   node scripts/driplet-publish.mjs --render <id>          print the publish-ready text + fold check
 //   node scripts/driplet-publish.mjs --publish <id>         send it (DRY RUN unless --live)
 //   node scripts/driplet-publish.mjs --publish <id> --live  actually post
+//   node scripts/driplet-publish.mjs --export                write one clean .txt per post to driplets/out/
 //   node scripts/driplet-publish.mjs --self-test
 //
 // WHY THE HUMAN STAYS IN IT. Everything upstream of --approve is machine work: harvest,
@@ -30,7 +31,7 @@
 // wire. Same reason @caistech/email-compliance throws inside the send path rather than in
 // CI: CI checks the repo, the throw checks the event.
 
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -217,6 +218,34 @@ async function main() {
     }
     if (!doc.posts.length) console.log('  (none — add drafts to driplets/posts.json)');
     console.log('');
+    return;
+  }
+
+  // --export: one clean UTF-8 .txt per post, in publish order, ready to open and copy.
+  //
+  // LinkedIn has no bulk upload for scheduled posts — you paste into the composer and use
+  // the clock icon, one at a time. So the useful thing is not an import format, it is a
+  // file that copies cleanly: a terminal will happily mangle an em-dash or the № on the
+  // way to the clipboard, and a post is not the place to discover that.
+  if (argv.includes('--export')) {
+    const outDir = join(REPO, 'driplets', 'out');
+    mkdirSync(outDir, { recursive: true });
+    const ordered = [...doc.posts].sort((a, b) => (a.publishOrder ?? 99) - (b.publishOrder ?? 99));
+    let blocked = 0;
+    for (const post of ordered) {
+      const n = post.seriesNumber ?? nextSeriesNumber(doc.posts);
+      const text = render(post, n);
+      const problems = preflight(text, config, sanitiseMatches);
+      const order = String(post.publishOrder ?? 0).padStart(2, '0');
+      // A post that fails preflight is still written, but named so it cannot be pasted by
+      // accident. Silently omitting it would leave a gap nobody notices.
+      const name = problems.length ? `${order}-BLOCKED-${post.id}.txt` : `${order}-${post.id}.txt`;
+      writeFileSync(join(outDir, name), `${text}\n`, 'utf8');
+      if (problems.length) blocked++;
+      console.log(`  ${String(text.length).padStart(4)}ch  ${problems.length ? 'BLOCKED' : 'clean  '}  driplets/out/${name}`);
+    }
+    console.log(`\n${ordered.length} file(s) written to driplets/out/${blocked ? ` — ${blocked} BLOCKED, do not paste those` : ''}`);
+    console.log('Paste into the LinkedIn composer, then use the clock icon beside Post to schedule.');
     return;
   }
 

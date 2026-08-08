@@ -1,0 +1,49 @@
+This one's clean. Ship it.
+
+I've said that sentence a lot.
+
+Usually on a Tuesday, usually with someone waiting, and usually with good reason — tests green, review done, everything I know how to check, checked.
+
+The feedback tends to arrive within the hour.
+
+I build AI products more or less on my own. A portfolio of them, sharing one set of foundations, so each new one costs less to ship than the last.
+
+Which means I get to make the same category of mistake across a lot of surfaces, quite fast.
+
+After about the fourth one I started writing them down instead of just wincing.
+
+They have a shape, and the confidence is always real — that's what makes them worth writing about.
+
+Every check we ran was correct. Every one of them answered its question honestly.
+
+The question just turned out not to be the one that mattered.
+
+The site responded, so we thought it was live. It was serving a build from a month earlier.
+
+The page returned 200, so we thought it was fine. Nobody without an account could open it.
+
+The widget rendered, so we thought it worked. It swallowed every question typed into it and never once called the server.
+
+That last kind is getting more common, and it's the reason I'm bothering to write any of this down.
+
+When you ship a page, broken looks broken.
+
+When you ship an agent, broken looks fluent.
+
+One of ours told a customer she couldn't do something she was perfectly capable of — and then filed her own excuse away as a fact about him.
+
+Every part of that exchange looked healthy.
+
+So: a few of these a month. What we were sure of, what happened next, and what's changed so it can't go the same way twice.
+
+That's a deliberately narrow promise. It will go a different way. It keeps doing that.
+
+The most I've managed is to turn each one into something structural — a check that runs whether or not I remember it, a standard written down where the next person will hit it — so the specific humiliation doesn't repeat.
+
+None of them are hypothetical.
+
+All of them were green.
+
+—
+Just Ship It. It'll be Fine.
+What we were sure of, what happened next, and what we changed so it can't go the same way twice. Monthly-ish.

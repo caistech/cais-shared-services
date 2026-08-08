@@ -1,0 +1,43 @@
+Just Ship It. It'll be Fine. №7
+
+Four checks reported numbers they hadn't earned. Three of them were in the tool I built to catch exactly that.
+
+I spent an afternoon writing a harvester.
+
+It reads the places we write lessons down, and finds the ones that never reached the knowledge base. Deterministic, self-tested, no model in the loop.
+
+I was quite pleased with it.
+
+Then I backfilled twelve entries covering twelve gaps it had itself named, re-ran it, and the count went from 50 to 49.
+
+The backfill was fine.
+
+The measurement had a length bias — it divided shared words by the candidate's word count, so a long document could never score as covered, no matter how thoroughly it was recorded.
+
+It would have reported those as outstanding forever. And a number that only ever rises reads as thoroughness.
+
+Three more turned up the same afternoon.
+
+An analysis that fell back to a title when a field was missing, and produced a confident 0.83 match that meant nothing.
+
+A merge that never refreshed old rows — so a fix never reached the data it was written for, and a missing field got read as "nothing to worry about".
+
+And a self-test printing "14/14 passed" as a hardcoded string. Still printing it after I'd added three more checks.
+
+And yet nothing errored.
+
+Every one of those numbers arrived on time, correctly formatted, from a tool with a passing test suite.
+
+The obvious fix is to test the tool.
+
+It had eighteen tests. They all passed. Not one of them asked whether the summary line was true.
+
+The count is counted now rather than written down. And every threshold gets checked in both directions — a check that can only ever say "gap" is not a check.
+
+I only found them because I happened to doubt a number I had no particular reason to doubt.
+
+How do you go looking for the checks that are lying?
+
+—
+Just Ship It. It'll be Fine. №7
+What we were sure of, what happened next, and what we changed so it can't go the same way twice.

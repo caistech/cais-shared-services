@@ -1,0 +1,41 @@
+Just Ship It. It'll be Fine. №3
+
+She remembered everything. She couldn't recall a word of it.
+
+The memory loop was the part I was most confident about.
+
+It's what Kira is — an owner explains how his business actually works, over months, and she holds it.
+
+Built, tested, and published as a shared package for the other products to use.
+
+Then someone came back for a second conversation and she didn't know him.
+
+Not vaguely. She knew a conversation had happened — the flag saying "this person has history" was true and correct.
+
+She just couldn't produce a single thing from it.
+
+The recall query filtered on the agent's id matching the agent's id. Which sounds tautological, and is — except that the path we'd documented and recommended leaves that field empty.
+
+And empty isn't equal to anything. Including itself.
+
+So every fact she had chosen to keep was excluded from the one query that needed it.
+
+Nothing errored. Nothing was wrong.
+
+And yet she couldn't tell him one thing he'd told her.
+
+The obvious fix is to check that memory is being written.
+
+We had. It was — rows present, correct, growing steadily.
+
+Storage was perfect and recall was zero. From the outside, those two are the same picture.
+
+The probe we run now doesn't ask whether history exists. It asks her to say something from it, and fails if she can't.
+
+What's your test that memory works, as opposed to storage?
+
+I thought I had one.
+
+—
+Just Ship It. It'll be Fine. №3
+What we were sure of, what happened next, and what we changed so it can't go the same way twice.

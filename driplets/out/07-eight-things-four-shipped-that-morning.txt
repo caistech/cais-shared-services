@@ -1,0 +1,43 @@
+Just Ship It. It'll be Fine. №6
+
+Eight things broken. Four shipped that morning, by someone who checked all four.
+
+It had been a good morning.
+
+Every change verified, every check green, every one of them reported honestly.
+
+Nothing skipped. Nobody rushing for the door.
+
+Then a tester walked the product and came back with eight problems. Four of them hours old.
+
+So my first question was: what did we miss?
+
+Because on paper, nothing.
+
+What we missed is that all the checking asked "did my change take effect" — and the answer was yes, every time.
+
+Six of the eight weren't in anything that had changed.
+
+They sat at the joins. A header added without noticing the layout already drew one. A price corrected on the checkout page while the page immediately before it still read "+ GST + GST".
+
+We'd fixed the exact thing the report named and left the same thing alive two screens over.
+
+Three separate times in one day.
+
+And yet nobody did anything wrong. Every change was verified, and every verification was honest.
+
+The obvious fix is to check more carefully.
+
+But it was already careful. It was just aimed at the diff.
+
+Verifying your change tells you what you wrote. It tells you nothing about what the customer gets.
+
+So the unit is the whole path someone walks now, including the parts nobody touched. And nothing closes until we've gone looking for the same mistake everywhere else.
+
+I wouldn't call this solved.
+
+We're getting caught out in new places rather than the same ones. Which is progress, and isn't the same thing.
+
+—
+Just Ship It. It'll be Fine. №6
+What we were sure of, what happened next, and what we changed so it can't go the same way twice.

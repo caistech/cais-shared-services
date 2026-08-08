@@ -1,0 +1,53 @@
+Just Ship It. It'll be Fine. №1
+
+For fifteen days, our payment path would hand a paying customer's account to anyone who asked for it.
+
+I was walking that path for the first time — and only to check the wording on a button. The path itself was done. Built, reviewed, shipped, working.
+
+If you'd asked me, I'd have told you so. Confidently.
+
+Here's what I found instead.
+
+Started a checkout. Typed someone else's email into the payment form.
+
+Completed it (to note, we bill in arrears, so nothing is actually due that day, on your own card).
+
+Took the session id out of the address bar. Then set a random password I liked.
+
+Their account was then mine. And everything in it.
+
+This is Kira, whose entire proposition is that a business owner tells her the things he hasn't told his staff or his family. It is the worst defect this codebase can carry, and it was live for fifteen days.
+
+And yet nothing about it looks like an attack.
+
+It's a completed purchase, a real payment, a working signup — right up until it's his account on somebody else's screen.
+
+The obvious fix is to validate the email.
+
+But you can't.
+
+The payment form lets anyone type any address, and it has to — people pay for things on behalf of other people every day. That endpoint cannot obtain proof of who paid.
+
+So the answer isn't better checking. It's refusing to change anything at all for an identity you can't prove.
+
+An existing account now has nothing touched. Not the password, not their valuation, not their subscription.
+
+They're sent to sign in, where forgotten-password proves ownership by email — the proof we can't fake.
+
+I confirmed it by running the attack against our own account, before and after. Then reverted the fix to watch the test go red again.
+
+That part we're good at. Find it, define it, fix it, wire the fix into the regime so it can't come back.
+
+But here's the part that actually keeps me up.
+
+I didn't find this one with a test. Or a scanner. Or a review. I found it because I was checking the wording on a button.
+
+Closing this one took an afternoon. Finding it took an accident.
+
+Finding (or imagining) edge cases to test is a real skill — and I admit, we're still working on how we automate that.
+
+So — where's the path through your product that nobody has yet had a reason to walk?
+
+—
+Just Ship It. It'll be Fine. №1
+What we were sure of, what happened next, and what we changed so it can't go the same way twice.
