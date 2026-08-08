@@ -1325,6 +1325,32 @@
         "approach": "Supabase Auth stores its OWN copy of the Resend API key in smtp_pass, independent of the app's Vercel RESEND_API_KEY. Rotating the app's key does not update Supabase's, and nothing surfaces the divergence. THE DISCRIMINATOR for the identical 550/400 'domain is not verified' message: call GET https://api.resend.com/domains with THAT SPECIFIC KEY. If the domain is absent, the key is from the wrong Resend account (this bug — fix the key). If it is present but status != verified, verification genuinely lapsed (fix DNS — the earlier SayFix case). Do not start with DNS. Fix: PATCH https://api.supabase.com/v1/projects/{ref}/config/auth {smtp_pass: <current key>} with the management token from ~/.supabase-token, then PROVE it by POSTing /auth/v1/otp and confirming a 200 plus a delivered status in the Resend API — a saved config is not a working send.",
         "code_path": "scripts/repair-auth-smtp.mjs (f2k-projects) — reads RESEND_API_KEY from .env.local without printing it, refuses to push a key whose account lacks the verified domain, PATCHes Supabase Auth, then verifies with a real send. Diagnosis path: GET /v1/projects/{ref}/analytics/endpoints/logs.all?sql=select ... from auth_logs — the only place the underlying SMTP error is visible; the client only ever sees a generic 500."
       }
+    },
+    {
+      "id": "vercel-4.5mb-body-limit-breaks-file-upload-as-json-parse-error",
+      "product": "prelabzAI",
+      "date": "2026-08-05",
+      "error_pattern": "Browser shows \"Unexpected token 'R', \"Request En\"... is not valid JSON\" when uploading a file through a Next.js API route on Vercel",
+      "error_symptoms": "A user cannot upload a real file; small test files work; nothing lands in Supabase Storage OR the DB (so it is not an RLS or insert problem); no POST appears in Vercel runtime logs; every row that ever succeeded is small (here, all under 1.1MB against a bucket configured for 50MB). The error names the word \"Request\" because that is the first token of Vercel's plain-text body.",
+      "attempts": [
+        {
+          "tried": "Audited Supabase storage RLS policies, bucket allowed_mime_types and file_size_limit",
+          "result": "all correct — not the cause"
+        },
+        {
+          "tried": "Searched Vercel runtime logs for the failing request",
+          "result": "no POST present; retention is ~24h. The ABSENCE of the request is the diagnostic — the body never reached the function"
+        },
+        {
+          "tried": "Probed the deployed endpoint unauthenticated at increasing body sizes",
+          "result": "WORKED — 1MB and 4MB returned 401 JSON (function reached); 4.6MB returned 413 FUNCTION_PAYLOAD_TOO_LARGE (edge rejected). No writes needed to find the ceiling."
+        }
+      ],
+      "solution": {
+        "approach": "Two defects. (1) Vercel rejects request bodies over 4.5MB at the EDGE, before the function runs, with a plain-text \"Request Entity Too Large\". Any file posted through a route handler is therefore capped at 4.5MB regardless of what the storage bucket allows. Fix: have the BROWSER upload straight to Supabase Storage via createSignedUploadUrl/uploadToSignedUrl and send only JSON metadata through the function; keep ownership by scoping the signed key to {user.id}/ and re-checking the prefix server-side. (2) The client called await response.json() BEFORE checking response.ok, so a non-JSON error body surfaced as a parser complaint instead of a usable message — always read errors with a text-first helper.",
+        "code_path": "app/api/deck/upload-url/route.ts (new) + app/api/deck/upload/route.ts + components/deck/deck-upload.tsx + lib/http/response-error.ts + lib/deck/upload-constraints.ts"
+      },
+      "generalises_to": "EVERY repo that posts a file through a Next.js route handler on Vercel. Check for formData.get(\"file\") in app/api/**. The same probe (unauthenticated POST at 4MB then 4.6MB) identifies it in minutes without touching data."
     }
   ],
   "usage": "Before fixing ANY bug, grep this file for matching error patterns. Also check SayFix DB for product-specific attempts.",

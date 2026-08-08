@@ -17,3 +17,14 @@ audit-phone-home-report.json
 
 # Supabase CLI scratch (linked-project / cli-latest — local state, not source)
 supabase/.temp/
+
+# Screenshots dropped in the REPO ROOT by testers and design passes (01-landing-1440.png and
+# friends). Transient evidence, not source — and this is the substrate every product consumes, so
+# anything committed here is carried by every consumer forever.
+#
+# Scoped to the root ON PURPOSE. A blanket `*.png` would also silently ignore two things that must
+# stay addable: the scaffold's own asset (`templates/*/public/og-image.png` — a missing OG image
+# fails PRODUCT_STANDARDS §7 on every product generated from that template) and committed
+# naive-tester evidence under `naive-tester-reports/<date>/`. Screenshots that are EVIDENCE belong
+# in a report directory; screenshots in the root are leftovers.
+/*.png
