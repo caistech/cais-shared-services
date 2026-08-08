@@ -206,6 +206,50 @@ describe("renderPdf — page numbers", () => {
   });
 });
 
+describe("renderPdf — missing sections name themselves", () => {
+  /**
+   * These paths are unreachable from TypeScript (every section is required in
+   * RenderOptions), so they are cast — which is exactly the point: they are the
+   * JAVASCRIPT caller's experience, and that caller used to get a bare
+   * `TypeError: Cannot read properties of undefined (reading 'author')` thrown
+   * from inside the library. Found by omitting `metadata` while verifying the
+   * published 0.1.2 package, and fixed for every section rather than the one
+   * that happened to be hit.
+   */
+  const omitting = (key: keyof RenderOptions) => {
+    const opts = { ...baseOpts() } as Record<string, unknown>;
+    delete opts[key];
+    return opts as unknown as RenderOptions;
+  };
+
+  it.each(["brand", "header", "footer", "metadata"] as const)(
+    "names %s when it is missing entirely",
+    async (section) => {
+      await expect(renderPdf(omitting(section))).rejects.toThrow(`${section} is required`);
+    },
+  );
+
+  it("names markdown when it is missing", async () => {
+    await expect(renderPdf(omitting("markdown"))).rejects.toThrow("markdown is required");
+  });
+
+  it("rejects a missing options object without a TypeError", async () => {
+    await expect(renderPdf(undefined as unknown as RenderOptions)).rejects.toThrow("options is required");
+  });
+
+  it("still accepts an empty markdown body — absence is the error, not emptiness", async () => {
+    const result = await renderPdf(baseOpts({ markdown: "" }));
+    expect(result.buffer.length).toBeGreaterThan(1000);
+    expect(result.pageCount).toBeGreaterThanOrEqual(1);
+  });
+
+  it("still names the FIELD when the section is present but incomplete", async () => {
+    await expect(
+      renderPdf(baseOpts({ metadata: { author: "", subject: "x" } })),
+    ).rejects.toThrow("metadata.author is required");
+  });
+});
+
 describe("renderPdf — oversize guard", () => {
   it("truncates markdown beyond maxBodyChars and flags truncated", async () => {
     const huge = "x".repeat(1500);
