@@ -123,7 +123,16 @@ export function coveredByKnowledgeBase(material, kbTokenSets, threshold = 0.34) 
   if (mine.length < 5) return true; // too thin to judge; do not cry gap on noise
   for (const kb of kbTokenSets) {
     const shared = mine.filter((t) => kb.has(t)).length;
-    if (shared / mine.length >= threshold) return true;
+    // Normalise against the SMALLER set, not against `mine`.
+    //
+    // Dividing by mine.length has a length bias that made the check dishonest: a 6,000
+    // character standards block has hundreds of distinct tokens, so its overlap ratio
+    // with any single bug entry is diluted below any useful threshold and it is reported
+    // as a gap FOREVER. Caught by backfilling twelve entries covering twelve named gaps
+    // and watching the count fall from 50 to 49 — the backfill was fine, the measurement
+    // was not. Against min(), the question becomes the one actually being asked: is this
+    // known lesson substantially contained in this block?
+    if (shared / Math.min(mine.length, kb.size) >= threshold) return true;
   }
   return false;
 }

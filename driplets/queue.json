@@ -17,7 +17,7 @@
         "executorai",
         "sayfix"
       ],
-      "kbGap": true
+      "kbGap": false
     },
     {
       "id": "memory:2026-07-25.2026-07-25t22.2026-07-27.307ing.479z.",
@@ -69,7 +69,7 @@
         "sayfix",
         "singify"
       ],
-      "kbGap": true
+      "kbGap": false
     },
     {
       "id": "commit:---------.07a5.1-mini.16px.2026.280-line.36px.4-",
@@ -91,7 +91,7 @@
         "newman",
         "shah"
       ],
-      "kbGap": true
+      "kbGap": false
     },
     {
       "id": "memory:--all.--apply.--checks.--deployment.--magic-link",
@@ -572,7 +572,7 @@
       "blockedBy": [
         "executorai"
       ],
-      "kbGap": true
+      "kbGap": false
     },
     {
       "id": "commit:about.accepted-for-compat.account.actually.adapt",
@@ -606,7 +606,51 @@
         "bucketlyst",
         "mnemo"
       ],
-      "kbGap": true
+      "kbGap": false
+    },
+    {
+      "id": "bug-knowledge:8-15.almost.approach.asks.asserted.assertion.att",
+      "source": "bug-knowledge",
+      "origin": "bug-knowledge.json#page-returns-200-and-renders-nothing-blank-first-paint",
+      "product": "Kira — class applies to any client-rendered page behind a primary CTA",
+      "date": "2026-08-06",
+      "title": "Blank first paint: a page returns 200 with the correct commit deployed, and shows the visitor a header, a footer and almost nothing else for 8-15 seconds while ",
+      "material": "PATTERN: Blank first paint: a page returns 200 with the correct commit deployed, and shows the visitor a header, a footer and almost nothing else for 8-15 seconds while client JS loads\nSYMPTOMS: \"Indistinguishable from a broken page to the person looking at it — a tester timed 15s of white on the page that asks for a card and reported \\\"not a slow page, a broken one, and I have no way to tell the difference\\\". Every reachability signal is green and correct: 200, expected SHA, no redirect.\"\nATTEMPTS: [{\"tried\":\"Checked status codes, deployed SHA and redirects\",\"result\":\"All correct. Reachability was never the problem.\"},{\"tried\":\"Asserted \\\"does the response contain visible text\\\"\",\"result\":\"PASSES ON THE DEFECT. The pages were not empty documents — they served full chrome, so one scored 180 characters of visible text while showing the visitor nothing.\"},{\"tried\":\"Non-greedy regex to strip chrome (<header>.*?</header>)\",\"result\":\"Silently under-counts, because chrome nests. Reintroduces the false negative.\"}]\nSOLUTION: {\"approach\":\"Measure visible text OUTSIDE header/footer/nav using a depth-counting scanner, not a regex. Pass on sufficient text OR a real heading (first h1/h2/h3 outside chrome, >=8 chars) — a bare character threshold pressures whoever fixes it into padding the page with copy written to satisfy an assertion, which is worse than the defect. No browser needed: the defect is in the server response, so fetch sees exactly what the visitor sees in second one.\",\"code_path\":\"@caistech/portfolio-gate >=0.12.0 — portfolio-gate-audit-first-paint, reusing the @public-route marker\"}\nGENERALISES: The obvious implementation of a check can pass on the exact defect it was written for. Before trusting a new check, reintroduce the bug and watch it go red.",
+      "score": 5,
+      "dedupeKey": "8-15.almost.approach.asks.asserted.assertion.attempts.bare.because.before.blank.broken",
+      "status": "new",
+      "blockedBy": [],
+      "kbGap": false
+    },
+    {
+      "id": "bug-knowledge:absent.agent.agentid.allowunsignedpostcall.also.",
+      "source": "bug-knowledge",
+      "origin": "bug-knowledge.json#post-call-webhook-fail-open-when-secret-unset",
+      "product": "@caistech/elevenlabs-convai consumers — verified across the fleet 2026-08",
+      "date": "2026-08-04",
+      "title": "Webhook signature verification is guarded by `if (secret)`, so an UNSET secret skips the check instead of refusing the request",
+      "material": "PATTERN: Webhook signature verification is guarded by `if (secret)`, so an UNSET secret skips the check instead of refusing the request\nSYMPTOMS: \"Authentication silently off while the route answers 200/400 exactly like a healthy endpoint. Products that had captured their secret returned 401 to an unsigned POST; one that had not returned 400 — a difference invisible from the outside. The handler binds by ids taken from the BODY, and an agent id is shipped to the browser, so an unsigned payload can write conversation content the agent later recalls and speaks back as fact.\"\nATTEMPTS: [{\"tried\":\"Read the route and confirmed verification exists\",\"result\":\"It does exist. It is conditional, which is the defect.\"},{\"tried\":\"Assumed the secret would always be set\",\"result\":\"The API returns the workspace webhook secret exactly ONCE, masks it on every later GET, and returns undefined when an existing webhook is reused — so the obvious call `const {agentId} = await ensureUserAgent(...)` drops it. Root cause is the API shape, not carelessness.\"},{\"tried\":\"Deleted the webhook to rotate it\",\"result\":\"405 webhook_in_use — must unbind, delete, create, re-bind, in that order.\"}]\nSOLUTION: {\"approach\":\"Return 500 and process nothing without a resolved secret. Opting out is a NAMED option (allowUnsignedPostCall) so it appears in a diff. Also fixed a reuse-by-URL race that left two enabled webhooks for one URL with different secrets.\",\"code_path\":\"@caistech/elevenlabs-convai >=0.10.0 routes.ts\"}\nGENERALISES: Every `if (secret)` around a verification step is a fail-open. Absent config must refuse, never skip — a check that quietly does nothing is indistinguishable from one that passed.",
+      "score": 5,
+      "dedupeKey": "absent.agent.agentid.allowunsignedpostcall.also.always.answers.appears.approach.around.assumed.attempts",
+      "status": "new",
+      "blockedBy": [],
+      "kbGap": false
+    },
+    {
+      "id": "memory:2026-08-08t04.967z.9a4f6f31-7ef5-4024-bfa0-576c9",
+      "source": "memory",
+      "origin": "C--Users-denni-PycharmProjects-mmcbuild-application/memory/project_scrum389_webhook_secret_fault.md",
+      "product": "mmcbuild-application",
+      "date": "2026-08-08",
+      "title": "The 7 Aug live-payment failure was the SANDBOX whsec_ in prod — and how I talked myself out of the right suspect",
+      "material": null,
+      "score": 5,
+      "dedupeKey": "2026-08-08t04.967z.9a4f6f31-7ef5-4024-bfa0-576c9cb87cd9.about.access.again.anywhere.appearing.argued.asks.basis.because",
+      "status": "blocked",
+      "blockedBy": [
+        "mmc"
+      ],
+      "kbGap": false
     },
     {
       "id": "bug-knowledge:2026-05-25.2026-07-20.above.access.actually.adop",
@@ -1177,7 +1221,7 @@
       "dedupeKey": "2201kz7tfs09f7yb3twy71shzhrb.500s.above.advice.advisor.after.again.agent.agents.also.alter.anonymous",
       "status": "new",
       "blockedBy": [],
-      "kbGap": true
+      "kbGap": false
     },
     {
       "id": "commit:40-character.above.active.andrew.anthropic.appen",
@@ -1234,6 +1278,39 @@
       "status": "new",
       "blockedBy": [],
       "kbGap": true
+    },
+    {
+      "id": "bug-knowledge:400s.absence.accepting.accepts.account.address.a",
+      "source": "bug-knowledge",
+      "origin": "bug-knowledge.json#honeypot-field-autofilled-by-browser-silently-drops-real-lead",
+      "product": "F2K-Projects — swept portfolio-wide; class applies to every public form",
+      "date": "2026-06-15",
+      "title": "A hidden anti-bot honeypot named like a real field (company_url, website_url, email) is autofilled by the browser or password manager, and the genuine submissio",
+      "material": null,
+      "score": 4,
+      "dedupeKey": "400s.absence.accepting.accepts.account.address.against.anti-abuse.anti-bot.approach.aria-hidden.arrived",
+      "status": "blocked",
+      "blockedBy": [
+        "f2k"
+      ],
+      "kbGap": false
+    },
+    {
+      "id": "memory:10-run.192z.2026.2026-08-07.2026-08-08t04.2026-0",
+      "source": "memory",
+      "origin": "C--Users-denni-PycharmProjects-mmcbuild-application/memory/project_annual_billing_and_trial_model.md",
+      "product": "mmcbuild-application",
+      "date": "2026-08-08",
+      "title": "MMC Build's trial model (CARD AT SIGNUP, Option A — Karen's call) and how annual billing is wired, with the traps in both.",
+      "material": null,
+      "score": 4,
+      "dedupeKey": "10-run.192z.2026.2026-08-07.2026-08-08t04.2026-08-trial-card.3-run.35053b2.5-upload.9a4f6f31-7ef5-4024-bfa0-576c9cb87cd9.acceptance.accepted",
+      "status": "blocked",
+      "blockedBy": [
+        "mmc",
+        "mmc build"
+      ],
+      "kbGap": false
     },
     {
       "id": "bug-knowledge:3000.actually.address.addressed.answer.anywhere.",
@@ -2291,7 +2368,7 @@
         "launchready",
         "mmcbuild"
       ],
-      "kbGap": true
+      "kbGap": false
     },
     {
       "id": "standards:about.admin.allowed.already.always.analytics.app",
@@ -2323,7 +2400,7 @@
       "blockedBy": [
         "f2k"
       ],
-      "kbGap": true
+      "kbGap": false
     },
     {
       "id": "standards:across.another.anything.auditable.authoritative.",
@@ -2543,7 +2620,7 @@
       "blockedBy": [
         "factory2key"
       ],
-      "kbGap": true
+      "kbGap": false
     },
     {
       "id": "commit:--skip-red-team.--verbose.after.agent.agents.alr",
@@ -2613,7 +2690,7 @@
       "dedupeKey": "about.accepts.address.addressed.adds.admin.aloud.already.also.answer.anthropic.anywhere",
       "status": "new",
       "blockedBy": [],
-      "kbGap": true
+      "kbGap": false
     },
     {
       "id": "commit:about.after.again.alone.already.answer.answering",
@@ -2671,7 +2748,7 @@
       "blockedBy": [
         "dealfindrs"
       ],
-      "kbGap": true
+      "kbGap": false
     },
     {
       "id": "commit:14-probe.absent.account.actor.additive.after.aga",
@@ -2829,6 +2906,48 @@
       "material": "PATTERN: Too many requests. You can only make 10 requests per second. See rate limit response headers\nSYMPTOMS: \"A serial email fan-out silently loses recipients from about the 10th send onward. The operator sees a mostly-successful run; only the per-recipient receipt row shows status=failed with the rate-limit text. Nothing retries.\"\nATTEMPTS: [{\"tried\":\"Sent every recipient in a tight serial for-loop with no delay, on the assumption that serial implies safe\",\"result\":\"FAILED — a serial loop with no network wait still exceeds 10 req/sec. Recipient 11 of an 11-recipient estate announcement was dropped on the first live run.\"}]\nSOLUTION: {\"approach\":\"Pace the loop under the provider cap: await a 150ms delay (~6.7/sec) before every send after the first. Applies to ANY bulk serial Resend loop — admin notification fan-outs, bulk agent email, multi-recipient digests — not just the one where it was found. Record a per-recipient outcome so a partial send is visible rather than assumed clean.\",\"code_path\":\"src/lib/estates/archive-notify.ts — SEND_INTERVAL_MS + delay() at the top of the deliver() closure\"}",
       "score": 2,
       "dedupeKey": "10th.11-recipient.150ms.about.admin.after.agent.announcement.applies.approach.archive-notify.assumed",
+      "status": "new",
+      "blockedBy": [],
+      "kbGap": false
+    },
+    {
+      "id": "bug-knowledge:0-30.30-60.accepts.after.afterwards.against.aggr",
+      "source": "bug-knowledge",
+      "origin": "bug-knowledge.json#arrears-billing-shipped-as-a-trial-underbills-one-month-forever",
+      "product": "@caistech/subscription-billing consumers — any product billing in arrears",
+      "date": "2026-07-28",
+      "title": "A product that means ARREARS (the period is owed from day one, invoiced when it closes) is implemented with trialDays, because for thirty days the two are indis",
+      "material": "PATTERN: A product that means ARREARS (the period is owed from day one, invoiced when it closes) is implemented with trialDays, because for thirty days the two are indistinguishable\nSYMPTOMS: \"Nothing surfaces for a month. Then they invert: the day-30 charge buys days 30-60 under a trial and pays for days 0-30 under arrears, so the product under-bills by exactly one month per customer, permanently, and the discrepancy never appears as an error.\"\nATTEMPTS: [{\"tried\":\"Set trialDays on the checkout session\",\"result\":\"Looks correct for 30 days and is wrong from day 31. Passing both trialDays and arrears now throws.\"},{\"tried\":\"Tried a flag on the inline dynamic price line item\",\"result\":\"Not possible — Checkout's inline price_data.recurring accepts only interval/interval_count, no usage_type and no meter. The Price must exist BEFORE the session.\"},{\"tried\":\"Left the period-owed report to fail soft\",\"result\":\"Rejected — an unreported period invoices $0 against a subscription that looks entirely healthy. reportPeriodOwed now throws by design.\"}]\nSOLUTION: {\"approach\":\"ensureMeteredPrice (idempotent on a deterministic lookup_key so a per-customer price does not mint a new Price object every checkout) over ensureBillingMeter (idempotent on event_name — two meters on one name silently SPLIT the usage). Aggregation is sum; double-reporting is prevented by the event identifier plus the caller's webhook idempotency. cancelWithWaiver exists as a NAMED function (prorate:false AND invoice_now:false — invoice_now alone still collects prorations) because an invoice landing after a customer was told the month was on us is the failure the shape exists to prevent.\",\"code_path\":\"@caistech/subscription-billing >=0.2.0\"}\nGENERALISES: Two billing models that agree for one period and diverge afterwards will be chosen by whichever is easier to implement. Name the intent in code so the wrong one throws.",
+      "score": 2,
+      "dedupeKey": "0-30.30-60.accepts.after.afterwards.against.aggregation.agree.alone.appears.approach.arrears",
+      "status": "new",
+      "blockedBy": [],
+      "kbGap": false
+    },
+    {
+      "id": "bug-knowledge:307d.added.allowlist.app-marker.appears.approach",
+      "source": "bug-knowledge",
+      "origin": "bug-knowledge.json#public-page-redirected-to-login-passes-every-reachability-check",
+      "product": "Any Next.js app with auth middleware — class applies to every published marketing page",
+      "date": "2026-07-31",
+      "title": "A public page is not added to the middleware allowlist, so every visitor without a session is 307d to /login — and the whole verification stack goes green over ",
+      "material": "PATTERN: A public page is not added to the middleware allowlist, so every visitor without a session is 307d to /login — and the whole verification stack goes green over it\nSYMPTOMS: \"curl -L FOLLOWS the redirect and returns 200. The deploy gate's app-marker assertion MATCHES, because the login page carries the product name too. deploy-status PASSES, correctly, because production genuinely is serving the expected SHA. Three checks, all correct, all passing over a page nobody can open. Customer-visible.\"\nATTEMPTS: [{\"tried\":\"curl -L and asserting 200\",\"result\":\"Passes. Following the redirect is precisely what hides the bug.\"},{\"tried\":\"Asserting the product name appears in the HTML\",\"result\":\"Passes — the login page carries it.\"},{\"tried\":\"Matching the words \\\"sign in\\\" in the body\",\"result\":\"Rejected — a marketing page routinely LINKS to sign-in. Match a type=\\\"password\\\" input instead: a marketing page should never contain one.\"}]\nSOLUTION: {\"approach\":\"redirect: \\\"manual\\\" is the whole check. Mark a page @public-route, probe without following redirects, FAIL on any 3xx naming the status AND the Location (\\\"307 -> /login\\\" is a diagnosis, \\\"307\\\" is not), and WARN on a 200 whose body contains a password input. FAILS when routes are marked but no base URL is configured, because an unverified public page is the bug itself.\",\"code_path\":\"@caistech/portfolio-gate >=0.11.0 portfolio-gate-audit-public-routes\"}\nGENERALISES: If your check follows the thing that went wrong, it will never see it go wrong.",
+      "score": 2,
+      "dedupeKey": "307d.added.allowlist.app-marker.appears.approach.asserting.assertion.attempts.base.because.body",
+      "status": "new",
+      "blockedBy": [],
+      "kbGap": false
+    },
+    {
+      "id": "bug-knowledge:admin.against.alert.already.also.answers.app-spe",
+      "source": "bug-knowledge",
+      "origin": "bug-knowledge.json#stale-production-serves-month-old-build-and-reports-healthy",
+      "product": "Any Vercel-deployed product — one month of silent failure before detection",
+      "date": "2026-07-26",
+      "title": "Every production deploy fails at npm install (expired NODE_AUTH_TOKEN -> 401 from GitHub Packages) while production keeps serving the last successful build",
+      "material": "PATTERN: Every production deploy fails at npm install (expired NODE_AUTH_TOKEN -> 401 from GitHub Packages) while production keeps serving the last successful build\nSYMPTOMS: \"Undetectable by any reachability check: the site answers 200 all day, nothing is down, no alert fires. Discovered only when work known to have been merged turned up missing. The undeployed commits included RLS hardening and admin MFA enforcement — security work already described to a partner as remediated.\"\nATTEMPTS: [{\"tried\":\"Assumed the fix had been reverted or had not worked\",\"result\":\"Neither. It was merged and correct, and had never been deployed.\"},{\"tried\":\"Health-checking the public URL\",\"result\":\"Passes. A stale production is a HEALTHY production — that is the trap.\"},{\"tried\":\"Checking that the URL returns 200\",\"result\":\"Vercel's SSO deployment-protection page ALSO returns 200 with a login screen, so this passes against a product nobody can reach.\"}]\nSOLUTION: {\"approach\":\"Assert three things: the latest production deployment is READY; its COMMIT SHA matches the expected ref (the assertion that catches a stale production); and the public URL serves the app, not a protection wall (an app-specific marker in the HTML). Missing config FAILS rather than skips, because every product deploys — a genuinely non-Vercel repo opts out with a recorded reason. Runs on push AND on a daily cron so token expiry is caught without a push.\",\"code_path\":\"@caistech/portfolio-gate >=0.8.0 portfolio-gate-deploy-status\"}\nGENERALISES: Before trusting ANY live test, prove production is running the code you think it is. A passing test against a stale build is worse than no test — it manufactures false confidence.",
+      "score": 2,
+      "dedupeKey": "admin.against.alert.already.also.answers.app-specific.approach.assert.assertion.assumed.attempts",
       "status": "new",
       "blockedBy": [],
       "kbGap": false
@@ -2995,6 +3114,48 @@
         "factory2key",
         "sayfix"
       ],
+      "kbGap": false
+    },
+    {
+      "id": "bug-knowledge:above.across.adjacent.after.anything.applied.app",
+      "source": "bug-knowledge",
+      "origin": "bug-knowledge.json#fixed-the-instance-the-report-named-not-the-class",
+      "product": "Kira — class applies portfolio-wide to every report-driven fix",
+      "date": "2026-08-03",
+      "title": "Fixed the instance, not the class: a defect is fixed at exactly the string a report named, and the identical defect is still live on an adjacent surface within ",
+      "material": "PATTERN: Fixed the instance, not the class: a defect is fixed at exactly the string a report named, and the identical defect is still live on an adjacent surface within hours\nSYMPTOMS: \"Three times in one day: a tax suffix corrected on the checkout page while the page immediately before it still read \\\"+ GST + GST\\\"; a pricing basis corrected in the FAQ while the pricing block four inches above it stayed wrong; an unrounded figure fixed in the JSON export while the result screen kept showing it. Each fix is correct in isolation and each report is closed truthfully.\"\nATTEMPTS: [{\"tried\":\"Applied the fix the report described, verified it took effect\",\"result\":\"Verification passed and was honest. The edit was right. The scope was wrong.\"},{\"tried\":\"Assumed a second report would catch the siblings\",\"result\":\"It did — a day later, as a repeat finding, which reads to the reporter as the first fix having failed.\"}]\nSOLUTION: {\"approach\":\"After fixing anything, grep for the CLASS before closing: every price string, every tax label, every statement of the same policy. A report names one instance because a tester saw one screen; you can see all of them. Mechanise the recurring ones — \\\"every rendered price matches the tax-suffix pattern exactly once\\\", \\\"one statement of any policy across the codebase\\\".\",\"code_path\":\"TESTING_STANDARD.md 2.3; @caistech/portfolio-gate tax-suffix audit\"}\nGENERALISES: A finding that recurs after being found once is a process failure, not a code failure. Write the mechanised check instead of the fix, or it returns a third time.",
+      "score": 1,
+      "dedupeKey": "above.across.adjacent.after.anything.applied.approach.assumed.attempts.audit.basis.because",
+      "status": "new",
+      "blockedBy": [],
+      "kbGap": false
+    },
+    {
+      "id": "bug-knowledge:557-665ms.about.afternoon.against.appeared.appea",
+      "source": "bug-knowledge",
+      "origin": "bug-knowledge.json#voice-text-fallback-gated-on-connection-error-intermittent-by-design",
+      "product": "@caistech/elevenlabs-convai consumers — first measured on Kira production",
+      "date": "2026-08-03",
+      "title": "The text fallback for visitors without a microphone appears only when the voice connection ERRORS, with no timeout — so a connection that neither connects nor f",
+      "material": "PATTERN: The text fallback for visitors without a microphone appears only when the voice connection ERRORS, with no timeout — so a connection that neither connects nor fails never produces one\nSYMPTOMS: \"THE VARIANCE IS THE FINDING. Six sweeps in one afternoon against unchanged production code: the box appeared 0%, 40%, 50%, 70%, 80% and 100% of the time. When the error arrives the box appears in 557-665ms; when it does not, it never appears — verified out to 30 seconds — leaving a \\\"Talk to the assistant\\\" button the visitor cannot use. Self-selects for exactly the low-commitment visitor the fallback exists to serve, and those people do not report it.\"\nATTEMPTS: [{\"tried\":\"Checked once that the fallback renders\",\"result\":\"It did. A single run passes about a third of the time against this defect.\"},{\"tried\":\"Assumed the tester was mis-testing\",\"result\":\"Wrong. Identical code genuinely behaves differently per connection outcome.\"},{\"tried\":\"Considered a 2s timeout\",\"result\":\"Rejected — the fallback REPLACES the voice UI, so firing early steals a slow-but-working connection from someone who does have a mic. That is the opposite failure and a worse one.\"}]\nSOLUTION: {\"approach\":\"Fall back on a STALL as well as on an error: shouldUseTextFallback(props, status, {stalled}), with a timer starting when the panel opens (default 8s, overridable), cancelled the instant voice connects, reset when the panel closes. A live conversation is never interrupted (connected short-circuits first). Four regression tests, mutation-verified — reverting to error-only logic turns them red.\",\"code_path\":\"@caistech/elevenlabs-convai >=0.12.0 widget-logic.ts\"}\nGENERALISES: A single green run proves nothing about an intermittent defect. Run it ten times and report the RATE — a check that reports a pass rate finds what a check that reports pass/fail cannot.",
+      "score": 1,
+      "dedupeKey": "557-665ms.about.afternoon.against.appeared.appears.approach.arrives.assistant.assumed.attempts.back",
+      "status": "new",
+      "blockedBy": [],
+      "kbGap": false
+    },
+    {
+      "id": "bug-knowledge:307d.adds.already.approach.attempts.audit.becaus",
+      "source": "bug-knowledge",
+      "origin": "bug-knowledge.json#middleware-matcher-silently-swallows-machine-callable-routes",
+      "product": "Any Next.js app with session-refresh middleware — cost the same product two features in one day",
+      "date": "2026-07-30",
+      "title": "A session-refresh middleware redirects any request without a session, so vendor webhooks and cron routes are 307d to /login unless explicitly excluded",
+      "material": "PATTERN: A session-refresh middleware redirects any request without a session, so vendor webhooks and cron routes are 307d to /login unless explicitly excluded\nSYMPTOMS: \"A redirect is not an error: nothing throws, nothing logs, the caller often follows it to a 200 HTML page, and the feature simply never runs. Lost every convai webhook call (no voice memory was ever written or read), then every scheduled retention purge — both looked healthy from outside.\"\nATTEMPTS: [{\"tried\":\"Checked the route handler for bugs\",\"result\":\"The handler is fine and was never reached.\"},{\"tried\":\"Relied on remembering to add each new machine route to the matcher regex\",\"result\":\"Structural failure, not carelessness — the exclusion lives in a regex in middleware.ts, far from the route that depends on it.\"}]\nSOLUTION: {\"approach\":\"Move the requirement onto the ROUTE: mark it @machine-callable and fail the audit if the matcher still captures it. Deliberately narrow and stated: it only checks MARKED routes, because \\\"is this called by a browser?\\\" is not statically decidable. SKIPS (not fails) with no middleware or no marked routes; WARNS rather than passing when the matcher cannot be parsed. Verified by reintroducing the real bug — removing one exclusion flipped it to exit 1 naming the route.\",\"code_path\":\"@caistech/portfolio-gate >=0.10.0 portfolio-gate-audit-machine-routes\"}\nGENERALISES: A rule enforced by remembering holds until someone adds a route at 1am. Put the requirement in the file the person is already editing.",
+      "score": 1,
+      "dedupeKey": "307d.adds.already.approach.attempts.audit.because.both.browser.bugs.caistech.call",
+      "status": "new",
+      "blockedBy": [],
       "kbGap": false
     },
     {
@@ -3488,6 +3649,48 @@
       "material": "PATTERN: Browser shows \"Unexpected token 'R', \"Request En\"... is not valid JSON\" when uploading a file through a Next.js API route on Vercel\nSYMPTOMS: \"A user cannot upload a real file; small test files work; nothing lands in Supabase Storage OR the DB (so it is not an RLS or insert problem); no POST appears in Vercel runtime logs; every row that ever succeeded is small (here, all under 1.1MB against a bucket configured for 50MB). The error names the word \\\"Request\\\" because that is the first token of Vercel's plain-text body.\"\nATTEMPTS: [{\"tried\":\"Audited Supabase storage RLS policies, bucket allowed_mime_types and file_size_limit\",\"result\":\"all correct — not the cause\"},{\"tried\":\"Searched Vercel runtime logs for the failing request\",\"result\":\"no POST present; retention is ~24h. The ABSENCE of the request is the diagnostic — the body never reached the function\"},{\"tried\":\"Probed the deployed endpoint unauthenticated at increasing body sizes\",\"result\":\"WORKED — 1MB and 4MB returned 401 JSON (function reached); 4.6MB returned 413 FUNCTION_PAYLOAD_TOO_LARGE (edge rejected). No writes needed to find the ceiling.\"}]\nSOLUTION: {\"approach\":\"Two defects. (1) Vercel rejects request bodies over 4.5MB at the EDGE, before the function runs, with a plain-text \\\"Request Entity Too Large\\\". Any file posted through a route handler is therefore capped at 4.5MB regardless of what the storage bucket allows. Fix: have the BROWSER upload straight to Supabase Storage via createSignedUploadUrl/uploadToSignedUrl and send only JSON metadata through the function; keep ownership by scoping the signed key to {user.id}/ and re-checking the prefix server-side. (2) The client called await response.json() BEFORE checking response.ok, so a non-JSON error body surfaced as a parser complaint instead of a usable message — always read errors with a text-first helper.\",\"code_path\":\"app/api/deck/upload-url/route.ts (new) + app/api/deck/upload/route.ts + components/deck/deck-upload.tsx + lib/http/response-error.ts + lib/deck/upload-constraints.ts\"}\nGENERALISES: EVERY repo that posts a file through a Next.js route handler on Vercel. Check for formData.get(\"file\") in app/api/**. The same probe (unauthenticated POST at 4MB then 4.6MB) identifies it in minutes without touching data.",
       "score": 0,
       "dedupeKey": "50mb.absence.against.allowed.allows.always.appears.approach.attempts.audited.await.because",
+      "status": "new",
+      "blockedBy": [],
+      "kbGap": false
+    },
+    {
+      "id": "bug-knowledge:account.acts.actually.address.against.also.anyon",
+      "source": "bug-knowledge",
+      "origin": "bug-knowledge.json#post-payment-endpoint-mutates-account-on-unverified-checkout-email",
+      "product": "Kira — class applies to any post-checkout provisioning endpoint",
+      "date": "2026-08-07",
+      "title": "ACCOUNT TAKEOVER: a post-payment \"complete onboarding\" endpoint sets a password (or otherwise mutates an account) using the email address taken from the checkou",
+      "material": "PATTERN: ACCOUNT TAKEOVER: a post-payment \"complete onboarding\" endpoint sets a password (or otherwise mutates an account) using the email address taken from the checkout session, which the payer typed and which was never verified as theirs\nSYMPTOMS: \"Nothing looks wrong — the takeover is indistinguishable from a completed purchase: a real payment, a working signup. The victim notices only when their own password stops working. Found by walking the paid path end-to-end for the first time, not by reading code — no scanner flags it because every individual call is legitimate.\"\nATTEMPTS: [{\"tried\":\"Read the endpoint looking for a missing auth check\",\"result\":\"There is no missing check — the endpoint is unauthenticated BY DESIGN, because the payer has no session yet. The flaw is what it does with an identity it cannot prove.\"},{\"tried\":\"Considered validating the email against the Stripe customer\",\"result\":\"Does not help. Checkout lets anyone type any address and must, because people pay on behalf of others every day. The endpoint cannot obtain proof of identity from the session.\"},{\"tried\":\"Ran the exploit against our own account with the old code\",\"result\":\"CONFIRMED: real password works=false, attacker password works=true. Reproduced, then restored.\"}]\nSOLUTION: {\"approach\":\"An existing account has NOTHING mutated — not the password, and deliberately not the rest either: the valuation upsert is keyed on user_id with onConflict so an unverified caller would overwrite a real owner's baseline, and writing the subscription id would detach the subscription they are actually paying for. Return {ok:true, existing:true}, log a warning carrying the session id, and send the payer to sign in, where forgot-password proves ownership by email — which is exactly the proof the endpoint cannot obtain and must not fake. Also drop any listUsers() paging that only existed to serve the removed write.\",\"code_path\":\"app/api/onboarding/complete/route.ts\"}\nGENERALISES: Any endpoint that acts on an identity asserted by an untrusted caller. The fix is never better validation of the assertion — it is refusing to mutate anything for an identity you cannot prove, and routing the caller to a channel that can prove it.",
+      "score": 0,
+      "dedupeKey": "account.acts.actually.address.against.also.anyone.anything.approach.asserted.assertion.attacker",
+      "status": "new",
+      "blockedBy": [],
+      "kbGap": false
+    },
+    {
+      "id": "bug-knowledge:anything.appear.approach.assumed.attempts.automa",
+      "source": "bug-knowledge",
+      "origin": "bug-knowledge.json#stripe-checkout-copy-frozen-by-idempotent-lookup-key",
+      "product": "@caistech/subscription-billing consumers — metered/arrears checkout",
+      "date": "2026-08-01",
+      "title": "A correction to hosted-checkout copy is deployed and does not appear, indefinitely, and is recorded as a copy problem",
+      "material": "PATTERN: A correction to hosted-checkout copy is deployed and does not appear, indefinitely, and is recorded as a copy problem\nSYMPTOMS: \"A tax-suffix fix sat inert for a week with the edit correct in the repo the whole time. Stripe renders \\\"Price varies\\\", \\\"billed monthly based on usage\\\" and \\\"$0.00 due today\\\" for a metered price — all true, and together read by a cautious buyer at the moment of handing over a card as a business that will not say what it charges.\"\nATTEMPTS: [{\"tried\":\"Set productDescription\",\"result\":\"Never renders — Stripe substitutes its own subtitle for metered prices.\"},{\"tried\":\"Updated the Stripe Product directly\",\"result\":\"REFUSED: \\\"The product was created by Stripe automatically and cannot be updated\\\".\"},{\"tried\":\"Redeployed with the corrected string\",\"result\":\"No effect. ensureMeteredPrice is idempotent on the lookup_key, so checkout copy is frozen at whatever the FIRST session set.\"}]\nSOLUTION: {\"approach\":\"Use custom_text.submit, which sits beside the pay button and is the one surface that stays yours. To change anything frozen by the lookup key, bump the lookup_key and mint a fresh Product. Verified in the live DOM on checkout.stripe.com rather than assumed.\",\"code_path\":\"@caistech/subscription-billing >=0.4.0 customText\"}\nGENERALISES: Idempotency keys freeze more than the object they identify. When a deploy has no visible effect, check whether an idempotent create is returning the original.",
+      "score": 0,
+      "dedupeKey": "anything.appear.approach.assumed.attempts.automatically.based.beside.billed.bump.business.button",
+      "status": "new",
+      "blockedBy": [],
+      "kbGap": false
+    },
+    {
+      "id": "bug-knowledge:approach.artifact.assert.attempts.awaited.becaus",
+      "source": "bug-knowledge",
+      "origin": "bug-knowledge.json#report-generator-produces-corrupt-pdf-on-linux-ci-only",
+      "product": "@caistech/report-generator — OPEN, cause not established",
+      "date": "2026-08-03",
+      "title": "renderToBuffer produces a PDF that pdf-parse rejects with \"bad XRef entry\" on Linux CI, while passing 11/11 locally on Windows + Node 24",
+      "material": "PATTERN: renderToBuffer produces a PDF that pdf-parse rejects with \"bad XRef entry\" on Linux CI, while passing 11/11 locally on Windows + Node 24\nSYMPTOMS: \"A malformed cross-reference table — the artifact is broken, not merely different. Matters more than a flaky test suggests: producing valid PDFs is this package's entire job, and a common runtime produces invalid ones. Surfaced by the first CI run this repo has ever had.\"\nATTEMPTS: [{\"tried\":\"Version drift between local and CI\",\"result\":\"RULED OUT — the lock pins @react-pdf/renderer 4.5.1 and pdf-parse 1.1.4, and both resolve to exactly that locally.\"},{\"tried\":\"Read-before-flush race\",\"result\":\"RULED OUT — renderToBuffer is awaited.\"},{\"tried\":\"Raised CI from Node 20 to Node 24 to match local\",\"result\":\"Eliminated the runtime as a candidate AND the failure grew from one test to at least three. Platform is now the remaining candidate; nothing further is established.\"}]\nSOLUTION: {\"approach\":\"NOT SOLVED. The whole suite is describe.skip-ped when CI is set — deliberately keyed on CI rather than on platform, which would assert an undemonstrated cause, and scoped to the whole suite because the measured blast radius is 3+ tests rather than the one that happened to go red first. Stays visible as a SKIP rather than vanishing.\",\"code_path\":\"@caistech/report-generator test suite\"}\nGENERALISES: Record what has been RULED OUT, not only what was tried. An open entry with three eliminated hypotheses is worth more to the next person than a closed one with a guess.",
+      "score": 0,
+      "dedupeKey": "approach.artifact.assert.attempts.awaited.because.between.blast.both.broken.caistech.candidate",
       "status": "new",
       "blockedBy": [],
       "kbGap": false
