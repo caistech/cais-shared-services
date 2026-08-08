@@ -1,0 +1,15 @@
+{
+  "note": "Drafted posts for the \"Ship It, It's Fine.\" series. `body` is hand-written or model-drafted from a queue candidate; `status` is owned by a human and is never changed by a harvest. Statuses: draft -> approved -> published.",
+  "posts": [
+    {
+      "id": "takeover-in-the-paid-path",
+      "title": "The paid path was finished. I could have taken your account with it.",
+      "sourceCandidate": "commit:kira@2f12f14",
+      "status": "approved",
+      "seriesNumber": null,
+      "publishedUrl": null,
+      "publishedAt": null,
+      "body": "The paid path was finished. I could have taken your account with it.\n\nI was walking our own payment path for the first time, and only to check the wording on a button. The path itself was done — built, reviewed, shipped, working. I'd have told you so.\n\nHere's what I found instead.\n\nStart a checkout. Type someone else's email into the payment form. Complete it — we bill in arrears, so nothing is actually due that day, on your own card. Take the session id out of the address bar. Post any password you like.\n\nTheir account was then yours, and everything in it. This is Kira, whose entire proposition is that a business owner tells her things he hasn't told his staff or his family. It is the worst defect this codebase can carry, and it was live.\n\nAnd yet nothing about it looks like an attack. It's a completed purchase, a real payment, a working signup — right up until it's his account on somebody else's screen.\n\nThe obvious fix is to validate the email. You can't. The payment form lets anyone type any address, and it has to — people pay for things on behalf of other people every day. That endpoint cannot obtain proof of who paid. So the answer isn't better checking. It's refusing to change anything at all for an identity you can't prove.\n\nAn existing account now has nothing touched. Not the password, not their valuation, not their subscription. They're sent to sign in, where forgotten-password proves ownership by email — the proof we can't fake. Confirmed by running the attack against our own account before and after, then reverting the fix to watch the test go red again.\n\nIt cost nothing to attempt, because nothing is due at checkout. Which leaves me with a question I'd like other people's answer to: what else does \"no payment today\" quietly unlock?"
+    }
+  ]
+}
