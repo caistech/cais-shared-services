@@ -84,16 +84,20 @@ for (const v of variants) {
 console.log(structuralFailures ? `\nSTRUCTURAL FAILURES: ${structuralFailures}` : "\nSTRUCTURAL: ALL CLEAN — Linux xref offsets are valid");
 
 /* ------------------------------------------------------------------ 2/3 */
+// unpdf is the parser the suite now uses. pdf-parse is OPTIONAL and no longer a
+// dependency — it is the one that was found defective. If someone reinstalls it
+// to reproduce the original finding, this reports both side by side.
+const { getDocumentProxy, extractText } = await import("unpdf");
 let pdfParse = null;
 try {
   pdfParse = require("pdf-parse");
-} catch (e) {
-  console.log(`\npdf-parse unavailable: ${e.message}`);
+} catch {
+  console.log("\n(pdf-parse not installed — it was removed as the defect. unpdf only.)");
 }
 
 async function tryParse(label, file) {
-  if (!pdfParse || !file || !fs.existsSync(file)) {
-    console.log(`${label}: SKIPPED (missing ${file || "pdf-parse"})`);
+  if (!file || !fs.existsSync(file)) {
+    console.log(`${label}: SKIPPED (missing ${file})`);
     return;
   }
   const buf = fs.readFileSync(file);
@@ -101,10 +105,19 @@ async function tryParse(label, file) {
   console.log(`${label}: ${buf.length} bytes, sha256=${(await import("node:crypto")).createHash("sha256").update(buf).digest("hex").slice(0, 16)}`);
   console.log(`  structural: checked=${structural.checked} bad=${structural.bad.length} notes=${JSON.stringify(structural.notes)}`);
   try {
-    const parsed = await pdfParse(buf);
-    console.log(`  pdf-parse: OK — ${parsed.numpages} pages, ${parsed.text.length} chars of text`);
+    const pdf = await getDocumentProxy(new Uint8Array(buf));
+    const parsed = await extractText(pdf, { mergePages: true });
+    console.log(`  unpdf: OK — ${parsed.totalPages} pages, ${parsed.text.length} chars of text`);
   } catch (e) {
-    console.log(`  pdf-parse: THREW — ${e.name}: ${e.message}`);
+    console.log(`  unpdf: THREW — ${e.name}: ${e.message}`);
+  }
+  if (pdfParse) {
+    try {
+      const parsed = await pdfParse(buf);
+      console.log(`  pdf-parse: OK — ${parsed.numpages} pages, ${parsed.text.length} chars of text`);
+    } catch (e) {
+      console.log(`  pdf-parse: THREW — ${e.name}: ${e.message}`);
+    }
   }
 }
 
@@ -116,7 +129,9 @@ await tryParse("windows-fixture", path.join(here, "fixtures", "windows-generated
 console.log("\n########## 3. SELF-PARSE — Linux pdf-parse vs a LINUX-generated PDF ##########");
 await tryParse("linux-generated", linuxPdf);
 
-console.log("\n########## READING THIS ##########");
-console.log("1 clean + 2 throws  -> artifact innocent, pdf-parse is the defect (un-skip the suite, replace the parser)");
-console.log("1 clean + 2 ok + 3 throws -> Linux artifact differs in a way the sweep does not cover; compare against the fixture");
-console.log("1 dirty             -> artifact genuinely corrupt on Linux; the recorded diagnosis stands");
+console.log("\n########## WHAT THIS ESTABLISHED (2026-08-09) ##########");
+console.log("Section 1 came back clean on Linux, with byte-for-byte the same sizes as Windows.");
+console.log("Section 2 threw `bad XRef entry` under pdf-parse on a WINDOWS-generated file that");
+console.log("Windows pdf-parse accepts — identical bytes, so the artifact could not be the fault.");
+console.log("pdf-parse@1.1.4 bundles pdf.js v1.10.100 (2018). It was replaced with unpdf and the");
+console.log("suite un-skipped. Section 1 dirtying again would be a REAL renderer regression.");

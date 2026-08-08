@@ -1,8 +1,23 @@
 import { describe, it, expect } from "vitest";
-// @ts-expect-error pdf-parse ships CJS without types
-import pdfParse from "pdf-parse";
+import { getDocumentProxy, extractText, getMeta } from "unpdf";
 import { renderPdf } from "../src/render";
 import type { RenderOptions } from "../src/types";
+
+/**
+ * Parse a rendered PDF the way the rest of the portfolio does.
+ *
+ * Shaped to return the same three things the suite used to read off pdf-parse
+ * (`text`, `numpages`, `info`) so the assertions below are unchanged — the
+ * parser was the defect, not what the tests were checking.
+ */
+async function parsePdf(buffer: Buffer) {
+  const pdf = await getDocumentProxy(new Uint8Array(buffer));
+  const [{ totalPages, text }, meta] = await Promise.all([
+    extractText(pdf, { mergePages: true }),
+    getMeta(pdf),
+  ]);
+  return { text, numpages: totalPages, info: meta.info as Record<string, unknown> };
+}
 
 const baseOpts = (overrides: Partial<RenderOptions> = {}): RenderOptions => ({
   markdown: "# Heading\n\nThis is a paragraph of body text.",
@@ -31,38 +46,45 @@ const baseOpts = (overrides: Partial<RenderOptions> = {}): RenderOptions => ({
 });
 
 /**
- * THE WHOLE PDF SUITE IS SKIPPED IN CI — UNRESOLVED. Read before deleting.
+ * RESOLVED 2026-08-09. This suite used to be skipped in CI, on the conclusion
+ * that `renderToBuffer` produced a CORRUPT PDF on Linux — "producing valid PDFs
+ * is this package's entire job, and it does not do it on Linux."
  *
- * `renderToBuffer` produces a PDF the parser rejects with `bad XRef entry` — a
- * malformed cross-reference table, so the generated artifact is CORRUPT, not
- * merely different. It passes 11/11 locally (Windows, Node 24).
+ * That was backwards. The renderer was never at fault. `pdf-parse@1.1.4` bundles
+ * pdf.js **v1.10.100, from 2018**, and it rejects structurally-valid PDFs.
  *
- * RULED OUT:
- *   - version drift — the lock pins @react-pdf/renderer 4.5.1 and pdf-parse
- *     1.1.4, and both resolve to exactly that locally, so CI and local install
- *     identical trees
- *   - a read-before-flush race — renderPdf awaits renderToBuffer
- *   - the Node version. This was the leading hypothesis and it is WRONG: raising
- *     the runner from Node 20 to Node 24 made it WORSE, from one failing test to
- *     at least three. The runtime modulates how much of the damage surfaces; it
- *     does not cause it.
+ * The reason it took a while is worth keeping. Every check behind the original
+ * diagnosis ran THROUGH pdf-parse, and a broken parser and a broken artifact
+ * come back red identically — so no amount of that evidence could separate them.
+ * Two checks that did not go through it settled it in one run:
  *
- * So the cause is the platform. That is also why the runner is NOT pinned back
- * to Node 20 to make this greener — Node 20 is deprecated on GitHub runners, and
- * choosing an old runtime because it hides two thirds of a bug is not a fix.
+ *   1. A STRUCTURAL sweep, asserting the invariant pdf.js itself enforces (every
+ *      in-use xref offset points at "<num> <gen> obj"). 57/57 documents valid on
+ *      Linux, across three footer variants and nineteen sizes — and byte-for-byte
+ *      the same sizes as Windows. Linux and Windows emit identical output.
+ *   2. A CROSS-PARSE: Linux pdf-parse against a WINDOWS-generated PDF. Same
+ *      bytes (sha256 a60310bf8289158…), Windows accepts, Linux threw
+ *      `bad XRef entry`. Identical bytes cannot be corrupt on one OS, so the
+ *      artifact was provably innocent and the parser was indicted.
  *
- * The whole suite is skipped rather than the single test that failed first,
- * because the measured blast radius is larger than one assertion and skipping
- * only what happened to go red would misrepresent it as narrow.
+ * The same file parses cleanly under unpdf, which is what this suite now uses —
+ * already the portfolio's parser (DealFindrs), so this is convergence, not a new
+ * dependency. pdf-parse is gone.
  *
- * Producing valid PDFs is this package's entire job, and it does not do it on
- * Linux. That is worth chasing properly.
+ * Also ruled out along the way, so nobody re-treads them: concurrency (260
+ * renders up to 32-way parallel, byte-identical every time — the original note
+ * ruled out a race inside one call, never between calls) and a platform newline
+ * (an xref entry must be exactly 20 bytes, but _write appends a hardcoded '\n'
+ * and there is no os.EOL anywhere in @react-pdf).
  *
- * Surfaced 2026-08-03 by the first CI run this repo has ever had.
+ * The "Node 20 -> 24 made it worse" datum was not signal. It was a different
+ * draw from an old parser that fails inconsistently.
+ *
+ * The diagnostic that produced all this is in test/diagnostics/ with its
+ * fixture. Keep it: it is what makes this conclusion checkable rather than a
+ * story, and it is cheap to re-run if the symptom ever returns.
  */
-const ciDescribe = process.env.CI ? describe.skip : describe
-
-ciDescribe("renderPdf — end-to-end", () => {
+describe("renderPdf — end-to-end", () => {
   it("renders markdown into a parseable PDF with all key content present", async () => {
     const opts = baseOpts({
       markdown: [
@@ -83,8 +105,8 @@ ciDescribe("renderPdf — end-to-end", () => {
     expect(result.buffer).toBeInstanceOf(Buffer);
     expect(result.buffer.length).toBeGreaterThan(1000);
 
-    const parsed = await pdfParse(result.buffer);
-    // H1/H2 render uppercase with letterspacing, so pdf-parse extracts with spaces between letters
+    const parsed = await parsePdf(result.buffer);
+    // H1/H2 render uppercase with letterspacing, so the parser extracts with spaces between letters
     expect(parsed.text).toMatch(/E\s*X\s*E\s*C\s*U\s*T\s*I\s*V\s*E\s*S\s*U\s*M\s*M\s*A\s*R\s*Y/i);
     expect(parsed.text).toContain("$100M");
     expect(parsed.text).toContain("F2K-GEH");
@@ -94,13 +116,13 @@ ciDescribe("renderPdf — end-to-end", () => {
   });
 });
 
-ciDescribe("renderPdf — brand", () => {
+describe("renderPdf — brand", () => {
   it("uses brand product name in the header band", async () => {
-    const parsed = await pdfParse(
+    const parsed = await parsePdf(
       (await renderPdf(baseOpts({ brand: { productName: "AcmeFund", primaryColor: "#000066", accentColor: "#FF0066" } })))
         .buffer,
     );
-    // productName renders uppercase + letterspacing, pdf-parse extracts with spaces between letters
+    // productName renders uppercase + letterspacing, the parser extracts with spaces between letters
     expect(parsed.text).toMatch(/A\s*C\s*M\s*E\s*F\s*U\s*N\s*D/i);
   });
 
@@ -112,17 +134,17 @@ ciDescribe("renderPdf — brand", () => {
 
   it("populates PDF metadata (title, author, subject, creator)", async () => {
     const result = await renderPdf(baseOpts());
-    const parsed = await pdfParse(result.buffer);
+    const parsed = await parsePdf(result.buffer);
     expect(parsed.info.Author).toBe("F2K Fund Tokenisation");
     expect(parsed.info.Subject).toBe("investor_deep_dive");
     expect(parsed.info.Creator).toBe("@caistech/report-generator");
   });
 });
 
-ciDescribe("renderPdf — watermark", () => {
+describe("renderPdf — watermark", () => {
   it("includes watermark text in rendered PDF when provided", async () => {
     const result = await renderPdf(baseOpts());
-    const parsed = await pdfParse(result.buffer);
+    const parsed = await parsePdf(result.buffer);
     expect(parsed.text).toContain("PRE-AFSL");
   });
 
@@ -135,19 +157,19 @@ ciDescribe("renderPdf — watermark", () => {
         },
       }),
     );
-    const parsed = await pdfParse(result.buffer);
+    const parsed = await parsePdf(result.buffer);
     expect(parsed.text).not.toContain("PRE-AFSL");
   });
 });
 
-ciDescribe("renderPdf — disclaimer on every page footer", () => {
+describe("renderPdf — disclaimer on every page footer", () => {
   it("repeats the disclaimer on every page of a multi-page document", async () => {
     // Build a long markdown body that forces multiple pages
     const longBody = Array.from({ length: 60 }, (_, i) => `## Section ${i + 1}\n\n${"Body paragraph. ".repeat(30)}`).join(
       "\n\n",
     );
     const result = await renderPdf(baseOpts({ markdown: longBody }));
-    const parsed = await pdfParse(result.buffer);
+    const parsed = await parsePdf(result.buffer);
 
     expect(result.pageCount).toBeGreaterThanOrEqual(2);
 
@@ -159,13 +181,13 @@ ciDescribe("renderPdf — disclaimer on every page footer", () => {
   });
 });
 
-ciDescribe("renderPdf — page numbers", () => {
+describe("renderPdf — page numbers", () => {
   it("renders page numbers in format 'Page X of Y' when enabled", async () => {
     const longBody = Array.from({ length: 20 }, (_, i) => `## Section ${i + 1}\n\n${"Body paragraph. ".repeat(20)}`).join(
       "\n\n",
     );
     const result = await renderPdf(baseOpts({ markdown: longBody }));
-    const parsed = await pdfParse(result.buffer);
+    const parsed = await parsePdf(result.buffer);
 
     expect(parsed.text).toMatch(/Page\s+\d+\s+of\s+\d+/);
   });
@@ -179,12 +201,12 @@ ciDescribe("renderPdf — page numbers", () => {
         },
       }),
     );
-    const parsed = await pdfParse(result.buffer);
+    const parsed = await parsePdf(result.buffer);
     expect(parsed.text).not.toMatch(/Page\s+\d+\s+of\s+\d+/);
   });
 });
 
-ciDescribe("renderPdf — oversize guard", () => {
+describe("renderPdf — oversize guard", () => {
   it("truncates markdown beyond maxBodyChars and flags truncated", async () => {
     const huge = "x".repeat(1500);
     const result = await renderPdf(baseOpts({ markdown: huge, maxBodyChars: 500 }));
