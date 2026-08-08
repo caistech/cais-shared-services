@@ -110,9 +110,24 @@ const PRICE_CONTEXT =
   /\bprice\b|\bpricing\b|\bplan\b|\btier\b|\bper (month|year|seat|user)\b|\/mo\b|\/month\b|\bmonthly\b|\bannual\b|\bbilled\b|\bsubscription\b|\bfrom \$|\bonly \$/i
 const CONTEXT_WINDOW = 2
 
-/** Strip comments so the check reads what a VISITOR reads. See the header — this is deliberate. */
-function stripComments(line: string): string {
-  return line.replace(/\/\/.*$/, '').replace(/\/\*.*?\*\//g, '').replace(/^\s*\*.*$/, '')
+/**
+ * Blank every comment in the file while KEEPING line numbers intact, so the check reads what a
+ * VISITOR reads. See the header for why comments are excluded at all.
+ *
+ * ⚠️ This works on the WHOLE FILE, not line by line, and that is the entire point. The first
+ * version stripped per line and therefore could not see a MULTI-LINE block — so a `{/* ... *\/}`
+ * comment explaining why a false figure had been removed was itself reported as a false figure.
+ * That happened four times in one day across this check and its sibling, always to the person
+ * doing the right thing and writing down why. A checker that punishes the explanation teaches
+ * people to delete the explanation.
+ *
+ * Newlines inside a stripped block are preserved so every reported line number still points at the
+ * line a human would open.
+ */
+function blankComments(content: string): string {
+  return content
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+    .replace(/\/\/[^\n]*/g, (m) => ' '.repeat(m.length))
 }
 
 function daysFromWord(unit: string): number {
@@ -235,12 +250,14 @@ export async function runOfferClaimsAudit(
     if (!content) continue
     surfacesScanned += 1
     const rel = relativeTo(cwd, file)
-    const lines = content.split(/\r?\n/)
+    // Comments are blanked across the WHOLE file first, so a multi-line block cannot leak a
+    // figure into the scan. Line numbers are preserved by keeping the newlines.
+    const lines = blankComments(content).split(/\r?\n/)
+    const rawLines = content.split(/\r?\n/)
 
     for (let i = 0; i < lines.length; i += 1) {
-      const raw = lines[i]
-      if (raw.includes(ATTESTATION)) continue
-      const line = stripComments(raw)
+      if (rawLines[i].includes(ATTESTATION)) continue
+      const line = lines[i]
       if (!line.trim()) continue
 
       // Duration claims, but only where the line is talking about the offer.
@@ -283,7 +300,6 @@ export async function runOfferClaimsAudit(
       // Only where the surrounding lines are selling something; see PRICE_CONTEXT.
       const window = lines
         .slice(Math.max(0, i - CONTEXT_WINDOW), i + CONTEXT_WINDOW + 1)
-        .map(stripComments)
         .join(' ')
       if (!PRICE_CONTEXT.test(window)) continue
       for (const m of line.matchAll(MONEY)) {

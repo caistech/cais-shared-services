@@ -1,6 +1,6 @@
 {
   "name": "@caistech/portfolio-gate",
-  "version": "0.17.0",
+  "version": "0.17.1",
   "description": "Portfolio Standard enforcement layer — errorResponse helper (R10), route smoke test (R13), auth smoke test (R1/R4), session smoke test (authenticated routes), static audits (R3/R7/R8/R9/R11/R15 + responsive-design), a LIVE RLS audit (R9 — queries the running DB so Drizzle-push/dashboard schemas and prod drift can't hide), and a `audit-all` master runner.",
   "type": "module",
   "main": "dist/index.js",

@@ -182,3 +182,31 @@ describe('skip and staleness', () => {
     expect(r.findings.some((f) => /roots match nothing/.test(f.message))).toBe(true)
   })
 })
+
+describe('multi-line comments', () => {
+  it('does not fail a JSX block comment explaining a removed figure', async () => {
+    // The fourth instance in one day of a check reporting the note that records
+    // why a false claim was deleted. Per-line stripping cannot see a block that
+    // opens on one line and closes on another, which is every JSX comment.
+    const dir = await repo({
+      'p.tsx': `{/* The "$250 per Qualified Project Lead" figure was removed
+                    because it is not a Stripe price and cannot be charged.
+                    The plan costs $49. */}
+                <div className="plan-card"><span>$49</span></div>`,
+    })
+    const r = await runOfferClaimsAudit({ cwd: dir })
+    expect(r.passed).toBe(true)
+  })
+
+  it('still reports a real figure on the line AFTER a block comment ends', async () => {
+    // Blanking must not swallow live code that follows the closing marker.
+    const dir = await repo({
+      'p.tsx': `{/* pricing note
+                    spanning lines */}
+                const plan = { price: "$777" }`,
+    })
+    const r = await runOfferClaimsAudit({ cwd: dir })
+    expect(r.passed).toBe(false)
+    expect(r.findings.some((f) => f.message.includes('$777'))).toBe(true)
+  })
+})
