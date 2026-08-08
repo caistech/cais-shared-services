@@ -52,13 +52,22 @@ export const FOLD_CHARS = 210;
 
 // ---------------------------------------------------------------- pure
 
-/** Assemble the final text: body, then the series footer. Markdown is stripped — LinkedIn renders none of it. */
+/**
+ * Assemble the final text: body, then the series footer. Markdown is stripped — LinkedIn
+ * renders none of it, so asterisks would print literally.
+ *
+ * `footerOverride` exists for the one post that has no number: the series intro is not
+ * an instalment of the thing it introduces, and "№0" reads as a mistake.
+ */
 export function render(post, seriesNumber) {
   const body = String(post.body ?? '')
-    .replace(/\*\*(.+?)\*\*/g, '$1')   // bold would print as literal asterisks
-    .replace(/^#{1,6}\s+/gm, '')       // headings do not exist here
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
     .trim();
-  return `${body}\n\n—\n${SERIES.name} №${seriesNumber}\n${SERIES.tagline}`;
+  const footer = post.footerOverride
+    ? String(post.footerOverride)
+    : `${SERIES.name} №${seriesNumber}\n${SERIES.tagline}`;
+  return `${body}\n\n—\n${footer}`;
 }
 
 /** What a reader sees before "…see more" — the only part that decides whether they open it. */
@@ -138,6 +147,7 @@ function selfTest(config, sanitise) {
 
   check('render strips markdown', !render({ body: '**bold** and\n## heading' }, 1).includes('**'));
   check('render appends the series footer', render({ body: 'x' }, 3).includes('№3'));
+  check('footerOverride replaces the number', !render({ body: 'x', footerOverride: 'starts here' }, 3).includes('№'));
 
   const long = 'word '.repeat(700);
   check('over-length is caught', preflight(long, config, sanitise).some((p) => p.includes('LinkedIn rejects')));
