@@ -1,6 +1,13 @@
 # Outreach drafts — ready to send
 
-> Companion to `SALES_MACHINE.md`. Drafts only; nothing here has been sent.
+> Companion to `SALES_MACHINE.md`.
+>
+> ⚠️ **Each item carries its own status block — read that, not this header.** This file used to say
+> "drafts only; nothing here has been sent" as a standing line. That is the kind of claim that is
+> true when written and false the moment anything goes out, and nobody thinks to edit a header. On
+> 2026-08-09 it caused a session to report the MMC arrears email as unsent four days after it was
+> sent. **A status that can go stale silently belongs next to the thing it describes, with a date on
+> it.**
 > **Never put a commercial/rate draft in a client repo** — `mmcbuild-application` is public and is
 > being moved into the `mmcbuild-ai` org. That is why this file lives here.
 >
@@ -9,6 +16,37 @@
 ---
 
 ## 1. MMC Build — overdue instalments + terms after Stage 7
+
+> ### 📤 STATUS — SENT 2026-08-05. No reply as at 2026-08-09. Acceleration date 14 Aug.
+>
+> **Sent from `dennis@corporateaisolutions.com`** (operator-confirmed 2026-08-09). It is not in
+> `mcmdennis@gmail.com`, which does not hold the MMC thread at all — that mailbox returns zero Karen
+> correspondence even for April 2026, when the schedule was negotiated. **Do not conclude anything
+> about MMC correspondence from the Gmail account connected to a coding session; it is the wrong
+> mailbox.**
+>
+> **Where that leaves 14 August.** Written notice under §5.2 is a *separate* act from this email.
+> This email gave advance warning that the right arms on 14 Aug — deliberately, so the date would
+> not arrive cold. It is not itself the notice. If the arrears are still outstanding on 14 Aug, the
+> decision to issue notice is a fresh one.
+>
+> **Follow-up window is now.** This file's own guidance is: no date within a week → follow up once,
+> asking only for the date. Sent 5 Aug, so that lands ~12 Aug — two days before the acceleration
+> date. Draft is in "The follow-up" below.
+>
+> **Two of the four pre-send checks are now answered (2026-08-09):**
+>
+> - **A1 §10 contains NO suspension-for-non-payment right.** Check 3 asked for one; there isn't one.
+>   So do not imply work will stop — the draft correctly doesn't. There *is* a termination right
+>   (14 days' written notice, GBTA invoices work completed), which is a far heavier instrument and
+>   does not belong in this email.
+> - **A3 countersigning could not be confirmed** from the repo — the file carries blank signature
+>   blocks, and the 21 Apr agreement email lives in the other mailbox. The schedule still stands on
+>   the email chain plus conduct (two instalments were paid against it), but confirm before leaning
+>   on §5 hard.
+>
+> Checks 1 (bank reconciliation + statement attachment) and 4 (whether to copy the bookkeeper) remain
+> for the operator — the draft says "Statement attached", so that attachment must exist before send.
 
 ### The contract and the actual position
 
@@ -272,6 +310,60 @@ Precision is what makes this land — the moment it reads as aggrieved, it becom
 > Global Buildtech Australia Pty Ltd · ABN 54 672 395 685
 
 ---
+
+### The follow-up (drafted 2026-08-09 — send ~12 Aug if still no reply)
+
+One job: get a date. Nothing else. Adding anything gives her something easier to answer than the
+question, which is how the first email got no reply at all.
+
+**Do not re-argue the case.** The first email made it; repeating it reads as anxiety and invites a
+debate about the merits. Short is stronger here, and a two-line email is harder to leave unanswered
+than a long one.
+
+> **Subject:** Re: MMC Build — overdue instalments, and three things before launch
+>
+> Karen,
+>
+> Following up on the below — I haven't heard back.
+>
+> All I need is a date for the $13,651. If it's a date some way out, that's fine; I'd just rather
+> know than guess.
+>
+> The 14 August point in my earlier email is Friday. I'd prefer to have a date from you than reach
+> it without one.
+>
+> Dennis
+
+**If she replies with a date:** take it, confirm it in writing, and diarise it. A date that slips is
+a different and much clearer conversation than silence.
+
+**If she replies asking for more time:** that is a yes to the debt and a no to the timing — better
+than silence. Ask for part-payment now and the balance on a named date. Do not restructure a third
+time without something in return (Stage 7 acceptance in writing is the obvious ask, and it is worth
+$12,155).
+
+**If there is still no reply by 14 Aug:** the acceleration decision is live, and it is a judgement
+call, not an automatic one — see below.
+
+### The 14 August decision, made in advance
+
+Decide this before Friday rather than in the moment.
+
+**Issuing notice does not create money in a business that does not have it.** MMC could not pay
+$8,190.60 and asked for $6,825.50; calling in $27,302 in one demand is not a payment plan, it is the
+end of the relationship, and it converts a client into a debtor you would have to chase.
+
+**But the right exists precisely so it can be used, and not using it has a cost too** — this is a
+client who has now had three accommodations and has answered the fourth with silence. The pattern in
+this file is explicit: flexibility has been met with less payment, not more.
+
+**The middle path, and the recommended one:** on 14 Aug, if there is no date, send a short note
+recording that the right has arisen and that you are *not* exercising it yet, with a specific date by
+which you need a payment plan. That preserves the right, is on the record, costs nothing, and is
+still not the nuclear option. It also makes the next step obvious if the date passes.
+
+⚠️ **Whatever is decided, note it here with its date.** The point of this file is that the position
+survives the session that wrote it.
 
 ### After you send
 
