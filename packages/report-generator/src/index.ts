@@ -1,4 +1,4 @@
-export { renderPdf } from "./render";
+export { renderPdf } from "./render.js";
 export type {
   RenderOptions,
   RenderResult,
