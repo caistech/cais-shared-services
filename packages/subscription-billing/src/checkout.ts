@@ -107,6 +107,30 @@ export interface CreateCheckoutSessionOptions {
     afterSubmit?: { message: string }
     termsOfServiceAcceptance?: { message: string }
   }
+  /**
+   * Stripe Tax Rate ids applied to the subscription — e.g. Australian GST at 10%.
+   *
+   * WHY THIS HAD TO BE AN OPTION RATHER THAN THE CALLER'S JOB. This function builds `line_items`
+   * and `subscription_data` itself and passes nothing through, so a product quoting prices
+   * tax-EXCLUSIVE ("$999 + GST", the portfolio standard) had no way to make the tax real. Kira
+   * shipped exactly that gap: every price surface carried "+ GST", and nothing in the system would
+   * ever have added it to an invoice. The suffix is a claim; this is the capability behind it.
+   *
+   * Applied as `subscription_data.default_tax_rates`, NOT `line_items[].tax_rates`, and the
+   * difference is the whole point on a recurring charge: default tax rates are copied onto every
+   * invoice the subscription generates, so month two is taxed like month one. A line-item rate
+   * covers the checkout and quietly stops applying afterwards, which is a failure nobody sees until
+   * an accountant reconciles a year of invoices.
+   *
+   * The rates must already exist in Stripe, and a Tax Rate belongs to ONE mode — a test-mode id
+   * fails in live. Resolve the id per mode (see `./mode.ts`) rather than holding one in a single
+   * variable.
+   *
+   * Mutually exclusive with Stripe Tax: Stripe rejects a session that sets both `automatic_tax`
+   * and `default_tax_rates`. This is the manual-rate path, correct for a single-jurisdiction seller;
+   * a product selling into many jurisdictions wants Stripe Tax instead.
+   */
+  taxRateIds?: string[]
 }
 
 function isFixedPrice(item: CheckoutLineItem): item is FixedPriceLineItem {
@@ -173,6 +197,7 @@ export async function createSubscriptionCheckoutSession(
     allowPromotionCodes,
     billingAddressCollection = 'auto',
     customText,
+    taxRateIds,
   } = opts
 
   // A trial and arrears are contradictory offers, and the contradiction is invisible for thirty
@@ -208,6 +233,10 @@ export async function createSubscriptionCheckoutSession(
   const subscriptionData: Stripe.Checkout.SessionCreateParams.SubscriptionData = {}
   if (trialDays != null) subscriptionData.trial_period_days = trialDays
   if (subscriptionMetadata) subscriptionData.metadata = subscriptionMetadata
+  // An EMPTY array is dropped rather than sent. `default_tax_rates: []` is not "no tax" to Stripe in
+  // every code path, and more practically it lets a caller whose id lookup returned nothing believe
+  // tax was configured. Absent means absent.
+  if (taxRateIds && taxRateIds.length) subscriptionData.default_tax_rates = taxRateIds
 
   return stripe.checkout.sessions.create({
     mode: 'subscription',
