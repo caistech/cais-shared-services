@@ -1,25 +1,30 @@
-name: report-generator — Linux XRef diagnosis (temporary)
+name: report-generator — PDF structural diagnosis (manual)
 
-# TEMPORARY. Delete once the `bad XRef entry` defect is settled.
+# SETTLED 2026-08-09, and kept as the regression tool for the same question.
 #
-# The whole report-generator suite is skipped in CI on a diagnosis that may be
-# backwards: "the artifact is corrupt on Linux". Every check that produced that
-# conclusion ran through pdf-parse, which cannot distinguish a broken PARSER
-# from a broken ARTIFACT — both come back red identically.
+# This existed to test a diagnosis that turned out to be backwards: the whole
+# report-generator suite had been skipped in CI on the conclusion that the
+# artifact was corrupt on Linux. Every check behind that ran through pdf-parse,
+# which cannot distinguish a broken PARSER from a broken ARTIFACT — both come
+# back red identically.
 #
-# This runs the same battery on the exact environment that produced the failure
-# (ubuntu-latest, Node 24), including a structural check that never touches
-# pdf-parse, and a cross-parse of a committed Windows-generated PDF that Windows
-# pdf-parse accepts. Same bytes on both platforms, so a Linux rejection of that
-# file proves the artifact is innocent.
+# Two checks that avoid it settled it in one run: a structural sweep that
+# touches no parser (57/57 valid on Linux, same sizes as Windows), and a
+# cross-parse of a committed Windows-generated PDF that Windows pdf-parse
+# accepts — Linux pdf-parse threw `bad XRef entry` on identical bytes, which
+# cannot happen to a genuinely corrupt file. pdf-parse (pdf.js v1.10.100, 2018)
+# was the defect; it is gone, replaced by unpdf, and the suite is un-skipped and
+# green on Linux.
 #
-# It reports; it does not gate. The vitest step runs with CI unset so the
-# suite's own skip does not hide the thing being investigated.
+# Manual now, not on push: the ordinary suite covers this on every push via
+# test.yml. Run this by hand if `bad XRef entry` or anything like it reappears —
+# section 1 going dirty would be a REAL renderer regression, and that is the
+# distinction the whole thing exists to make cheaply.
+#
+# It reports; it does not gate.
 
 on:
   workflow_dispatch:
-  push:
-    branches: ['fix/report-generator-esm-and-linux-diagnosis']
 
 jobs:
   diagnose:
