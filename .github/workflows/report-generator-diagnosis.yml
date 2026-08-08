@@ -1,0 +1,66 @@
+name: report-generator — Linux XRef diagnosis (temporary)
+
+# TEMPORARY. Delete once the `bad XRef entry` defect is settled.
+#
+# The whole report-generator suite is skipped in CI on a diagnosis that may be
+# backwards: "the artifact is corrupt on Linux". Every check that produced that
+# conclusion ran through pdf-parse, which cannot distinguish a broken PARSER
+# from a broken ARTIFACT — both come back red identically.
+#
+# This runs the same battery on the exact environment that produced the failure
+# (ubuntu-latest, Node 24), including a structural check that never touches
+# pdf-parse, and a cross-parse of a committed Windows-generated PDF that Windows
+# pdf-parse accepts. Same bytes on both platforms, so a Linux rejection of that
+# file proves the artifact is innocent.
+#
+# It reports; it does not gate. The vitest step runs with CI unset so the
+# suite's own skip does not hide the thing being investigated.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['fix/report-generator-esm-and-linux-diagnosis']
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@caistech'
+
+      - name: Install workspace deps
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm ci --ignore-scripts
+
+      # Only this package, so an unrelated workspace build failure cannot cost
+      # the run. The diagnostic imports dist/, which is also how it verifies the
+      # ESM entry-point fix on this branch.
+      - name: Build report-generator
+        run: npx tsc -p packages/report-generator
+
+      - name: Diagnose
+        run: node packages/report-generator/test/diagnostics/run.mjs
+
+      # The original failing condition, with the CI skip lifted. Allowed to fail:
+      # a red here is the datum, not an accident.
+      - name: Unskipped vitest suite (the original failure)
+        continue-on-error: true
+        working-directory: packages/report-generator
+        run: env -u CI npx vitest run --reporter=verbose
+
+      - name: Upload any structurally-bad PDFs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bad-pdfs
+          path: ${{ runner.temp }}/*.pdf
+          if-no-files-found: ignore

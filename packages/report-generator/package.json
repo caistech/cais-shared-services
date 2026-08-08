@@ -1,6 +1,6 @@
 {
   "name": "@caistech/report-generator",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Markdown → branded PDF renderer for factory products. Brand + disclaimer + watermark + page numbers.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

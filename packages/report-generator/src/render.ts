@@ -1,7 +1,7 @@
 import React from "react";
 import { renderToBuffer, type DocumentProps } from "@react-pdf/renderer";
 import type { RenderOptions, RenderResult, ReportBrand, ReportFooter, ReportHeader, ReportMetadata } from "./types";
-import { ReportDocument } from "./components/ReportDocument";
+import { ReportDocument } from "./components/ReportDocument.js";
 
 const DEFAULT_MAX_BODY_CHARS = 200_000;
 

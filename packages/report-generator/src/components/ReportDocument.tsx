@@ -1,7 +1,7 @@
 import React from "react";
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import type { RenderOptions } from "../types";
-import { Markdown } from "./Markdown";
+import { Markdown } from "./Markdown.js";
 
 const PAGE_PADDING = { top: 56, right: 56, bottom: 64, left: 56 };
 
