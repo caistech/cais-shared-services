@@ -64,10 +64,21 @@ export function render(post, seriesNumber) {
     .replace(/\*\*(.+?)\*\*/g, '$1')
     .replace(/^#{1,6}\s+/gm, '')
     .trim();
+
+  // A masthead ABOVE the hook, so a returning reader recognises the series in the feed
+  // without opening it. It costs ~31 characters of the fold and the hook still fits, so
+  // it is free. It lives here rather than in the body text so the name has ONE home and a
+  // rename propagates — baking it into eight bodies is how a series ends up with two names.
+  const masthead = post.masthead ? `${SERIES.name} №${seriesNumber}\n\n` : '';
+  // With a masthead up top, repeating the number at the bottom is noise. Keep the tagline,
+  // which is the part that says what the series is FOR.
   const footer = post.footerOverride
     ? String(post.footerOverride)
-    : `${SERIES.name} №${seriesNumber}\n${SERIES.tagline}`;
-  return `${body}\n\n—\n${footer}`;
+    : post.masthead
+      ? SERIES.tagline
+      : `${SERIES.name} №${seriesNumber}\n${SERIES.tagline}`;
+
+  return `${masthead}${body}\n\n—\n${footer}`;
 }
 
 /** What a reader sees before "…see more" — the only part that decides whether they open it. */
@@ -148,6 +159,8 @@ function selfTest(config, sanitise) {
   check('render strips markdown', !render({ body: '**bold** and\n## heading' }, 1).includes('**'));
   check('render appends the series footer', render({ body: 'x' }, 3).includes('№3'));
   check('footerOverride replaces the number', !render({ body: 'x', footerOverride: 'starts here' }, 3).includes('№'));
+  check('masthead puts the series above the hook', render({ body: 'hook', masthead: true }, 2).startsWith(SERIES.name));
+  check('masthead means the number is not repeated below', render({ body: 'hook', masthead: true }, 2).split('№').length === 2);
 
   const long = 'word '.repeat(700);
   check('over-length is caught', preflight(long, config, sanitise).some((p) => p.includes('LinkedIn rejects')));
