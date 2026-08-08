@@ -70,6 +70,27 @@ export function panelHeader(props: VoiceWidgetProps): string {
  * Whether to show the text-input fallback instead of the voice UI: only when the consumer
  * opted in AND voice can't run (no agent configured, or the connection errored).
  */
+/**
+ * Should the panel show a "connecting" state, with the bounded progress bar?
+ *
+ * Pure, and separated from the component for the same reason `shouldUseTextFallback` is: this is
+ * the half that is worth asserting. It answers the gap the stall timeout left behind — a consumer
+ * passing `transcript` (the portfolio's standard landing shape) rendered NOTHING between the click
+ * and the connection, because the status line is suppressed when `transcript` is set and the
+ * transcript itself only renders once connected. Measured live: eight seconds of empty panel,
+ * which is indistinguishable from broken.
+ *
+ * Deliberately false once `fallback` is true: at that point the offer to type has replaced the
+ * voice UI, and a progress bar over it would be claiming a connection attempt that has stopped.
+ */
+export function shouldShowConnecting(opts: {
+  attempted: boolean;
+  connected: boolean;
+  fallback: boolean;
+}): boolean {
+  return opts.attempted && !opts.connected && !opts.fallback;
+}
+
 export function shouldUseTextFallback(
   props: VoiceWidgetProps,
   status: VoiceConnectionStatus,
@@ -169,6 +190,20 @@ export const WIDGET_CSS = `
 .convai-coach-name { margin-top: 6px; font-size: 13px; color: #6b7280; }
 .convai-launch-avatar { width: 28px; height: 28px; border-radius: 9999px; object-fit: cover; margin: -2px -2px -2px -6px; }
 .convai-status { font-size: 14px; font-weight: 600; margin: 8px 0; }
+/* The connecting state. Occupies the wait before the text fallback appears, which was previously
+   an empty panel - see the connecting flag in VoiceWidget.tsx. The bar is tied to the SAME
+   duration as the stall timeout, so it completes exactly as the offer to type arrives.
+   (No backticks in here: this comment lives INSIDE the WIDGET_CSS template literal.) */
+.convai-connecting { display: flex; flex-direction: column; gap: 8px; margin: 8px 0; }
+.convai-connecting > span:first-child { font-size: 14px; font-weight: 600; }
+.convai-progress { display: block; height: 4px; width: 100%; border-radius: 999px; background: rgba(0,0,0,.08); overflow: hidden; }
+.convai-progress > i { display: block; height: 100%; width: 100%; border-radius: 999px; background: currentColor; opacity: .55; transform-origin: left center; animation: convai-fill linear forwards; }
+@keyframes convai-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+/* A visitor who has asked for no motion still needs to know it is working, so the bar stays but
+   stops animating rather than disappearing. */
+@media (prefers-reduced-motion: reduce) {
+  .convai-progress > i { animation: none; transform: scaleX(.35); }
+}
 .convai-row { display: flex; gap: 8px; align-items: center; }
 .convai-fallback input {
   flex: 1; min-height: 44px; font-size: 16px; padding: 8px 12px;

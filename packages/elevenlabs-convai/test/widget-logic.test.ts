@@ -4,6 +4,7 @@ import {
   launcherLabel,
   panelHeader,
   shouldUseTextFallback,
+  shouldShowConnecting,
   placementClass,
   statusLabel,
 } from '../src/react/widget-logic';
@@ -128,5 +129,26 @@ describe('placementClass / statusLabel', () => {
     expect(statusLabel('connected', true)).toMatch(/speaking/i);
     expect(statusLabel('connected', false)).toMatch(/listening/i);
     expect(statusLabel('error', false)).toMatch(/problem/i);
+  });
+});
+
+
+describe('shouldShowConnecting — the eight seconds nobody was told about', () => {
+  it('is false before anyone asks to talk (a page at rest shows no progress bar)', () => {
+    expect(shouldShowConnecting({ attempted: false, connected: false, fallback: false })).toBe(false);
+  });
+
+  it('is TRUE while a requested connection has not landed — the gap this closes', () => {
+    expect(shouldShowConnecting({ attempted: true, connected: false, fallback: false })).toBe(true);
+  });
+
+  it('stops the moment voice connects', () => {
+    expect(shouldShowConnecting({ attempted: true, connected: true, fallback: false })).toBe(false);
+  });
+
+  it('yields to the text fallback rather than sitting over it', () => {
+    // Once the offer to type has replaced the voice UI, a progress bar would be claiming a
+    // connection attempt that has already stopped.
+    expect(shouldShowConnecting({ attempted: true, connected: false, fallback: true })).toBe(false);
   });
 });

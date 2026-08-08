@@ -16,6 +16,7 @@ import {
   panelHeader,
   placementClass,
   shouldUseTextFallback,
+  shouldShowConnecting,
   DEFAULT_FALLBACK_AFTER_MS,
   statusLabel,
   WIDGET_CSS,
@@ -94,6 +95,25 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
   }, [open, connected, attempted, props.fallbackAfterMs]);
 
   const fallback = shouldUseTextFallback(props, status, { stalled });
+
+  // THE EIGHT SECONDS NOBODY WAS TOLD ABOUT.
+  //
+  // The stall timeout above is deliberate and correct — firing early REPLACES the voice UI, which
+  // would steal a slow-but-working connection from someone who does have a microphone. But nothing
+  // occupied those seconds. In the embedded branch the status line is suppressed whenever
+  // `transcript` is set (`!props.transcript &&` below), and the transcript itself only renders once
+  // `connected` — so a consumer passing `transcript`, which is the portfolio's standard landing
+  // shape, showed the visitor an empty panel with Mute and End on it and no indication that
+  // anything was happening. Measured on a live landing page: text appeared at t=8s, and `.convai-
+  // status` was empty for every second before it.
+  //
+  // Eight seconds of nothing is indistinguishable from broken, and the visitor it fails is the
+  // low-commitment one the fallback exists to serve — the person who leaves rather than reports.
+  // So: say what is happening, and show that the wait is BOUNDED. The bar is honest — it is tied to
+  // the same timer that produces the fallback, so it finishes exactly when the offer to type
+  // appears, rather than being decorative motion that implies progress it cannot know about.
+  const waitMs = props.fallbackAfterMs ?? DEFAULT_FALLBACK_AFTER_MS;
+  const connecting = shouldShowConnecting({ attempted, connected, fallback });
 
   // Hand the consumer imperative controls into the live conversation, once, on connect. Lets it
   // push a user turn or a contextual nudge (e.g. a timed wrap-up) the user didn't type.
@@ -253,7 +273,15 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
             </button>
           ) : (
             <>
-              {!props.transcript && (
+              {connecting && (
+                <div className="convai-connecting" aria-live="polite">
+                  <span>{statusLabel(status, convo.isSpeaking)}</span>
+                  <span className="convai-progress" aria-hidden>
+                    <i style={{ animationDuration: `${waitMs}ms` }} />
+                  </span>
+                </div>
+              )}
+              {!props.transcript && !connecting && (
                 <div className="convai-status" aria-live="polite">
                   {statusLabel(status, convo.isSpeaking)}
                 </div>
@@ -342,9 +370,18 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
             </div>
           ) : (
             <>
-              <div className="convai-status" aria-live="polite">
-                {statusLabel(status, convo.isSpeaking)}
-              </div>
+              {connecting ? (
+                <div className="convai-connecting" aria-live="polite">
+                  <span>{statusLabel(status, convo.isSpeaking)}</span>
+                  <span className="convai-progress" aria-hidden>
+                    <i style={{ animationDuration: `${waitMs}ms` }} />
+                  </span>
+                </div>
+              ) : (
+                <div className="convai-status" aria-live="polite">
+                  {statusLabel(status, convo.isSpeaking)}
+                </div>
+              )}
               <div className="convai-row">
                 <button
                   className="convai-btn"
