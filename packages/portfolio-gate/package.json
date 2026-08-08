@@ -1,6 +1,6 @@
 {
   "name": "@caistech/portfolio-gate",
-  "version": "0.14.0",
+  "version": "0.16.0",
   "description": "Portfolio Standard enforcement layer — errorResponse helper (R10), route smoke test (R13), auth smoke test (R1/R4), session smoke test (authenticated routes), static audits (R3/R7/R8/R9/R11/R15 + responsive-design), a LIVE RLS audit (R9 — queries the running DB so Drizzle-push/dashboard schemas and prod drift can't hide), and a `audit-all` master runner.",
   "type": "module",
   "main": "dist/index.js",
@@ -50,7 +50,10 @@
     "portfolio-gate-audit-public-routes": "dist/bin/audit-public-routes.js",
     "portfolio-gate-audit-first-paint": "dist/bin/audit-first-paint.js",
     "portfolio-gate-audit-input-response": "dist/bin/audit-input-response.js",
-    "portfolio-gate-audit-tax-suffix": "dist/bin/audit-tax-suffix.js"
+    "portfolio-gate-audit-tax-suffix": "dist/bin/audit-tax-suffix.js",
+    "portfolio-gate-audit-flag-coherence": "dist/bin/audit-flag-coherence.js",
+    "portfolio-gate-audit-social-proof": "dist/bin/audit-social-proof.js",
+    "portfolio-gate-audit-sibling-parity": "dist/bin/audit-sibling-parity.js"
   },
   "scripts": {
     "build": "tsc",
