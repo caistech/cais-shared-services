@@ -169,11 +169,20 @@ export function makeCandidate({ source, origin, product, date, title, material }
     product: product ?? null,
     date: date ?? null,
     title: String(title ?? '').slice(0, 160),
-    // A blocked candidate keeps its identity and its reason, and DROPS its material.
-    // The queue is a new file; there is no case for it accumulating a second copy of
-    // text that mentions a client, when the whole point of the gate is that this text
-    // must not travel.
-    material: blockedBy.length ? null : material,
+    // A blocked candidate KEEPS its material.
+    //
+    // It did not, for about an hour, on a hygiene argument that does not survive contact:
+    // this store sits in the same private repo as bug-knowledge.json, whose 67 entries
+    // name sibling products throughout, so dropping the text bought nothing and cost the
+    // ability to audit the flags on it. Worse, an analysis reading a null material fell
+    // back to the title and produced a confident 0.83 match that meant nothing — a dropped
+    // field became a wrong number that looked like a measurement.
+    //
+    // The distinction that actually matters is PUBLICATION vs RECORD. The denylist exists
+    // to stop a client's name reaching a public post. It has no business stopping a lesson
+    // being recorded, or a knowledge-base gap being checked, inside our own repo.
+    material,
+    publishable: blockedBy.length === 0,
     score: lessonScore(`${title}\n${material}`, config),
     dedupeKey: dedupeKey(material),
     status: blockedBy.length ? 'blocked' : 'new',
@@ -214,6 +223,18 @@ export function mergeQueue(existing, harvested) {
         prior.blockedBy = [];
         released++;
       }
+      // THE HARVEST OWNS CONTENT; THE HUMAN OWNS STATUS.
+      //
+      // Refreshing only kbGap left every pre-existing row frozen at whatever the harvest
+      // that created it wrote — so when blocked candidates stopped having their material
+      // dropped, the rows that needed it most kept their nulls, and a verification pass
+      // read those nulls as "too thin to judge" and reported them COVERED. A missing
+      // field became a verdict, for the third time in one afternoon. Content fields are
+      // now always re-derived; status, and only status, survives a harvest.
+      prior.material = cand.material;
+      prior.publishable = cand.publishable;
+      prior.score = cand.score;
+      prior.title = cand.title;
       prior.kbGap = cand.kbGap;
       continue;
     }
@@ -345,7 +366,12 @@ function harvestCommits(config, since) {
 
 function selfTest(config) {
   const fails = [];
-  const check = (name, cond) => { if (!cond) fails.push(name); };
+  let ran = 0;
+  // `ran` is counted, not written down. The previous version printed a hardcoded
+  // "14/14 passed" and kept printing it after three checks were added — a summary
+  // asserting a number it had never measured, in the test harness of a tool whose
+  // entire subject is checks that report green without checking.
+  const check = (name, cond) => { ran++; if (!cond) fails.push(name); };
 
   // The gate must fire on a real name...
   check('denylist fires on a person', sanitiseMatches('a call with Gareth about it', config).includes('gareth'));
@@ -377,8 +403,32 @@ function selfTest(config) {
   );
   check('pruning a term releases a block', rel.queue[0].status === 'new' && rel.released === 1);
 
+  // Blocking governs PUBLICATION, not the record. A blocked candidate must keep its
+  // material or its kbGap flag can never be audited — which is how a dropped field
+  // became a confident wrong number once already.
+  const blocked = makeCandidate(
+    { source: 'commit', origin: 'x@1', title: 'a call with Gareth', material: 'a call with Gareth about the thing that broke in production' },
+    config, [],
+  );
+  check('blocked candidate keeps material', typeof blocked.material === 'string' && blocked.material.length > 0);
+  check('blocked candidate is not publishable', blocked.publishable === false);
+  const clean = makeCandidate(
+    { source: 'commit', origin: 'x@2', title: 'the check passed', material: 'the check passed and the page was still broken in production' },
+    config, [],
+  );
+  check('clean candidate is publishable', clean.publishable === true);
+
+  // A harvest must repair content on rows an older harvest wrote badly, or a schema
+  // change never reaches the existing queue.
+  const refreshed = mergeQueue(
+    [{ id: 'z', dedupeKey: 'k3', status: 'rejected', material: null, score: 0, kbGap: true, blockedBy: [] }],
+    [{ id: 'z', dedupeKey: 'k3', status: 'new', material: 'the real text', score: 7, kbGap: false, blockedBy: [], publishable: true }],
+  );
+  check('harvest refreshes stale content', refreshed.queue[0].material === 'the real text' && refreshed.queue[0].score === 7);
+  check('refresh does not resurrect a decision', refreshed.queue[0].status === 'rejected');
+
   for (const f of fails) console.error(`  FAIL  ${f}`);
-  console.log(fails.length ? `\nself-test: ${fails.length} FAILED` : 'self-test: 14/14 passed');
+  console.log(fails.length ? `\nself-test: ${fails.length} of ${ran} FAILED` : `self-test: ${ran}/${ran} passed`);
   return fails.length === 0;
 }
 
@@ -458,7 +508,7 @@ function main() {
     QUEUE_PATH,
     `${JSON.stringify({
       generated: new Date().toISOString().slice(0, 10),
-      note: 'status is authoritative and is never overwritten by a harvest, except that sanitisation is re-evaluated every run. blocked candidates carry no material by design.',
+      note: 'status is authoritative and is never overwritten by a harvest, except that sanitisation is re-evaluated every run. blocked candidates KEEP their material — blocking governs publication, not the record.',
       candidates: queue,
     }, null, 2)}\n`,
   );
