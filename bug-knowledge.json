@@ -1655,6 +1655,49 @@
         "code_path": "@caistech/report-generator test suite"
       },
       "generalises_to": "Record what has been RULED OUT, not only what was tried. An open entry with three eliminated hypotheses is worth more to the next person than a closed one with a guess."
+    },
+    {
+      "id": "pdf-parse-bad-xref-not-the-renderer",
+      "product": "cais-shared-services / @caistech/report-generator (any repo parsing PDFs in tests)",
+      "error_pattern": "UnknownErrorException: bad XRef entry (also \"Illegal character: 41\", \"Ignoring invalid character 255 in hex string\") from pdf-parse",
+      "error_symptoms": [
+        "PDF assertions pass locally but fail in Linux CI",
+        "the same suite fails a DIFFERENT number of tests between runs / Node versions",
+        "near-identical documents disagree (\"omits watermark\" passes, \"includes watermark\" fails)",
+        "looks exactly like a corrupt generated artifact, and every check that goes through the parser agrees"
+      ],
+      "attempts": [
+        {
+          "tried": "Blame version drift; pin @react-pdf/renderer + pdf-parse via the lockfile",
+          "result": "FAILED — CI and local already resolved identical trees"
+        },
+        {
+          "tried": "Blame a read-before-flush race inside renderPdf",
+          "result": "FAILED — renderToBuffer is awaited"
+        },
+        {
+          "tried": "Blame the Node version; raise CI from Node 20 to 24",
+          "result": "FAILED and MISLEADING — failures grew 1 -> 3+, which read as \"the runtime modulates the damage\" and pointed at the platform. It was just a different draw from a non-deterministic parser."
+        },
+        {
+          "tried": "Conclude the platform, and skip the whole suite when CI is set",
+          "result": "WRONG DIAGNOSIS — the renderer was never at fault. Cost six days of a package that could not verify its own output."
+        },
+        {
+          "tried": "Blame concurrency between parallel renders (module-level state in @react-pdf)",
+          "result": "FAILED — 260 renders up to 32-way parallel were byte-identical"
+        },
+        {
+          "tried": "Blame a platform newline (os.EOL would give Linux 19-byte xref entries)",
+          "result": "FAILED — no os.EOL in @react-pdf; _write appends a hardcoded newline"
+        }
+      ],
+      "solution": {
+        "approach": "THE TRAP: every check ran THROUGH pdf-parse, and a broken PARSER and a broken ARTIFACT come back red identically — so no amount of that evidence can separate them. You must measure without the suspect. Two checks did it: (1) a STRUCTURAL sweep asserting the invariant pdf.js itself enforces (every in-use xref offset points at \"<num> <gen> obj\"), through no parser at all — 57/57 clean on Linux, byte-for-byte the same sizes as Windows; (2) a CROSS-PARSE of a committed WINDOWS-generated PDF that Windows pdf-parse accepts — Linux pdf-parse threw bad XRef entry on IDENTICAL bytes, and identical bytes cannot be corrupt on one OS. Root cause: pdf-parse@1.1.4 bundles pdf.js v1.10.100 (2018) and rejects structurally-valid PDFs inconsistently. Fix: replace pdf-parse with unpdf (the portfolio parser, already in DealFindrs) and un-skip the suite. GENERALISES: whenever a tool is both the measuring instrument and a suspect, find one measurement that does not use it.",
+        "code_path": "cais-shared-services/packages/report-generator/test/render.test.ts (unpdf via parsePdf helper) + test/diagnostics/run.mjs + test/diagnostics/fixtures/windows-generated.pdf"
+      },
+      "fixed_at": "2026-08-09",
+      "fixed_by": "claude-opus-5"
     }
   ],
   "usage": "Before fixing ANY bug, grep this file for matching error patterns. Also check SayFix DB for product-specific attempts.",
