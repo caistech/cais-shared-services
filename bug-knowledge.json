@@ -1698,6 +1698,32 @@
       },
       "fixed_at": "2026-08-09",
       "fixed_by": "claude-opus-5"
+    },
+    {
+      "id": "typescript-hides-js-caller-failure-paths",
+      "product": "shared / any published @caistech package",
+      "error_pattern": "TypeError: Cannot read properties of undefined (reading \"<field>\") thrown from INSIDE a library, on a path TypeScript says is impossible",
+      "error_symptoms": [
+        "a required-in-the-type argument is omitted and the library throws a bare TypeError instead of a named error",
+        "tsc is clean, the build is clean, the tests are clean — and the path is still broken for JS callers",
+        "only reproduces from plain JS, or from a caller that cast/spread its options"
+      ],
+      "attempts": [
+        {
+          "tried": "Trust the type signature — the field is required, so it cannot be undefined",
+          "result": "FALSE for every JS consumer, every \"as any\" cast, every object built by spread or parsed from JSON. The type is a compile-time claim about SOME callers, not a runtime guarantee about all of them."
+        },
+        {
+          "tried": "Fix only the field that was reported",
+          "result": "INCOMPLETE — the same omission existed on every sibling validator and on the options object itself"
+        }
+      ],
+      "solution": {
+        "approach": "Two rules. (1) VALIDATE THE SHAPE AT THE PUBLIC BOUNDARY, not just the fields: check the section object exists before reading fields off it, so a missing section names itself instead of throwing from library internals. Note the asymmetry that makes this worth fixing — a missing FIELD gave a clear \"x.y is required\" while a missing SECTION gave a bare TypeError, so the caller who made the LARGER mistake was told LESS. (2) Check PRESENCE, not truthiness, for anything where empty is legal (an empty markdown body is a valid document; rejecting \"\" is a regression dressed as validation). GENERALISES: a published package meets callers tsc never sees. The same blind spot produced 0.1.2 (dist/ unimportable from Node ESM — invisible because the tests imported src/ through vitest resolver) and 0.1.3 (this). If a defect can only be found by CALLING the package the way a consumer does, no type check or build will ever find it.",
+        "code_path": "cais-shared-services/packages/report-generator/src/render.ts (requireSection) + test/render.test.ts (\"missing sections name themselves\", mutation-verified)"
+      },
+      "fixed_at": "2026-08-09",
+      "fixed_by": "claude-opus-5"
     }
   ],
   "usage": "Before fixing ANY bug, grep this file for matching error patterns. Also check SayFix DB for product-specific attempts.",
