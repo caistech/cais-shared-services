@@ -72,7 +72,7 @@ export function PasswordInput({
           {label ? (
             <label
               htmlFor={id}
-              className={`block text-sm font-medium ${
+              className={`block text-base sm:text-sm font-medium ${
                 isDark ? 'text-slate-300' : 'text-slate-700'
               }`}
             >
@@ -82,7 +82,7 @@ export function PasswordInput({
             <span />
           )}
           {helperRight ? (
-            <div className="text-xs">{helperRight}</div>
+            <div className="text-base sm:text-xs">{helperRight}</div>
           ) : null}
         </div>
       )}
@@ -113,7 +113,7 @@ export function PasswordInput({
       {error ? (
         <p
           role="alert"
-          className={`mt-1.5 text-xs ${
+          className={`mt-1.5 text-base sm:text-xs ${
             isDark ? 'text-red-300' : 'text-red-600'
           }`}
         >
