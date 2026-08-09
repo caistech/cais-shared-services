@@ -513,7 +513,7 @@ function ModeHeader({
   return (
     <div className="mb-6 text-center px-2">
       <h1 className={`text-2xl font-bold mb-2 ${t.title}`}>{title}</h1>
-      <p className={`text-sm ${t.desc}`}>{description}</p>
+      <p className={`text-base sm:text-sm ${t.desc}`}>{description}</p>
     </div>
   );
 }
@@ -582,7 +582,7 @@ function ErrorBox({
   return (
     <div
       role="alert"
-      className={`text-sm rounded-lg px-3 py-2 flex gap-2 items-start ${t.errorBox}`}
+      className={`text-base sm:text-sm rounded-lg px-3 py-2 flex gap-2 items-start ${t.errorBox}`}
     >
       <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden />
       <span>
@@ -608,7 +608,7 @@ function ErrorBox({
 function MissingClientBox() {
   const t = useT();
   return (
-    <p role="alert" className={`text-sm rounded-lg px-3 py-2 ${t.errorBox}`}>
+    <p role="alert" className={`text-base sm:text-sm rounded-lg px-3 py-2 ${t.errorBox}`}>
       AuthForm is missing a Supabase client. Pass <code>createBrowserClient</code>{' '}
       from <code>@supabase/ssr</code> (with <code>supabaseUrl</code> +{' '}
       <code>supabaseAnonKey</code>) or a pre-built <code>supabaseClient</code>{' '}
@@ -631,7 +631,7 @@ function EmailField({
     <div>
       <label
         htmlFor="cais-auth-email"
-        className={`block text-sm font-medium mb-1.5 ${t.label}`}
+        className={`block text-base sm:text-sm font-medium mb-1.5 ${t.label}`}
       >
         Email
       </label>
@@ -678,7 +678,7 @@ function ExtraField({
         {field.label ? (
           <label
             htmlFor={id}
-            className={`block text-sm font-medium mb-1.5 ${t.label}`}
+            className={`block text-base sm:text-sm font-medium mb-1.5 ${t.label}`}
           >
             {field.label}
           </label>
@@ -737,7 +737,7 @@ function ExtraField({
       {field.label ? (
         <label
           htmlFor={id}
-          className={`block text-sm font-medium mb-1.5 ${t.label}`}
+          className={`block text-base sm:text-sm font-medium mb-1.5 ${t.label}`}
         >
           {field.label}
         </label>
@@ -838,7 +838,7 @@ function Divider() {
       <div className="absolute inset-0 flex items-center">
         <div className={`w-full border-t ${t.dividerBorder}`} />
       </div>
-      <div className="relative flex justify-center text-xs">
+      <div className="relative flex justify-center text-base sm:text-xs">
         <span className={`px-3 ${t.dividerBg} ${t.dividerText}`}>or</span>
       </div>
     </div>
@@ -1059,11 +1059,11 @@ function LoginPanel({
       </SecondaryButton>
 
       {footerSlot ? (
-        <div className={`mt-4 text-center text-xs ${t.footerMuted}`}>
+        <div className={`mt-4 text-center text-base sm:text-xs ${t.footerMuted}`}>
           {footerSlot}
         </div>
       ) : hideSignupLink ? null : (
-        <p className={`mt-4 text-center text-xs ${t.footerMuted}`}>
+        <p className={`mt-4 text-center text-base sm:text-xs ${t.footerMuted}`}>
           Need an account? <FooterLink href={signupPath}>Sign up</FooterLink>
         </p>
       )}
@@ -1325,9 +1325,9 @@ function SignupPanel({
       </SecondaryButton>
 
       {consentSlot ? (
-        <div className={`text-xs mt-3 ${t.footerMuted}`}>{consentSlot}</div>
+        <div className={`text-base sm:text-xs mt-3 ${t.footerMuted}`}>{consentSlot}</div>
       ) : termsPath || privacyPath ? (
-        <p className={`text-xs mt-3 text-center ${t.footerMuted}`}>
+        <p className={`text-base sm:text-xs mt-3 text-center ${t.footerMuted}`}>
           By creating an account you agree to our{' '}
           {termsPath ? <FooterLink href={termsPath}>Terms</FooterLink> : null}
           {termsPath && privacyPath ? ' and ' : null}
@@ -1338,7 +1338,7 @@ function SignupPanel({
         </p>
       ) : null}
 
-      <p className={`mt-4 text-center text-xs ${t.footerMuted}`}>
+      <p className={`mt-4 text-center text-base sm:text-xs ${t.footerMuted}`}>
         Already have an account?{' '}
         <FooterLink href={loginPath}>Sign in</FooterLink>
       </p>
@@ -1410,7 +1410,7 @@ function MagicLinkPanel({
       <PrimaryButton loading={submitting} loadingLabel="Sending…" slow={slow}>
         Email me a magic link
       </PrimaryButton>
-      <p className={`mt-2 text-center text-xs ${t.footerMuted}`}>
+      <p className={`mt-2 text-center text-base sm:text-xs ${t.footerMuted}`}>
         Prefer a password? <FooterLink href={loginPath}>Sign in</FooterLink>
       </p>
     </form>
@@ -1494,7 +1494,7 @@ function ForgotPasswordPanel({
       <PrimaryButton loading={submitting} loadingLabel="Sending…" slow={slow}>
         Send reset link
       </PrimaryButton>
-      <p className={`mt-2 text-center text-xs ${t.footerMuted}`}>
+      <p className={`mt-2 text-center text-base sm:text-xs ${t.footerMuted}`}>
         Remembered it? <FooterLink href={loginPath}>Sign in</FooterLink>
       </p>
     </form>
@@ -1561,7 +1561,7 @@ function ResetPasswordPanel({
         <h2 className={`text-lg font-semibold mb-2 ${t.confirmHeading}`}>
           Password updated
         </h2>
-        <p className={`text-sm mb-6 ${t.confirmBody}`}>
+        <p className={`text-base sm:text-sm mb-6 ${t.confirmBody}`}>
           You can now sign in with your new password.
         </p>
         <a
@@ -1626,18 +1626,18 @@ function MagicSentPanel({
       <h2 className={`text-lg font-semibold mb-2 ${t.confirmHeading}`}>
         Check your inbox
       </h2>
-      <p className={`text-sm ${t.confirmBody}`}>
+      <p className={`text-base sm:text-sm ${t.confirmBody}`}>
         We sent a magic link to{' '}
         <strong className={t.confirmHeading}>{email}</strong>. Click it to sign
         in.
       </p>
-      <p className={`mt-3 text-xs ${t.confirmMuted}`}>
+      <p className={`mt-3 text-base sm:text-xs ${t.confirmMuted}`}>
         It may take a minute to arrive. Check your spam folder if you don't see
         it.
       </p>
       <button
         onClick={onReset}
-        className={`mt-6 text-sm transition min-h-[44px] px-3 ${t.mutedBtn}`}
+        className={`mt-6 text-base sm:text-sm transition min-h-[44px] px-3 ${t.mutedBtn}`}
       >
         Use a different email
       </button>
@@ -1702,33 +1702,33 @@ function ConfirmEmailPanel({
       <h2 className={`text-lg font-semibold mb-2 ${t.confirmHeading}`}>
         {heading}
       </h2>
-      <p className={`text-sm ${t.confirmBody}`}>{body}</p>
-      <p className={`mt-3 text-xs ${t.confirmMuted}`}>
+      <p className={`text-base sm:text-sm ${t.confirmBody}`}>{body}</p>
+      <p className={`mt-3 text-base sm:text-xs ${t.confirmMuted}`}>
         It may take a minute to arrive. Check your spam folder if you don't see
         it.
       </p>
       {onResend && (
         <div className="mt-5">
           {resendState === 'sent' ? (
-            <p className={`text-sm ${t.confirmBody}`}>
+            <p className={`text-base sm:text-sm ${t.confirmBody}`}>
               Sent again. Open it on this device if you can — that is the quickest way in.
             </p>
           ) : (
             <button
               onClick={resend}
               disabled={resendState === 'sending'}
-              className={`text-sm font-medium underline min-h-[44px] px-3 disabled:opacity-50 ${t.confirmHeading}`}
+              className={`text-base sm:text-sm font-medium underline min-h-[44px] px-3 disabled:opacity-50 ${t.confirmHeading}`}
             >
               {resendState === 'sending' ? 'Sending…' : "Didn't get it? Send it again"}
             </button>
           )}
-          {resendError && <p className="mt-2 text-sm text-red-600">{resendError}</p>}
+          {resendError && <p className="mt-2 text-base sm:text-sm text-red-600">{resendError}</p>}
         </div>
       )}
 
       <button
         onClick={onReset}
-        className={`mt-4 text-sm transition min-h-[44px] px-3 ${t.mutedBtn}`}
+        className={`mt-4 text-base sm:text-sm transition min-h-[44px] px-3 ${t.mutedBtn}`}
       >
         Use a different email
       </button>
