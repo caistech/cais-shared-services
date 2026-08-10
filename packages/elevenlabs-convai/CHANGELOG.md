@@ -1,5 +1,129 @@
 # @caistech/elevenlabs-convai — Changelog
 
+## 0.15.1 — 2026-08-10
+
+Two things the first real prune exposed, both about what happens when the vendor says no.
+
+### Fixed — `limit` counted attempts, so a refusal spent the budget
+
+It capped *candidates tried*, not tools deleted. Candidates come back in a stable order and
+refusals cluster at the front, so a `limit: 100` batch deleted 91, then 66, then 63 — converging
+far slower than the numbers suggested, and leaving the caller unable to tell throttling from
+exhaustion. Refusals cost nothing; only deletions are spent. `limit` now caps deletions.
+
+### Added — `skipIds`
+
+The same stable ordering meant every later batch re-attempted the identical wall. In the live run
+the same 65 ids were retried in each pass and the refusal list printed to the operator **grew every
+batch**, which reads like a spreading problem rather than one wall hit repeatedly. Feed a previous
+run's `inUse` back in as `skipIds`.
+
+### Documented — "unreferenced" is necessary but NOT sufficient
+
+The sharpest finding of the run, and it belongs in the code rather than in someone's memory.
+ElevenLabs tracks dependencies this API cannot see. 65 tools that no agent's `tool_ids` referenced
+were refused with:
+
+```
+409 conflict — "Tool is still in use by: Unknown / Main.
+                Please remove the dependency or use Force Delete."
+```
+
+— and one carried a **live owner's** `?uid=`. So `findOrphanedWorkspaceTools` proposes and the
+**vendor adjudicates**. That is also the honest reason the run's 340 deletions were safe: not
+because the model was complete, but because ElevenLabs refused the ones it wasn't.
+
+**`Force Delete` exists and this package deliberately does not offer it.** Overriding the only
+party that can see the dependency, on tools carrying real users' identity, to reclaim rows in a
+list is not a trade worth making.
+
+⚠️ Behaviour change confined to `limit`. 2 tests, mutation-verified — reverting to attempt-counting
+turns the limit test red. The previous version of that test passed under BOTH behaviours and was
+rewritten to discriminate.
+
+## 0.15.0 — 2026-08-10
+
+A delete path, because 0.14.0 stopped the bleeding and left the debris.
+
+### Added — `deleteWorkspaceTool`, `findOrphanedWorkspaceTools`, `pruneOrphanedWorkspaceTools`
+
+0.14.0 stopped `ensureWorkspaceTools` duplicating, but nothing here could remove what it had
+already created — the package's only `DELETE` removes an **agent**. So the tools it made are
+permanent unless something else deletes them, which is why this exists.
+
+### The one thing that makes this dangerous, and how it is handled
+
+**"Orphan" is only meaningful against EVERY agent in the workspace.** The workspace is shared by
+the whole portfolio — measured 2026-08-10: **212 agents and 702 tools across eleven products**. A
+product that scans only its own agents will classify **other products' live tools as orphans**, and
+the first symptom is someone else's voice agent losing its tools in a repo nobody touched.
+
+That is not a hypothetical — it is the mistake made in this very investigation. The figure "534
+orphans" was computed against Kira's agents alone, so it counted every other product's live tools
+as unreferenced. A fine number for *"how many tools is Kira not using"*, a catastrophic one to
+delete by.
+
+So the reference set is **complete or it throws**: any failure to list agents, or to read a single
+agent's `tool_ids`, aborts. An unreadable agent may hold references, and proceeding would treat its
+tools as free — a partial reference set is wrong in exactly the deleting direction.
+
+Further guards:
+- **`dryRun` defaults to TRUE.** Destruction is opt-in, never the default of a call you made to look.
+- **`filter`** scopes a prune to your own tools (`(t) => t.url?.includes('myproduct.com')`) — in a
+  shared workspace that is the difference between tidying your debris and someone else's install.
+- **`limit`** caps a single run.
+- A vendor refusal (405/409/`in_use`) is reported as `inUse` rather than thrown — a **safety net,
+  not the safety model**; it is the vendor's opinion and is not documented as exhaustive.
+- ⚠️ **Race, stated rather than hidden:** an agent provisioned between scan and delete has its new
+  tools classified as orphans. Prune when provisioning is quiet, keep `limit` small, and prefer two
+  runs with a dry run between over one large sweep.
+
+6 tests, mutation-verified: swallowing the `getAgent` error instead of throwing turns the
+live-tool-protection test red.
+
+## 0.14.0 — 2026-08-10
+
+The idempotency check stopped working the day the workspace passed 100 tools, and nothing said so.
+
+### Fixed — `ensureWorkspaceTools` read one page and duplicated the rest
+
+`GET /v1/convai/tools` pages at 100. This function fetched it **once, with no cursor**, for its
+entire life. The portfolio's workspace — one workspace shared by eleven products — reached **702
+tools**, so every provision matched against 14% of what existed and created a fresh copy of
+everything else.
+
+Measured 2026-08-10: **534 of 702 tools attached to no live agent.**
+
+Three things make this worse than an ordinary bug. It is **silent** — duplicating looks exactly
+like provisioning. It **accelerates** — more tools means a smaller visible fraction, which means
+more duplicates. And it is **irreversible through this package**, which has no tool delete; the
+only `DELETE` here removes an *agent*.
+
+Now follows the cursor to the end, sends an explicit `page_size=100` rather than trusting the
+default, and stops at a 200-page bound so a malformed cursor cannot spin inside a live call.
+
+### Changed (behaviour) — a failed list now THROWS instead of reading as an empty workspace
+
+The old shape was `listRes.ok ? (…) : []`. One blip on the list call therefore meant "no tools
+exist" and re-created all of them — and `ensureUserAgent` is documented as safe to call on every
+page load, which is the frequency that turns a transient 500 into hundreds of orphans. A partial
+list does not *degrade* the answer to "does this already exist?", it **inverts** it.
+
+So: one retry (transient failures are the common case and a retry is free), then throw. A refused
+provision is retryable and visible; duplicates are permanent. A failure on **any** page throws
+rather than proceeding with what it has.
+
+⚠️ **Consumers:** signature unchanged, no migration. The only behaviour change is that a
+persistently unreachable tools list now surfaces as an error instead of silently duplicating.
+
+### Not changed, deliberately — the (name + url) match key
+
+Matching on **name alone** was considered and rejected. Workspace tools are workspace-scoped, and
+the url carries both product and per-user identity: 47 distinct names across those 702 tools, with
+per-owner copies distinguished only by the baked `?uid=`. A name-only key would hand one owner's
+agent another owner's tool — and, across the shared workspace, hand one *product's* agent another
+product's tool. 6 new tests, mutation-verified: reverting to a single page turns 3 of them red.
+
 ## 0.11.0 — 2026-07-27
 
 Cross-session memory, and a guard that can tell whether it works.
