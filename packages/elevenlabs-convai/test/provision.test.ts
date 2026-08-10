@@ -73,7 +73,10 @@ function installFetch(opts: {
 
     // workspace tools (post-April-2026 shape: entities referenced by prompt.tool_ids)
     if (method === 'POST' && url.endsWith('/convai/tools')) { log.toolCreate++; const id = `tool_${log.toolCreate}`; log.createdToolIds.push(id); return ok({ id }); }
-    if (method === 'GET' && url.endsWith('/convai/tools')) {
+    // The list is PAGINATED, so it now carries ?page_size= and possibly ?cursor=. Matching on
+    // endsWith('/convai/tools') pinned the mock to the un-paginated shape and broke the moment
+    // the real bug was fixed — match the path and ignore the query.
+    if (method === 'GET' && new URL(url).pathname.endsWith('/convai/tools')) {
       log.toolList++;
       const tools = (opts.existingTools || []).map((t) => ({ id: t.id, tool_config: { name: t.name, api_schema: { url: t.url } } }));
       return ok({ tools });

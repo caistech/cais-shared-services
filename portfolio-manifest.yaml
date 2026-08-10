@@ -689,10 +689,21 @@ product_registry:
     distributor_gate_status: unaudited
   kira:
     display_name: "Kira"
-    tagline: "Your personal AI thinking partner" # draft — confirm
-    description: "Kira is a personal AI thinking partner for working through ideas
-      and decisions."
-    canonical_url: "https://kira-corporate-ai-solutions.vercel.app"
+    # Taken verbatim from the LIVE metadata (Kira app/layout.tsx) on 2026-08-10. Note the
+    # direction of drift: PRODUCT_STANDARDS §7 makes this manifest the SOURCE of a product's
+    # root metadata, and here the deployed copy had moved on while the manifest held a framing
+    # the product no longer has. Kira is a business-succession product for an owner whose
+    # business runs on him — not a general-purpose assistant.
+    tagline: "Your part-time general manager"
+    description: "Kira is your part-time general manager: talk to her a few minutes at a
+      time and she captures what's in your head, remembers everything, and quietly builds
+      the systems that make your business worth more."
+    # Verified 2026-08-10: kiraexec.com serves the app (200, no protection wall). The previous
+    # value was the TEAM-SUFFIXED alias, which Vercel auto-protects — it answers 302 to an SSO
+    # wall, and pointing audits at it is the exact artifact that made the 2026-05-26 Gate-1
+    # backfill record Kira as "NOT auditable — canonical deploy 401"
+    # (GATE1_BACKFILL_WORKLIST_2026-05-26.md line 42 names this as the root cause to fix).
+    canonical_url: "https://kiraexec.com"
     voice_agent_status: unaudited
     team_admin_status: unaudited
     metadata_status: unaudited

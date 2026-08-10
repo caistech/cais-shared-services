@@ -81,12 +81,80 @@ export function toWorkspaceToolConfig(tool: ConvAITool, fallbackBaseUrl?: string
   };
 }
 
+type WorkspaceToolRow = {
+  id?: string;
+  tool_config?: { name?: string; api_schema?: { url?: string } };
+};
+
+/** Hard bound on pagination. 200 pages × 100 = 20,000 tools — far past any real workspace,
+ *  and present only so a malformed cursor cannot spin forever inside a live voice call. */
+const MAX_TOOL_PAGES = 200;
+
+/**
+ * List EVERY workspace tool, following the cursor to the end.
+ *
+ * ⚠️ THIS MUST BE COMPLETE OR IT MUST THROW — there is no useful middle. The list is used to
+ * decide "does this tool already exist?", so a partial list does not degrade the answer, it
+ * INVERTS it: every tool the caller could not see is reported absent and then created again.
+ *
+ * That is not hypothetical. This function fetched a single unpaginated page for its whole life,
+ * and the endpoint pages at 100. The portfolio's workspace reached 702 tools, so provisioning
+ * matched against 14% of them and duplicated the rest — measured 2026-08-10: 534 of 702 tools
+ * attached to no live agent. It fails silently, it looks exactly like normal operation, and it
+ * ACCELERATES: more tools → smaller visible fraction → more duplicates.
+ *
+ * A failed page therefore throws rather than returning what it has. The old code did the
+ * opposite (`listRes.ok ? … : []`), so one blip on the list call meant "the workspace is
+ * empty" and re-created every tool — and `ensureUserAgent` is documented as safe to call on
+ * every page load, which is the frequency that turns a blip into hundreds of orphans.
+ * A refused provision is retryable and visible; duplicates are permanent and this package has
+ * no delete.
+ */
+async function listAllWorkspaceTools(apiKey: string): Promise<WorkspaceToolRow[]> {
+  const all: WorkspaceToolRow[] = [];
+  let cursor: string | undefined;
+
+  for (let page = 0; page < MAX_TOOL_PAGES; page++) {
+    const url = new URL(WORKSPACE_TOOLS_API);
+    url.searchParams.set('page_size', '100');
+    if (cursor) url.searchParams.set('cursor', cursor);
+
+    // One retry, because the alternative to a transient failure here is not "no tools" but
+    // "duplicate everything". Retrying a read is free; getting this wrong is not.
+    let res = await fetch(url, { headers: { 'xi-api-key': apiKey } });
+    if (!res.ok) res = await fetch(url, { headers: { 'xi-api-key': apiKey } });
+    if (!res.ok) {
+      throw new Error(
+        `ElevenLabs workspace tool list failed on page ${page + 1}: ${res.status} ${await res.text()} — ` +
+          `refusing to continue, because an incomplete list causes every unseen tool to be duplicated.`
+      );
+    }
+
+    const body = (await res.json()) as {
+      tools?: WorkspaceToolRow[];
+      has_more?: boolean;
+      next_cursor?: string;
+    };
+    all.push(...(body.tools ?? []));
+    if (!body.has_more || !body.next_cursor) return all;
+    cursor = body.next_cursor;
+  }
+
+  throw new Error(
+    `ElevenLabs workspace tool list exceeded ${MAX_TOOL_PAGES} pages — refusing to continue rather than provision against a truncated list.`
+  );
+}
+
 /**
  * Ensure each webhook tool exists as a WORKSPACE tool entity; return their ids in the
  * same order as `tools`. Idempotent on (name + url): workspace tools are workspace-scoped
  * (shared across every agent + product), so reusing by NAME ALONE would bind product B's
  * agent to product A's tool (which points at A's webhook URL) — the same cross-product
  * leak class as the per-agent webhook bug. Matching name+url keeps each product on its own.
+ *
+ * The url half of that key also carries per-user identity where a product bakes `?uid=`
+ * (see createConversationTools), so name-alone would additionally hand one owner's agent
+ * another owner's tool. Measured in the Kira workspace: 47 distinct names across 702 tools.
  */
 export async function ensureWorkspaceTools(
   apiKey: string,
@@ -96,11 +164,7 @@ export async function ensureWorkspaceTools(
   const webhookTools = tools.filter((t) => t.type === 'webhook');
   if (webhookTools.length === 0) return [];
 
-  const listRes = await fetch(WORKSPACE_TOOLS_API, { headers: { 'xi-api-key': apiKey } });
-  const existing: Array<{
-    id?: string;
-    tool_config?: { name?: string; api_schema?: { url?: string } };
-  }> = listRes.ok ? ((await listRes.json()).tools ?? []) : [];
+  const existing = await listAllWorkspaceTools(apiKey);
 
   const ids: string[] = [];
   for (const tool of webhookTools) {
@@ -446,4 +510,173 @@ export async function listAgents(apiKey: string): Promise<AgentSummary[]> {
 export async function findAgentsByName(apiKey: string, name: string): Promise<AgentSummary[]> {
   const agents = await listAgents(apiKey);
   return agents.filter((a) => a.name === name);
+}
+
+// =============================================================================
+// WORKSPACE TOOL PRUNE — deleting what nothing references
+// =============================================================================
+
+/**
+ * Delete a workspace tool.
+ *
+ * Returns `'in_use'` rather than throwing when ElevenLabs refuses because an agent still
+ * references it (the same refusal shape as `webhook_in_use` on webhook deletion). That refusal
+ * is a SAFETY NET, not the safety model — never rely on it to catch a mistaken delete, because
+ * it is the vendor's opinion and it is not documented as exhaustive.
+ */
+export async function deleteWorkspaceTool(
+  apiKey: string,
+  toolId: string
+): Promise<'deleted' | 'in_use'> {
+  const res = await fetch(`${WORKSPACE_TOOLS_API}/${toolId}`, {
+    method: 'DELETE',
+    headers: { 'xi-api-key': apiKey },
+  });
+  if (res.ok) return 'deleted';
+
+  const body = await res.text();
+  if (res.status === 405 || res.status === 409 || /in_use|in use/i.test(body)) return 'in_use';
+  throw new Error(`ElevenLabs workspace tool delete failed for ${toolId}: ${res.status} ${body}`);
+}
+
+export type OrphanScan = {
+  /** Tools referenced by no agent in the workspace. */
+  orphans: Array<{ id: string; name?: string; url?: string }>;
+  totalTools: number;
+  referencedTools: number;
+  agentsScanned: number;
+};
+
+/**
+ * Find workspace tools that NO agent references.
+ *
+ * ⚠️ THE REFERENCE SET MUST BE COMPLETE OR THIS MUST THROW, and this is the whole design.
+ *
+ * The workspace is SHARED BY EVERY PRODUCT — measured 2026-08-10, one workspace held 212 agents
+ * and 702 tools across eleven products. So "orphan" is only meaningful against **every agent in
+ * the workspace**, not the agents of the product asking. Scan one product's agents and you will
+ * classify another product's LIVE tools as orphans and delete them; the first symptom would be
+ * someone else's voice agent losing its tools, in a repo nobody had touched.
+ *
+ * That is exactly the mistake the first orphan count in this investigation made — 534 was computed
+ * against Kira's agents alone, so it counted every other product's live tools as unreferenced. It
+ * is a fine number for "how many tools is Kira not using" and a catastrophic one to delete by.
+ *
+ * Therefore: any failure to enumerate agents or to read one agent's tool_ids throws. A partial
+ * reference set does not make the answer approximate, it makes it dangerously wrong in one
+ * direction — everything unseen looks deletable.
+ *
+ * ⚠️ "UNREFERENCED" IS NECESSARY BUT NOT SUFFICIENT. Do not read this function as "safe to
+ * delete". ElevenLabs tracks dependencies this API cannot see: in the live 2026-08-10 prune, 65
+ * tools that no agent's `tool_ids` referenced were refused with
+ *
+ *     409 conflict — "Tool is still in use by: Unknown / Main.
+ *                     Please remove the dependency or use Force Delete."
+ *
+ * and one of them carried a LIVE owner's `?uid=`. Whatever "Unknown / Main" is, it is not
+ * enumerable from `listAgents` + `tool_ids`, so this scan proposes and the VENDOR adjudicates.
+ * That is also the honest account of why the 340 deletions in that run were safe: not because
+ * this model was complete, but because ElevenLabs refused the ones it wasn't.
+ *
+ * A `Force Delete` exists. This package deliberately does not offer it — overriding the only
+ * party that can see the dependency, on tools carrying real users' identity, to reclaim rows in
+ * a list is not a trade worth making. Add it only with a named, reasoned call site.
+ */
+export async function findOrphanedWorkspaceTools(apiKey: string): Promise<OrphanScan> {
+  const tools = await listAllWorkspaceTools(apiKey);
+  const agents = await listAgents(apiKey); // paginates + throws on failure
+
+  const referenced = new Set<string>();
+  for (const summary of agents) {
+    // getAgent throws on a non-ok response, which is what we want: an agent we could not read
+    // may hold references, and proceeding would treat its tools as free to delete.
+    const agent = (await getAgent(apiKey, summary.agentId)) as {
+      conversation_config?: { agent?: { prompt?: { tool_ids?: string[] } } };
+    };
+    for (const id of agent.conversation_config?.agent?.prompt?.tool_ids ?? []) {
+      referenced.add(id);
+    }
+  }
+
+  const orphans = tools
+    .filter((t) => t.id && !referenced.has(t.id))
+    .map((t) => ({ id: t.id as string, name: t.tool_config?.name, url: t.tool_config?.api_schema?.url }));
+
+  return {
+    orphans,
+    totalTools: tools.length,
+    referencedTools: referenced.size,
+    agentsScanned: agents.length,
+  };
+}
+
+export type PruneOptions = {
+  /** Defaults to TRUE. Destruction is opt-in, never the default of a function you called to look. */
+  dryRun?: boolean;
+  /** Narrow to the caller's own tools — e.g. `(t) => t.url?.includes('myproduct.com')`. */
+  filter?: (tool: { id: string; name?: string; url?: string }) => boolean;
+  /**
+   * Cap on tools actually DELETED in this run — not on attempts.
+   *
+   * It counted attempts until 0.15.1, which is wrong in the one case that matters: a refused
+   * tool consumed the budget, so a `limit: 100` batch against a list whose first 37 entries were
+   * all refusals deleted 63. Batching then converged far slower than the numbers implied, and a
+   * caller watching "deleted: 63" against a limit of 100 has no way to tell throttling from
+   * exhaustion. Refusals are free; only deletions are spent.
+   */
+  limit?: number;
+  /**
+   * Tool ids to skip outright — in practice, ids a previous run reported in `inUse`.
+   *
+   * Candidates come back in a stable order, so refusals sit at the FRONT of every subsequent
+   * batch and get re-attempted forever. In the live 2026-08-10 prune that meant the same 65
+   * ids were retried in each pass, and the refusal list printed to the operator grew every
+   * batch — which reads like a spreading problem rather than the same wall hit repeatedly.
+   */
+  skipIds?: readonly string[];
+};
+
+/**
+ * Delete workspace tools that no agent references.
+ *
+ * `dryRun` defaults to TRUE: this reports what it would remove and removes nothing until a caller
+ * explicitly says otherwise. There is no undo, and the tools carry per-user identity in their URLs.
+ *
+ * Pass `filter` to scope a prune to your own product's tools. In a shared workspace that is the
+ * difference between tidying your own debris and tidying someone else's live install — see the
+ * warning on `findOrphanedWorkspaceTools`.
+ *
+ * ⚠️ RACE: an agent provisioned between the scan and the delete would have its brand-new tools
+ * classified as orphans. Prune when provisioning is quiet, keep `limit` small, and prefer running
+ * it twice with a `dryRun` in between over one large sweep.
+ *
+ * ⚠️ FEED `inUse` BACK IN AS `skipIds` when batching, or every batch re-attempts the same wall.
+ */
+export async function pruneOrphanedWorkspaceTools(
+  apiKey: string,
+  opts: PruneOptions = {}
+): Promise<{ scanned: OrphanScan; candidates: OrphanScan['orphans']; deleted: string[]; inUse: string[]; dryRun: boolean }> {
+  const dryRun = opts.dryRun !== false;
+  const scanned = await findOrphanedWorkspaceTools(apiKey);
+
+  const skip = new Set(opts.skipIds ?? []);
+  let candidates = scanned.orphans.filter((t) => !skip.has(t.id));
+  if (opts.filter) candidates = candidates.filter(opts.filter);
+
+  const deleted: string[] = [];
+  const inUse: string[] = [];
+  if (!dryRun) {
+    for (const tool of candidates) {
+      // `limit` caps DELETIONS, so stop only once that many have actually gone. A refusal costs
+      // nothing and must not consume the budget — see PruneOptions.limit.
+      if (opts.limit !== undefined && deleted.length >= opts.limit) break;
+      const outcome = await deleteWorkspaceTool(apiKey, tool.id);
+      (outcome === 'deleted' ? deleted : inUse).push(tool.id);
+    }
+  } else if (opts.limit !== undefined) {
+    // Nothing is deleted in a dry run, so the honest preview is "the first `limit` we would try".
+    candidates = candidates.slice(0, opts.limit);
+  }
+
+  return { scanned, candidates, deleted, inUse, dryRun };
 }
