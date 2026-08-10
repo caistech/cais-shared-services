@@ -41,6 +41,7 @@
  */
 import { join } from 'node:path'
 import {
+  blankComments,
   loadConfigOptional,
   passedFromFindings,
   readFileOptional,
@@ -124,12 +125,6 @@ const CONTEXT_WINDOW = 2
  * Newlines inside a stripped block are preserved so every reported line number still points at the
  * line a human would open.
  */
-function blankComments(content: string): string {
-  return content
-    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
-    .replace(/\/\/[^\n]*/g, (m) => ' '.repeat(m.length))
-}
-
 function daysFromWord(unit: string): number {
   const u = unit.toLowerCase()
   if (u.startsWith('week')) return 7
