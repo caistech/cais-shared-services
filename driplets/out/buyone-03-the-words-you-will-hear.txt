@@ -1,0 +1,25 @@
+Before You Buy One. №3
+
+Eight words you'll hear in any "agentic" pitch, what each one actually means, and what it changes about what you're buying.
+
+Model. The AI itself — the part that reads and writes. You pay each time it runs, and it can give a different answer tomorrow from the same starting point. That's fine for judgement and wrong for anything that has to be identical every time.
+
+Prompt. The instructions the model is given. Worth knowing because "we've prompted it not to" is a request, not a restriction. It describes what they've asked for, not what the thing can do.
+
+Agent. A model that's been given tools — the ability to act, not just write. This is the word doing the most work in the whole pitch, and the one to slow down on.
+
+Tools. What it's allowed to reach: your email, your accounting system, your calendar. Ask for the list. "It has access to your systems" is not a list.
+
+Orchestration. Deciding which part does what, in what order. Ask whether that decision is itself made by AI, or by ordinary software. Both are legitimate; only one is predictable.
+
+Guardrails. Whatever stops it doing something daft. Ask what kind of thing they are. AI checking AI can be talked round; a limit built into the software cannot.
+
+Context window. The AI's short-term memory for one conversation. It does not survive being closed, so if the work lives there, it doesn't survive an approval that lands tomorrow.
+
+Token. In this setting, the key that lets them into your systems, which usually keeps working long after the meeting. Ask how you cancel it.
+
+None of this makes you an expert, and it isn't meant to. It makes you hard to bluff, which is a different and more useful thing.
+
+—
+Before You Buy One. №3
+What the words actually mean, and what to ask before somebody sells you one.

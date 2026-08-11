@@ -2,6 +2,90 @@
   "note": "Drafted posts for the \"Just Ship It. It'll be Fine.\" series. `body` is hand-written or model-drafted from a queue candidate; `status` is owned by a human and is never changed by a harvest. Statuses: draft -> approved -> published. `publishOrder` is the intended sequence, which is NOT the series number: the intro goes out second and gets pinned, because an intro has to earn attention on its own and the takeover post does that better. FORMATTING: one idea per line-group, blank line between. It reads far better on a phone, which is where this is read.",
   "posts": [
     {
+      "id": "agentic-team-four-things",
+      "cut": "thesis",
+      "title": "Agentic team means at least four different things",
+      "status": "draft",
+      "stream": "B",
+      "pillar": "02-agentic-team-four-things",
+      "masthead": true,
+      "body": "\"Agentic team\" means at least four quite different things, and most of the time two people are describing different ones to each other and agreeing.\n\nA swarm — AI helpers created to do one job, working side by side, gone when it's finished. This is the version most engineers mean, and it genuinely works.\n\nRole-play — a Researcher, a Writer, a Critic. Usually one AI wearing different hats, all sharing exactly the same access to everything. The job titles are instructions, not restrictions.\n\nA fleet — permanent assistants living inside a big platform you already pay for. They work because the platform was already there and had already decided who is allowed to see what.\n\nOr a workflow — ordinary software doing most of the work by following rules, with AI only where something genuinely needs judgement.\n\nFour quite different machines, one phrase, and almost nothing in common between them.\n\nWhat separates them isn't how many there are or how clever any one of them is. It's whether any of them can be stopped by something other than being asked nicely.\n\nSo: ask which of the four you are being sold, and ask them to say it in those terms.\n\nIt is not a gotcha. A good vendor will answer it in a sentence and be pleased you asked. In my experience the question produces a much longer pause than it should — and the length of that pause is most of what you needed to know.",
+      "series": "buyone",
+      "publishOrder": 2,
+      "seriesNumber": 2,
+      "pin": true
+    },
+    {
+      "id": "six-questions-agentic-vendor",
+      "cut": "list",
+      "title": "Six questions for anyone selling you an agentic team",
+      "status": "draft",
+      "stream": "B",
+      "pillar": "02-agentic-team-four-things",
+      "masthead": true,
+      "body": "If somebody is selling you an \"agentic team\" and you don't build software, you are not going to out-argue them on the technology.\n\nNor do you need to.\n\nBut there are a few things worth knowing before you walk into the conversation.\n\nMostly, you need to be specific about your why — what are you actually trying to achieve? We'll look at that properly in a later post.\n\nAnd once you're clear on that, you need them to be specific too. These six questions do that. The words in quotes are the ones you'll hear from them.\n\n1. How much of this is a \"model\", and how much is plain software following a rule?\n\nThe model is the AI itself — the part that reads and writes. It costs money every time it runs, and it can answer differently tomorrow from the same starting point. Plain software does the same thing every time and can be explained afterwards. Most of what a business needs done in a week wants the second one. \"It's all AI\" is an answer, and an expensive one.\n\n2. Can an \"agent\" act, or only propose?\n\nAn agent is a model given tools — the ability to actually do something, send the email, raise the invoice, rather than just write words. That is the whole meaning of the word. It is the difference between a new starter who emails your client directly and one who leaves it in your drafts. If the answer is \"we've prompted it not to\" — a prompt being the instructions it's given — then it can. It has been asked not to.\n\n3. What are the \"guardrails\", exactly?\n\nAsk what kind of thing the safety net is. If it's another model checking the first model, it can be talked round the same way the first one was. A limit that is built into the software is a different kind of thing entirely.\n\n4. Where does the work live between being asked for and being done?\n\nIf the answer is \"in the context window\" — the AI's short-term memory, which doesn't survive being closed — ask what happens when you approve something tomorrow morning rather than now. Real work waits overnight. Demos never have to.\n\n5. What does the \"integration\" actually hand over?\n\nConnecting your accounting system usually means giving them a key — a token — that keeps working long after the meeting. Ask where it's kept, who can see it, and how you cancel it without ringing anyone. It is the largest risk in the arrangement and almost never on the slide.\n\n6. Is the approval structural, or behavioural?\n\nMeaning: is it stopped by the way the software is built, or by the AI having been told to stop? That's question two again, asked at the end on purpose, because the first answer is usually the optimistic one.\n\nNone of these require you to understand how any of it works. They require the seller to be specific, which is the actual test.\n\nI'd apply all six to us as well. That's rather the point of writing them down.",
+      "series": "buyone",
+      "publishOrder": 1,
+      "seriesNumber": 1,
+      "pin": false
+    },
+    {
+      "id": "half-of-it-has-no-model",
+      "cut": "contrarian",
+      "title": "Half our work has no model in it, deliberately",
+      "status": "draft",
+      "stream": "B",
+      "pillar": "02-agentic-team-four-things",
+      "masthead": true,
+      "body": "Everyone is putting AI into everything. About half of what we run has no model in it at all — no AI in the path — on purpose. I'd say that number should be higher in most of what I get shown.\n\nWe keep a list of roughly a hundred and forty jobs a business does over and over. Chase an overdue account. Follow up a quote. Tell a subcontractor his insurance runs out in a fortnight.\n\nGoing through them honestly, about half are mechanical. Not simple — mechanical. Something crosses a line, we check it against the system that actually holds the record, we write it from a template, we apply the owner's rules about what needs his say-so, and it goes.\n\nChasing a sixty-three-day invoice is a comparison, a check and a template.\n\nPut a model in the middle of that and you buy three things: a cost every time it runs, a delay, and the possibility of a different answer tomorrow from the same starting point. What you lose is the thing that matters most — when the owner asks why it sent that, there's a reason he can read.\n\nAbout one job in seven genuinely needs judgement. A quote for something unusual. A \"can you sharpen the price\" conversation. An argument about scope halfway through. Those want a model, and they'll take most of the work to build, which is a neat illustration of how badly effort and volume line up.\n\nSo the first question isn't about the AI. It's which half is which — and whether anyone has been made to defend where they drew the line.",
+      "series": "buyone",
+      "publishOrder": 4,
+      "seriesNumber": 4,
+      "pin": false
+    },
+    {
+      "id": "the-outbox-that-accepted-anything",
+      "cut": "story",
+      "title": "Ask your agentic team vendor for a story like this. Then listen to how they tell it.",
+      "status": "draft",
+      "stream": "B",
+      "pillar": "02-agentic-team-four-things",
+      "masthead": true,
+      "body": "Ask your agentic team vendor for a story like this one.\n\nThen listen to how they tell it, because that is the part that tells you who you are dealing with.\n\nHere is mine, from last week.\n\n\"Nothing that thinks is allowed to send anything.\" We had that principle written down and logged properly, and I'd have told you we had it.\n\nThe client tells the agent what they want to happen — email this quote to this client — and that goes onto a waiting list, an outbox. A second, much stupider piece of software picks it up and carries it out, but only after the approval has landed. The whole point of the stupid one is that it has no judgement in it. There is nothing there to talk round.\n\nWhat I found is that the stupid one only knew how to do a single kind of job. Send an email.\n\nOur own database has a column that says what kind of job each one is. The note beside it, written by us months ago, lists the examples: raise an invoice, book an appointment. Neither had been built yet. The day either was, the owner would have approved it, it would have gone onto the list, and then it would have sat there.\n\nNo error. Nothing retried. Nothing red on any screen. Waiting, in a system reporting itself in perfect health.\n\nAnd the owner would have had no way of knowing. He approved it. He'd have assumed it went.\n\nFour things to listen for when your vendor tells you theirs.\n\nDid they find it, or did a customer? Everybody has failures. Only some of them are looking.\n\nHow did they find it? Mine is dull: I was writing an honest inventory of what the system can actually do, and the sentence I was typing said any kind of job while the code said one. A specific answer is a real answer. \"Our monitoring picked it up\" invites the obvious follow-up — what alerted, and who read it?\n\nWhat would it have looked like from your side? If they say \"nothing at all, and that is exactly the problem\", they have met the expensive kind of failure. A vendor who only has stories about things that threw an error has not.\n\nHow did they prove the fix works? I renamed the single entry on that list and watched three of its checks go red, then put it back and watched them go green. A check you have never once seen fail is not a check, and that goes for theirs too.\n\nIf they have no story at all, that is also an answer. Either it is very new, or nobody has gone looking.",
+      "series": "buyone",
+      "publishOrder": 5,
+      "seriesNumber": 5,
+      "pin": false
+    },
+    {
+      "id": "standing-or-on-call",
+      "cut": "question",
+      "title": "Do not ask which approach is right. Ask why they chose theirs.",
+      "status": "draft",
+      "stream": "B",
+      "pillar": "02-agentic-team-four-things",
+      "masthead": true,
+      "body": "A very reasonable question, put to me directly this week: surely you set up a team of specialists in advance — one that knows how you write quotes, one that knows your contacts, one that writes the letter — and the system hands work to whichever one fits.\n\nIt is the picture nearly everyone has, and you will see it on a slide. I have argued the other way, and I want to put the argument and my doubt about it in the same place, because you are going to have to judge somebody else's version of this.\n\nThe argument is that what you want ready in advance is not a set of assistants sitting there waiting. It is the instructions: what this one is for, what it is allowed to see, what it is allowed to propose — written down and agreed before any work turns up. That gives you everything \"prepared\" is meant to give, with nothing actually running.\n\nAnd most of what people want a permanent assistant for turns out, on inspection, to be a permanent fact. Not something that reads the owner's last twenty quotes every single time, but the shape of how he writes a quote, worked out once and written down.\n\nThe doubt is that this is extremely convenient for someone whose setup has nowhere to put a permanently running assistant anyway. I cannot fully separate my reasoning from my own constraints, and I would rather say so than pretend.\n\nSo do not ask a vendor which approach is right. Ask why they chose theirs — and whether they would still choose it if their setup allowed the other.\n\nSomebody who can answer that has thought about it. Somebody who tells you their way is simply how it is done has not, and you will be paying for that either way.",
+      "series": "buyone",
+      "publishOrder": 7,
+      "seriesNumber": 7,
+      "pin": false
+    },
+    {
+      "id": "one-in-seven-most-of-the-work",
+      "cut": "receipt",
+      "title": "Write down the ten jobs that eat your Tuesday. Then hand the list over.",
+      "status": "draft",
+      "stream": "B",
+      "pillar": "02-agentic-team-four-things",
+      "masthead": true,
+      "body": "A hundred and forty jobs on our list, sorted by how they actually have to get done:\n\nAbout half are mechanical. Something crosses a line, we check it against the system that holds the record, we write it from a template, we apply the owner's rules, it goes. No AI anywhere in it.\n\nAbout a quarter are a conversation.\n\nAbout one in seven genuinely needs judgement — and that seventh will take most of the work to build.\n\nThe rest sit in between: the system gets everything ready, a person decides.\n\nThose last two lines are the useful ones. Effort and volume come apart badly here, and it explains something I kept noticing in demos and couldn't put my finger on. The clever seventh is the impressive part, so it is the part that gets shown — and it is a thin slice of what a business actually needs done in a week.\n\nHere is how to use that in the room.\n\nWrite down the ten jobs you actually want taken off your desk. Not the exciting ones. The ten that eat Tuesday.\n\nHand the list over and ask them to sort it: which of these need judgement, and which are just rules being followed?\n\nIf everything on your list comes back as the clever kind, they have priced the demo rather than your week. If most of it comes back as rules, ask what the AI is doing in the price.\n\nThe unimpressive half is where your value is. It wants to be explainable far more than it wants to be clever.",
+      "series": "buyone",
+      "publishOrder": 6,
+      "seriesNumber": 6,
+      "pin": false
+    },
+    {
       "id": "takeover-in-the-paid-path",
       "title": "For fifteen days, our payment path would hand a customer account to anyone who asked.",
       "sourceCandidate": "commit:kira@2f12f14",
@@ -104,6 +188,19 @@
       "publishedAt": null,
       "body": "Four checks reported numbers they hadn't earned. Three of them were in the tool I built to catch exactly that.\n\nI spent an afternoon writing a harvester.\n\nIt reads the places we write lessons down, and finds the ones that never reached the knowledge base. Deterministic, self-tested, no model in the loop.\n\nI was quite pleased with it.\n\nThen I backfilled twelve entries covering twelve gaps it had itself named, re-ran it, and the count went from 50 to 49.\n\nThe backfill was fine.\n\nThe measurement had a length bias — it divided shared words by the candidate's word count, so a long document could never score as covered, no matter how thoroughly it was recorded.\n\nIt would have reported those as outstanding forever. And a number that only ever rises reads as thoroughness.\n\nThree more turned up the same afternoon.\n\nAn analysis that fell back to a title when a field was missing, and produced a confident 0.83 match that meant nothing.\n\nA merge that never refreshed old rows — so a fix never reached the data it was written for, and a missing field got read as \"nothing to worry about\".\n\nAnd a self-test printing \"14/14 passed\" as a hardcoded string. Still printing it after I'd added three more checks.\n\nAnd yet nothing errored.\n\nEvery one of those numbers arrived on time, correctly formatted, from a tool with a passing test suite.\n\nThe obvious fix is to test the tool.\n\nIt had eighteen tests. They all passed. Not one of them asked whether the summary line was true.\n\nThe count is counted now rather than written down. And every threshold gets checked in both directions — a check that can only ever say \"gap\" is not a check.\n\nI only found them because I happened to doubt a number I had no particular reason to doubt.\n\nHow do you go looking for the checks that are lying?",
       "masthead": true
+    },
+    {
+      "id": "the-words-you-will-hear",
+      "cut": "list",
+      "title": "Eight words you'll hear in an agentic pitch, and what each one costs you",
+      "status": "draft",
+      "stream": "B",
+      "series": "buyone",
+      "pillar": "02-agentic-team-four-things",
+      "masthead": true,
+      "body": "Eight words you'll hear in any \"agentic\" pitch, what each one actually means, and what it changes about what you're buying.\n\nModel. The AI itself — the part that reads and writes. You pay each time it runs, and it can give a different answer tomorrow from the same starting point. That's fine for judgement and wrong for anything that has to be identical every time.\n\nPrompt. The instructions the model is given. Worth knowing because \"we've prompted it not to\" is a request, not a restriction. It describes what they've asked for, not what the thing can do.\n\nAgent. A model that's been given tools — the ability to act, not just write. This is the word doing the most work in the whole pitch, and the one to slow down on.\n\nTools. What it's allowed to reach: your email, your accounting system, your calendar. Ask for the list. \"It has access to your systems\" is not a list.\n\nOrchestration. Deciding which part does what, in what order. Ask whether that decision is itself made by AI, or by ordinary software. Both are legitimate; only one is predictable.\n\nGuardrails. Whatever stops it doing something daft. Ask what kind of thing they are. AI checking AI can be talked round; a limit built into the software cannot.\n\nContext window. The AI's short-term memory for one conversation. It does not survive being closed, so if the work lives there, it doesn't survive an approval that lands tomorrow.\n\nToken. In this setting, the key that lets them into your systems, which usually keeps working long after the meeting. Ask how you cancel it.\n\nNone of this makes you an expert, and it isn't meant to. It makes you hard to bluff, which is a different and more useful thing.",
+      "seriesNumber": 3,
+      "publishOrder": 3
     }
   ]
 }

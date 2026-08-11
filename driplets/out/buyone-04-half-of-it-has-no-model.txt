@@ -1,0 +1,19 @@
+Before You Buy One. №4
+
+Everyone is putting AI into everything. About half of what we run has no model in it at all — no AI in the path — on purpose. I'd say that number should be higher in most of what I get shown.
+
+We keep a list of roughly a hundred and forty jobs a business does over and over. Chase an overdue account. Follow up a quote. Tell a subcontractor his insurance runs out in a fortnight.
+
+Going through them honestly, about half are mechanical. Not simple — mechanical. Something crosses a line, we check it against the system that actually holds the record, we write it from a template, we apply the owner's rules about what needs his say-so, and it goes.
+
+Chasing a sixty-three-day invoice is a comparison, a check and a template.
+
+Put a model in the middle of that and you buy three things: a cost every time it runs, a delay, and the possibility of a different answer tomorrow from the same starting point. What you lose is the thing that matters most — when the owner asks why it sent that, there's a reason he can read.
+
+About one job in seven genuinely needs judgement. A quote for something unusual. A "can you sharpen the price" conversation. An argument about scope halfway through. Those want a model, and they'll take most of the work to build, which is a neat illustration of how badly effort and volume line up.
+
+So the first question isn't about the AI. It's which half is which — and whether anyone has been made to defend where they drew the line.
+
+—
+Before You Buy One. №4
+What the words actually mean, and what to ask before somebody sells you one.

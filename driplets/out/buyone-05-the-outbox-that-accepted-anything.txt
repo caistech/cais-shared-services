@@ -1,0 +1,35 @@
+Before You Buy One. №5
+
+Ask your agentic team vendor for a story like this one.
+
+Then listen to how they tell it, because that is the part that tells you who you are dealing with.
+
+Here is mine, from last week.
+
+"Nothing that thinks is allowed to send anything." We had that principle written down and logged properly, and I'd have told you we had it.
+
+The client tells the agent what they want to happen — email this quote to this client — and that goes onto a waiting list, an outbox. A second, much stupider piece of software picks it up and carries it out, but only after the approval has landed. The whole point of the stupid one is that it has no judgement in it. There is nothing there to talk round.
+
+What I found is that the stupid one only knew how to do a single kind of job. Send an email.
+
+Our own database has a column that says what kind of job each one is. The note beside it, written by us months ago, lists the examples: raise an invoice, book an appointment. Neither had been built yet. The day either was, the owner would have approved it, it would have gone onto the list, and then it would have sat there.
+
+No error. Nothing retried. Nothing red on any screen. Waiting, in a system reporting itself in perfect health.
+
+And the owner would have had no way of knowing. He approved it. He'd have assumed it went.
+
+Four things to listen for when your vendor tells you theirs.
+
+Did they find it, or did a customer? Everybody has failures. Only some of them are looking.
+
+How did they find it? Mine is dull: I was writing an honest inventory of what the system can actually do, and the sentence I was typing said any kind of job while the code said one. A specific answer is a real answer. "Our monitoring picked it up" invites the obvious follow-up — what alerted, and who read it?
+
+What would it have looked like from your side? If they say "nothing at all, and that is exactly the problem", they have met the expensive kind of failure. A vendor who only has stories about things that threw an error has not.
+
+How did they prove the fix works? I renamed the single entry on that list and watched three of its checks go red, then put it back and watched them go green. A check you have never once seen fail is not a check, and that goes for theirs too.
+
+If they have no story at all, that is also an answer. Either it is very new, or nobody has gone looking.
+
+—
+Before You Buy One. №5
+What the words actually mean, and what to ask before somebody sells you one.

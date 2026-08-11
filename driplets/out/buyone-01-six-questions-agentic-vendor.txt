@@ -1,0 +1,43 @@
+Before You Buy One. №1
+
+If somebody is selling you an "agentic team" and you don't build software, you are not going to out-argue them on the technology.
+
+Nor do you need to.
+
+But there are a few things worth knowing before you walk into the conversation.
+
+Mostly, you need to be specific about your why — what are you actually trying to achieve? We'll look at that properly in a later post.
+
+And once you're clear on that, you need them to be specific too. These six questions do that. The words in quotes are the ones you'll hear from them.
+
+1. How much of this is a "model", and how much is plain software following a rule?
+
+The model is the AI itself — the part that reads and writes. It costs money every time it runs, and it can answer differently tomorrow from the same starting point. Plain software does the same thing every time and can be explained afterwards. Most of what a business needs done in a week wants the second one. "It's all AI" is an answer, and an expensive one.
+
+2. Can an "agent" act, or only propose?
+
+An agent is a model given tools — the ability to actually do something, send the email, raise the invoice, rather than just write words. That is the whole meaning of the word. It is the difference between a new starter who emails your client directly and one who leaves it in your drafts. If the answer is "we've prompted it not to" — a prompt being the instructions it's given — then it can. It has been asked not to.
+
+3. What are the "guardrails", exactly?
+
+Ask what kind of thing the safety net is. If it's another model checking the first model, it can be talked round the same way the first one was. A limit that is built into the software is a different kind of thing entirely.
+
+4. Where does the work live between being asked for and being done?
+
+If the answer is "in the context window" — the AI's short-term memory, which doesn't survive being closed — ask what happens when you approve something tomorrow morning rather than now. Real work waits overnight. Demos never have to.
+
+5. What does the "integration" actually hand over?
+
+Connecting your accounting system usually means giving them a key — a token — that keeps working long after the meeting. Ask where it's kept, who can see it, and how you cancel it without ringing anyone. It is the largest risk in the arrangement and almost never on the slide.
+
+6. Is the approval structural, or behavioural?
+
+Meaning: is it stopped by the way the software is built, or by the AI having been told to stop? That's question two again, asked at the end on purpose, because the first answer is usually the optimistic one.
+
+None of these require you to understand how any of it works. They require the seller to be specific, which is the actual test.
+
+I'd apply all six to us as well. That's rather the point of writing them down.
+
+—
+Before You Buy One. №1
+What the words actually mean, and what to ask before somebody sells you one.
