@@ -88,3 +88,62 @@ describe('quiet on ordinary code', () => {
     expect(result.passed).toBe(true)
   })
 })
+
+describe('comments are not claims', () => {
+  // Both of these happened for real. A claim is something a VISITOR can read;
+  // a source comment is read by the next maintainer, and the honest way to
+  // remove a false claim is to leave a note saying what it used to be and why.
+  // A checker that punishes that teaches people to delete the explanation.
+
+  it('does not report a comment explaining why a claim was removed', async () => {
+    // MMC Build, 2026-08-09: the note recording why fabricated supplier prices
+    // were deleted mentioned "partner logos and testimonials", and the audit
+    // reported it as TWO unattested surfaces — on a repo whose three genuine
+    // findings were already waiting on a client decision, so the noise sat on
+    // top of the signal.
+    const dir = await repoWith(
+      'SupplierPlans.tsx',
+      `/**
+        * The figures were removed on 2026-08-09. That is the same reasoning the
+        * client accepted for the partner logos and testimonials on SCRUM-376.
+        */
+       export const plans = [{ name: 'Verified Supplier' }]`,
+    )
+    const result = await runSocialProofAudit({ cwd: dir })
+    expect(result.findings).toHaveLength(0)
+    expect(result.passed).toBe(true)
+  })
+
+  it('does not fail on a comment that QUOTES a filler string it removed', async () => {
+    // The original incident, and the reason offer-claims was built excluding
+    // comments from the start.
+    const dir = await repoWith(
+      'Hero.tsx',
+      `// Removed the scaffold quote "this product changed the way we work" on 5 Aug.
+       export const Hero = () => null`,
+    )
+    const result = await runSocialProofAudit({ cwd: dir })
+    expect(result.findings).toHaveLength(0)
+  })
+
+  it('still reports the same surface when it is REAL markup, not a comment', async () => {
+    // The guard must not become a way to hide a live claim. Same words, outside
+    // a comment.
+    const dir = await repoWith(
+      'Partners.tsx',
+      `export const Partners = () => <section><h2>Our partners</h2></section>`,
+    )
+    const result = await runSocialProofAudit({ cwd: dir })
+    expect(result.passed).toBe(false)
+    expect(result.findings.some((f) => /partners/i.test(f.message))).toBe(true)
+  })
+
+  it('reports the line the reader would open, since blanking preserves newlines', async () => {
+    const dir = await repoWith(
+      'Wall.tsx',
+      `// header\n// header\nexport const W = () => <div>Trusted by</div>`,
+    )
+    const result = await runSocialProofAudit({ cwd: dir })
+    expect(result.findings[0]?.line).toBe(3)
+  })
+})

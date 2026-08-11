@@ -46,6 +46,7 @@ import { join } from 'node:path'
 import {
   type AuditFinding,
   type AuditResult,
+  blankComments,
   passedFromFindings,
   readFileOptional,
   relativeTo,
@@ -126,7 +127,10 @@ export async function runSocialProofAudit(options: SocialProofOptions = {}): Pro
     const content = await readFileOptional(file)
     if (!content) continue
     const rel = relativeTo(cwd, file)
-    const lines = content.split(/\r?\n/)
+    // Comments are excluded - a claim is something a VISITOR can read, and a
+    // note explaining a REMOVED claim must not be reported as the claim.
+    // Newlines are preserved so line numbers still point at the right line.
+    const lines = blankComments(content).split(/\r?\n/)
     const attested = content.includes(ATTESTATION)
 
     // 1. Known filler — always a failure, attested or not.

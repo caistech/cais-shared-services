@@ -177,3 +177,32 @@ export function formatAuditResult(result: AuditResult): string {
 export function passedFromFindings(findings: AuditFinding[]): boolean {
   return findings.every((f) => f.severity !== 'fail')
 }
+
+/**
+ * Blank out comments, preserving newlines so reported line numbers still point
+ * at the right line.
+ *
+ * ⚠️ THIS IS NOT TIDINESS — IT IS THE DIFFERENCE BETWEEN A CHECK PEOPLE KEEP AND
+ * ONE THEY SWITCH OFF. A claim is something a VISITOR can read. Source comments
+ * are read by the next maintainer, and the honest way to remove a false claim is
+ * to leave a note saying what it used to be and why it went.
+ *
+ * Both halves of that have now happened for real:
+ *   - a comment explaining a removed filler string QUOTED the string, and the
+ *     social-proof audit failed on its own explanation;
+ *   - a comment explaining why false supplier prices were removed mentioned
+ *     "partner logos and testimonials", and social-proof reported it as two
+ *     unattested surfaces — on a repo where the three genuine findings were
+ *     already waiting on a client decision, so the noise sat on top of the
+ *     signal for a day.
+ *
+ * A checker that punishes the explanation teaches people to delete the
+ * explanation. `offer-claims` was written with this from the start; it was
+ * lifted here so `social-proof` — the audit the lesson was learned FROM — uses
+ * the same implementation rather than a second copy of it.
+ */
+export function blankComments(content: string): string {
+  return content
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+    .replace(/\/\/[^\n]*/g, (m) => ' '.repeat(m.length))
+}
