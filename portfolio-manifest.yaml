@@ -276,6 +276,44 @@ projects:
       - ANTHROPIC_API_KEY
       # Advisor enquiry form asks for a firm — so it needs the ABN lookup (2026-07-27).
       - ABR_GUID
+      # THE SENDER IDENTITY WAS CANON WIRED TO NOTHING (added 2026-08-10).
+      #
+      # `shared:` has carried these five since 2026-07-26, and PRODUCT_STANDARDS names this file
+      # as their single source of truth — but `inherit_shared` is OPT-IN (resolveProjectEnvs starts
+      # from an empty object), and a grep across every project in this manifest returned ZERO
+      # inheritors. So the canonical block was defined and connected to nothing.
+      #
+      # Kira's five were set by hand on 2026-07-25 and are marked `sensitive`, hence non-readable —
+      # so what production actually sends under cannot be verified by anyone, including whoever
+      # typed it.
+      #
+      # ⚠️ CORRECTION (2026-08-11): this block was first written saying that inheriting them makes
+      # the values canonical BY CONSTRUCTION. It does not, and the difference matters.
+      #
+      # The audit compares TARGET PRESENCE, never values (`classifyDeclared` in
+      # packages/portfolio-env-sync/src/diff.ts), and apply skips every row it classifies `ok`. All
+      # five already exist on production+preview, so they are `ok` — verified against the live
+      # Vercel API on 2026-08-11: apply would touch NONE of them.
+      #
+      # So inheriting makes the DECLARATION canonical. The five VALUES on Kira are still whatever
+      # was typed on 25 July, still unreadable, still unverified. That is worth having — the
+      # declaration is what a future project inherits, and what makes the omission visible — but it
+      # is not the same thing as the values being right.
+      #
+      # Making the values canonical needs the five DELETED on Kira and recreated from here by
+      # `--apply`. A PATCH cannot replace a sensitive value. That is a deliberate act against a live
+      # product's legal identity, with a window in which a send throws (fail-closed, per
+      # `senderFromEnv`), so it is an operator decision rather than a tidy-up.
+      #
+      # Kira sends as CORPORATE AI SOLUTIONS (operator, 2026-08-10) — Global Buildtech Australia is
+      # the only registered entity, so it is what the product's Spam Act footer must name. This is
+      # the PRODUCT identity only: mail Kira writes AS A TENANT carries that tenant's own entity,
+      # which is why the orchestrator below is deliberately excluded rather than overlooked.
+      - EMAIL_SENDER_NAME
+      - EMAIL_SENDER_EMAIL
+      - EMAIL_SENDER_ABN
+      - EMAIL_SENDER_POSTAL
+      - EMAIL_SENDER_PHONE
     envs:
       PLATFORM_TRUST_PROJECT_ID: { ref: "$secret:platform_trust_project_id_kira" }
 
