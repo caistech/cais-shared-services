@@ -40,10 +40,53 @@ const CONFIG_PATH = join(REPO, 'driplets', 'config.json');
 const QUEUE_PATH = join(REPO, 'driplets', 'queue.json');
 const POSTS_PATH = join(REPO, 'driplets', 'posts.json');
 
-export const SERIES = {
-  name: "Just Ship It. It'll be Fine.",
-  tagline: "What we were sure of, what happened next, and what we changed so it can't go the same way twice.",
+/**
+ * The series a post belongs to. Keyed by the `series` field on the post; absent means the
+ * original, so every existing post keeps working untouched.
+ *
+ * There are two lanes and they must not share a masthead. Stream A is evidence-bound — its
+ * tagline promises a thing that HAPPENED and was fixed, and that promise is the whole value
+ * of it. Stream B is thesis-bound: opinion, frameworks, market reads. Putting a thesis under
+ * A's tagline would claim A's authority for something that has no incident behind it, which
+ * `driplets/TEMPLATE-B.md` names as the one thing that must never be relaxed.
+ *
+ * A rename still propagates from ONE place, which was the point of the original constant —
+ * the fix for a second series is another entry here, never a second name typed into a body.
+ */
+export const SERIES_REGISTRY = {
+  shipit: {
+    name: "Just Ship It. It'll be Fine.",
+    tagline:
+      "What we were sure of, what happened next, and what we changed so it can't go the same way twice.",
+  },
+  buyone: {
+    name: 'Before You Buy One.',
+    tagline: 'What the words actually mean, and what to ask before somebody sells you one.',
+  },
 };
+
+export const DEFAULT_SERIES = 'shipit';
+
+/** The original export, kept so nothing that imported it has to change. */
+export const SERIES = SERIES_REGISTRY[DEFAULT_SERIES];
+
+/**
+ * An unknown series THROWS rather than falling back to the default.
+ *
+ * A typo in `series` would otherwise publish a thesis post under the confession masthead —
+ * silently, and looking entirely correct. That is the one failure this split exists to
+ * prevent, so it must not be reachable by a misspelling.
+ */
+export function seriesFor(post) {
+  const key = post?.series ?? DEFAULT_SERIES;
+  const found = SERIES_REGISTRY[key];
+  if (!found) {
+    throw new Error(
+      `unknown series "${key}" — add it to SERIES_REGISTRY, or a post will publish under the wrong masthead`,
+    );
+  }
+  return found;
+}
 
 // LinkedIn hard limit on a feed post. Not a style preference — the API rejects longer.
 export const MAX_CHARS = 3000;
@@ -70,14 +113,15 @@ export function render(post, seriesNumber) {
   // without opening it. It costs ~31 characters of the fold and the hook still fits, so
   // it is free. It lives here rather than in the body text so the name has ONE home and a
   // rename propagates — baking it into eight bodies is how a series ends up with two names.
-  const masthead = post.masthead ? `${SERIES.name} №${seriesNumber}\n\n` : '';
+  const series = seriesFor(post);
+  const masthead = post.masthead ? `${series.name} №${seriesNumber}\n\n` : '';
   // The footer repeats the name and number even when a masthead is present. Tried it as
   // tagline-only on the grounds that repetition is noise; the operator wants both, and he
   // is right — the masthead is for the scroller who never opens it, the footer is for the
   // reader who finished. They are different people and each needs to be told what this is.
   const footer = post.footerOverride
     ? String(post.footerOverride)
-    : `${SERIES.name} №${seriesNumber}\n${SERIES.tagline}`;
+    : `${series.name} №${seriesNumber}\n${series.tagline}`;
 
   return `${masthead}${body}\n\n—\n${footer}`;
 }
@@ -104,8 +148,13 @@ export function preflight(text, config, sanitise) {
 }
 
 /** Next series number = one past the highest already published. Gaps are not reused. */
-export function nextSeriesNumber(posts) {
-  const used = posts.filter((p) => p.status === 'published' && Number.isFinite(p.seriesNumber)).map((p) => p.seriesNumber);
+export function nextSeriesNumber(posts, series = DEFAULT_SERIES) {
+  // Scoped to ONE series. Shared numbering would make the second lane open at №9 because the
+  // first lane got there first — which reads as seven missing posts to anyone who finds it.
+  const used = posts
+    .filter((p) => (p.series ?? DEFAULT_SERIES) === series)
+    .filter((p) => p.status === 'published' && Number.isFinite(p.seriesNumber))
+    .map((p) => p.seriesNumber);
   return used.length ? Math.max(...used) + 1 : 1;
 }
 
@@ -179,6 +228,22 @@ function selfTest(config, sanitise) {
   check('series numbering starts at 1', nextSeriesNumber([]) === 1);
   check('series numbering continues past published', nextSeriesNumber([{ status: 'published', seriesNumber: 4 }]) === 5);
   check('drafts do not consume a number', nextSeriesNumber([{ status: 'draft', seriesNumber: 9 }]) === 1);
+  check(
+    'a second series numbers from 1, not from the first series',
+    nextSeriesNumber([{ status: 'published', seriesNumber: 8 }], 'buyone') === 1,
+  );
+  check(
+    'the second series renders its OWN masthead',
+    render({ body: 'hook', masthead: true, series: 'buyone' }, 1).startsWith(SERIES_REGISTRY.buyone.name),
+  );
+  check(
+    'a post with no series still renders the original',
+    render({ body: 'hook', masthead: true }, 1).startsWith(SERIES.name),
+  );
+  // A typo must not quietly publish a thesis under the confession masthead.
+  let unknownThrew = false;
+  try { render({ body: 'hook', masthead: true, series: 'shipot' }, 1); } catch { unknownThrew = true; }
+  check('an unknown series throws rather than defaulting', unknownThrew);
 
   // An unconfigured transport must refuse rather than quietly succeed.
   let threw = false;
@@ -214,7 +279,8 @@ async function main() {
     console.log(`queue   ${queue.filter((c) => c.status === 'new').length} candidates ready to draft\n`);
     for (const p of doc.posts) {
       const n = p.seriesNumber ? `№${p.seriesNumber}` : '  —';
-      console.log(`  ${p.status.padEnd(9)} ${n.padEnd(4)} ${p.id.padEnd(28)} ${String(p.title ?? '').slice(0, 60)}`);
+      const lane = (p.series ?? DEFAULT_SERIES).padEnd(6);
+      console.log(`  ${p.status.padEnd(9)} ${lane} ${n.padEnd(4)} ${p.id.padEnd(28)} ${String(p.title ?? '').slice(0, 60)}`);
     }
     if (!doc.posts.length) console.log('  (none — add drafts to driplets/posts.json)');
     console.log('');
@@ -233,10 +299,13 @@ async function main() {
     const ordered = [...doc.posts].sort((a, b) => (a.publishOrder ?? 99) - (b.publishOrder ?? 99));
     let blocked = 0;
     for (const post of ordered) {
-      const n = post.seriesNumber ?? nextSeriesNumber(doc.posts);
+      const n = post.seriesNumber ?? nextSeriesNumber(doc.posts, post.series);
       const text = render(post, n);
       const problems = preflight(text, config, sanitiseMatches);
-      const order = String(post.publishOrder ?? 0).padStart(2, '0');
+      // Prefixed with the lane, because publishOrder restarts at 1 for each series — without
+      // it two files both open "01-" and the export directory stops telling you what order
+      // anything goes out in, which is the only job it has.
+      const order = `${post.series ?? DEFAULT_SERIES}-${String(post.publishOrder ?? 0).padStart(2, '0')}`;
       // A post that fails preflight is still written, but named so it cannot be pasted by
       // accident. Silently omitting it would leave a gap nobody notices.
       const name = problems.length ? `${order}-BLOCKED-${post.id}.txt` : `${order}-${post.id}.txt`;
@@ -260,7 +329,7 @@ async function main() {
     return;
   }
 
-  const seriesNumber = post.seriesNumber ?? nextSeriesNumber(doc.posts);
+  const seriesNumber = post.seriesNumber ?? nextSeriesNumber(doc.posts, post.series);
   const text = render(post, seriesNumber);
   const problems = preflight(text, config, sanitiseMatches);
 
