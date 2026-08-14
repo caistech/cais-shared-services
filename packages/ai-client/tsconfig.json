@@ -4,5 +4,8 @@
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  // Tests must not reach dist/: "files": ["dist/"] ships whatever tsc emits, so a compiled
+  // *.test.js lands in the tarball importing vitest, which consumers do not have.
+  "exclude": ["**/*.test.ts"]
 }
