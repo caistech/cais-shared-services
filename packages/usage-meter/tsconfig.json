@@ -16,5 +16,9 @@
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  // Tests must not reach dist/: "files": ["dist/"] ships everything tsc emits, so a compiled
+  // *.test.js lands in the published tarball importing `vitest` — a devDependency consumers do
+  // not have. Harmless only until a bundler globs the directory. (Caught in 0.2.0, fixed in 0.2.1.)
+  "exclude": ["**/*.test.ts"]
 }

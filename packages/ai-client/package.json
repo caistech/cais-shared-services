@@ -1,12 +1,27 @@
 {
   "name": "@caistech/ai-client",
-  "version": "0.1.0",
-  "description": "Anthropic SDK + OpenRouter routing helper — consistent Claude client init across the portfolio",
+  "version": "0.3.0",
+  "description": "Anthropic SDK + OpenRouter routing helper, plus the canonical model-alias registry (/models) — consistent client init and model selection across the portfolio",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./models": {
+      "types": "./dist/models/index.d.ts",
+      "import": "./dist/models/index.js"
+    },
+    "./run": {
+      "types": "./dist/run/index.d.ts",
+      "import": "./dist/run/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "lint": "tsc --noEmit",
+    "test": "vitest run",
     "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
@@ -24,5 +39,8 @@
     "directory": "packages/ai-client"
   },
   "license": "PRIVATE",
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@caistech/usage-meter": "^0.3.0"
+  }
 }
