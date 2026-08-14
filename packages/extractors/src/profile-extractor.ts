@@ -74,6 +74,100 @@ export interface ExtractionError {
 }
 
 // ============================================================
+// Raw page retrieval
+// ============================================================
+
+export interface FetchPageOptions {
+  /** Timeout for HTTP fetch in ms (default: 10000) */
+  fetchTimeout?: number;
+  /** User-Agent string for fetching (default: StoreFrontMCP-Audit/2.0) */
+  userAgent?: string;
+  /**
+   * Optional cap on returned HTML length, in characters. Undefined = no cap, which is the
+   * behaviour every existing caller already has — a default cap here would silently truncate
+   * pages for consumers that never asked for one.
+   */
+  maxChars?: number;
+}
+
+export interface FetchedPage {
+  /** The page as served. NOT stripped — see stripHtmlToText if you want visible text. */
+  html: string;
+  status: number;
+  /** Where we ended up after redirects. Differs from the requested url on a redirect. */
+  finalUrl: string;
+  /** True when maxChars was supplied and the body was longer. */
+  truncated: boolean;
+}
+
+export interface FetchPageError {
+  error: string;
+  /** Present when the server answered and we rejected the status; absent on a network failure. */
+  status?: number;
+}
+
+/**
+ * Fetch a page and return its RAW HTML.
+ *
+ * WHY THIS IS EXPORTED. This fetch already existed — it lived eight lines inside extractProfile,
+ * which threw the HTML away after stripping it to text. That made a whole class of work impossible
+ * for every consumer of this package: anything that must reason about MARKUP rather than prose.
+ * Third-party embeds are the clearest case — a booking provider, an analytics tag, a chat widget or
+ * a payment form is identified by a `<script src>`, a `<link href>` or an iframe, and
+ * stripHtmlToText deletes exactly those. So a consumer needing that had two options, both bad:
+ * re-implement fetch locally (a forked primitive), or infer a technology from page COPY, which
+ * reads "Book online" and cannot tell you who provides the booking.
+ *
+ * A FAILURE IS TYPED, NOT THROWN, and the two failure shapes are kept apart deliberately: a non-2xx
+ * carries `status` (the server answered and said no), a network/timeout failure does not (we never
+ * got that far). A caller reasoning about evidence must be able to tell "this practice has no
+ * website" from "we could not reach it" — collapsing them turns an outage into a finding.
+ *
+ * Error strings are byte-identical to the ones extractProfile has always returned, because that
+ * function now calls this one and its consumers match on those messages.
+ */
+export async function fetchPage(
+  url: string,
+  options: FetchPageOptions = {}
+): Promise<FetchedPage | FetchPageError> {
+  const {
+    fetchTimeout = 10000,
+    userAgent = 'StoreFrontMCP-Audit/2.0',
+    maxChars,
+  } = options;
+
+  try {
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(fetchTimeout),
+      headers: { 'User-Agent': userAgent },
+      redirect: 'follow',
+    });
+    if (!res.ok) {
+      return { error: `Failed to fetch ${url}: HTTP ${res.status}`, status: res.status };
+    }
+    const body = await res.text();
+    const truncated = typeof maxChars === 'number' && body.length > maxChars;
+    return {
+      html: truncated ? body.slice(0, maxChars) : body,
+      status: res.status,
+      // res.url is the post-redirect URL. Falls back to the requested one, because a caller that
+      // resolves relative links against an empty string produces silently wrong absolute URLs.
+      finalUrl: res.url || url,
+      truncated,
+    };
+  } catch (err) {
+    return { error: `Failed to fetch ${url}: ${err instanceof Error ? err.message : 'timeout'}` };
+  }
+}
+
+/** Narrowing guard for fetchPage's union return. */
+export function isFetchPageError(
+  result: FetchedPage | FetchPageError
+): result is FetchPageError {
+  return 'error' in result;
+}
+
+// ============================================================
 // Core extraction
 // ============================================================
 
@@ -92,23 +186,16 @@ export async function extractProfile(
     userAgent = 'StoreFrontMCP-Audit/2.0',
   } = options;
 
-  // 1. Fetch and clean HTML
-  let pageText: string;
-  let rawHtml: string;
-  try {
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(fetchTimeout),
-      headers: { 'User-Agent': userAgent },
-      redirect: 'follow',
-    });
-    if (!res.ok) {
-      return { error: `Failed to fetch ${url}: HTTP ${res.status}` };
-    }
-    rawHtml = await res.text();
-    pageText = stripHtmlToText(rawHtml, maxHtmlChars);
-  } catch (err) {
-    return { error: `Failed to fetch ${url}: ${err instanceof Error ? err.message : 'timeout'}` };
+  // 1. Fetch and clean HTML. Delegated to fetchPage so this package has exactly ONE fetch —
+  // exporting a second copy of these eight lines is the duplication the export exists to prevent.
+  const page = await fetchPage(url, { fetchTimeout, userAgent });
+  if (isFetchPageError(page)) {
+    // `status` is deliberately dropped: ExtractionError has never carried it, and widening a
+    // returned shape is a contract change for every consumer that reads this union.
+    return { error: page.error };
   }
+  const rawHtml = page.html;
+  const pageText = stripHtmlToText(rawHtml, maxHtmlChars);
 
   // 2. Extract social links from raw HTML (regex — fast, no LLM needed)
   const socialLinks = extractSocialLinks(rawHtml);
