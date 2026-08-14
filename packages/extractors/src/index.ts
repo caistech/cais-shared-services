@@ -2,6 +2,8 @@ export {
   extractProfile,
   stripHtmlToText,
   isExtractionError,
+  fetchPage,
+  isFetchPageError,
 } from './profile-extractor.js';
 export type {
   BusinessProfile,
@@ -9,6 +11,9 @@ export type {
   SocialLinks,
   ProfileExtractorOptions,
   ExtractionError,
+  FetchPageOptions,
+  FetchedPage,
+  FetchPageError,
 } from './profile-extractor.js';
 
 export { extractSocialProfiles } from './social-extractor.js';
