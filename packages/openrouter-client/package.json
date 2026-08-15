@@ -10,7 +10,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@caistech/usage-meter": "^0.1.0"
+    "@caistech/usage-meter": "^0.3.0"
   },
   "peerDependencies": {
     "typescript": ">=5.0.0"
