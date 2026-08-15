@@ -1,0 +1,130 @@
+/*
+ * Corporate AI Solutions — Motion Vocabulary
+ *
+ * PROVENANCE: extracted 2026-08-08 from the Prelabz MVP v1.0 prototype
+ * (`preview (25).html`). That file reads as richly animated; measured, its
+ * entire motion system is 10 keyframes and 14 CSS transitions. No GSAP, no
+ * Framer Motion, no requestAnimationFrame, no scroll observers, no canvas.
+ *
+ * Three of its keyframes (`v08in`, `v10in`, and a second `v08in`) were
+ * byte-identical — each appended layer redefined the same fade because it
+ * could not reuse the earlier one. They collapse here into `cais-fade-rise`.
+ *
+ * The lesson to carry: a small, consistently-applied motion set reads as
+ * polish. A large one reads as noise. Resist adding to this file — seven
+ * animations is the budget, not the starting point.
+ *
+ * Framework-agnostic plain CSS. Pairs with `tokens.css`.
+ */
+
+/* ══════════════════════════════════════════════════════════════════════════
+ *  ENTRANCE — one animation, used everywhere
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/* Fade + 8px rise. Applied on view change, panel mount, list-item reveal. */
+@keyframes cais-fade-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.cais-enter { animation: cais-fade-rise .24s ease; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+ *  LIVE STATE — something is happening right now
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/* Gentle scale breath. For an active voice/recording control. */
+@keyframes cais-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.06); }
+}
+
+/* Expanding halo, fading out. Layer BEHIND the pulsing control. */
+@keyframes cais-ring {
+  0%   { transform: scale(.85); opacity: .8; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+/* Soft focus ring bloom. For "this just became active". */
+@keyframes cais-bloom {
+  50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--cais-cyan) 15%, transparent); }
+}
+
+.cais-pulse { animation: cais-pulse 1.15s infinite; }
+.cais-ring  { animation: cais-ring 1.15s infinite; }
+.cais-bloom { animation: cais-bloom .8s ease; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+ *  LOADING — never an empty box
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/* Skeleton shimmer. Requires a 200%-wide gradient background. */
+@keyframes cais-shimmer {
+  to { background-position: -200% 0; }
+}
+
+.cais-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--cais-panel) 0%,
+    var(--cais-panel-2) 50%,
+    var(--cais-panel) 100%
+  );
+  background-size: 200% 100%;
+  animation: cais-shimmer 1.2s infinite;
+  border-radius: 8px;
+}
+
+/* Indeterminate progress sweep. Put inside an overflow:hidden track. */
+@keyframes cais-sweep {
+  from { transform: translateX(-120%); }
+  to   { transform: translateX(340%); }
+}
+
+.cais-sweep { animation: cais-sweep 1s linear infinite; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+ *  NOTIFICATION & ATTENTION
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/* Toast entrance from below. */
+@keyframes cais-toast-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* One-shot glow to say "the thing you asked for is HERE". Fires on deep-link
+ * arrival — the single highest-value animation in the source prototype,
+ * because it answers "where did it take me?" without any copy. */
+@keyframes cais-flash {
+  0%, 100% { box-shadow: none; }
+  50%      { box-shadow: 0 0 32px color-mix(in srgb, var(--cais-cyan) 45%, transparent); }
+}
+
+.cais-toast { animation: cais-toast-in .25s ease; }
+.cais-flash { animation: cais-flash 1.2s ease; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+ *  ACCESSIBILITY — absent from the source; required here
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * The source prototype has zero prefers-reduced-motion handling. Infinite
+ * pulse/shimmer/sweep animations are a vestibular trigger and, for some users,
+ * a genuine barrier rather than a preference. Everything above degrades to a
+ * static, still-legible state — the skeleton keeps its panel fill, the sweep
+ * holds position, entrances land instantly.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .cais-enter,
+  .cais-pulse,
+  .cais-ring,
+  .cais-bloom,
+  .cais-skeleton,
+  .cais-sweep,
+  .cais-toast,
+  .cais-flash {
+    animation: none !important;
+  }
+
+  .cais-ring { opacity: 0; }
+}

@@ -1,0 +1,117 @@
+/*
+ * Corporate AI Solutions — Dark Instrument Palette (tokens)
+ *
+ * PROVENANCE: extracted 2026-08-08 from the Prelabz MVP v1.0 single-file
+ * prototype supplied by Dan (`preview (25).html`, 586KB, 26 views). The palette
+ * is the part of that prototype worth keeping — a near-black base with a
+ * restricted neon accent set, disciplined enough to carry 26 screens without
+ * drifting.
+ *
+ * STATUS: STEP-1 INPUT, NOT A RATIFIED DESIGN SYSTEM.
+ * Per the design-system decision (memory `project_design_system_ownership`),
+ * this is an authored starting point. It must go through /design-consultation
+ * against a real ICP before `design-system` emits the canonical three-layer
+ * tokens + validate-tokens.cjs. Do not treat it as settled.
+ *
+ * Framework-agnostic plain CSS — no Tailwind directives — so any repo can
+ * @import it. Pairs with `motion.css`.
+ */
+
+:root {
+  /* ─── Surfaces (darkest → lightest) ─── */
+  --cais-bg: #04080d;      /* page floor */
+  --cais-bg-2: #07111a;    /* raised page band */
+  --cais-panel: #0a1621;   /* card / panel */
+  --cais-panel-2: #0c1b29; /* nested panel, hover state */
+
+  /* ─── Borders ─── */
+  --cais-line: #19384c;    /* default divider */
+  --cais-line-2: #244d64;  /* emphasised / focused edge */
+
+  /* ─── Text ─── */
+  --cais-text: #edf8ff;    /* primary — near-white, cool cast */
+  --cais-muted: #87a1b2;   /* secondary, labels, captions */
+
+  /* ─── Accents ───
+   * Eight hues, deliberately no more. Each carries meaning in the source
+   * prototype; keep them semantic per product rather than decorative.
+   */
+  --cais-cyan: #25d7d0;    /* primary action, brand-forward */
+  --cais-blue: #46a6ff;    /* informational */
+  --cais-lime: #9beb5d;    /* healthy / passing / go */
+  --cais-yellow: #ffd84a;  /* attention */
+  --cais-orange: #ff9f1c;  /* warning / medium priority */
+  --cais-red: #ff5868;     /* failure / critical */
+  --cais-purple: #b57cff;  /* secondary brand, AI-attributed output */
+  --cais-pink: #ff6ca8;    /* accent, sparingly */
+
+  /* ─── Elevation ─── */
+  --cais-shadow: 0 18px 50px rgba(0, 0, 0, .28);
+  --cais-shadow-deep: 0 30px 100px rgba(0, 0, 0, .6);
+}
+
+/*
+ * ─── Ambient page wash ───
+ * Two corner radial glows over a vertical gradient. This is most of why the
+ * source prototype reads as "designed" rather than "dark mode" — the base is
+ * never a flat fill. Opt in per surface; do not force it onto every page.
+ */
+.cais-ambient {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(37, 215, 208, .08), transparent 26%),
+    radial-gradient(circle at 85% 5%, rgba(181, 124, 255, .08), transparent 24%),
+    linear-gradient(180deg, #03070b, #07111a 55%, #03070b);
+  color: var(--cais-text);
+}
+
+/*
+ * ─── Accent glow ───
+ * Tight, low-spread outer glow keyed to an accent. Used for live/active state.
+ * Set --cais-glow to the accent you want.
+ */
+.cais-glow {
+  box-shadow: 0 0 8px var(--cais-glow, var(--cais-cyan));
+}
+
+/*
+ * ══════════════════════════════════════════════════════════════════════════
+ *  RUNTIME DATA BINDING — the technique worth copying
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * The source prototype's most reusable idea is NOT a token. It sets a custom
+ * property PER ELEMENT from data, then reads it in a static stylesheet rule:
+ *
+ *     <div class="cais-bar" style="--cais-value: 68%; --cais-tone: #9beb5d">
+ *
+ *     .cais-bar::after { width: var(--cais-value); background: var(--cais-tone) }
+ *
+ * The colour and magnitude travel with the row; the CSS never learns the data
+ * and the JS never learns the layout. Cheap, and it survives a component
+ * rewrite. In React, set them via the `style` prop — never by string-building
+ * markup (the prototype uses innerHTML 144 times; do not carry that across).
+ *
+ * Reserved binding names — declare these INLINE per element, never in :root:
+ *   --cais-value    a percentage or ratio for a bar/meter fill
+ *   --cais-tone     a data-derived colour (score band, priority, health)
+ */
+.cais-bar {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--cais-panel-2);
+  overflow: hidden;
+}
+
+.cais-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--cais-value, 0%);
+  background: var(--cais-tone, var(--cais-cyan));
+  border-radius: inherit;
+  transition: width .3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cais-bar::after { transition: none; }
+}
