@@ -88,6 +88,27 @@ isn't registered — check the scheme"* removes the single most common failure i
 Ask for these and nothing else. Every restricted scope is separately justified at verification, so
 each extra one costs real time.
 
+> ⛔ **THREE ROWS BELOW ARE DISPUTED — CONFIRM AGAINST GOOGLE'S LIVE RESTRICTED-SCOPE LIST BEFORE
+> SUBMITTING.** Flagged 2026-08-15 from the orchestrator's shipped implementation, which disagrees
+> with this table. A paid third-party **CASA security assessment** rides on the answer, so this is a
+> money-and-schedule question rather than a documentation nit.
+>
+> | Scope | This table | The implementation / current read |
+> |---|---|---|
+> | **`gmail.drafts.create`** | listed, "sensitive" | ⚠️ **Probably does not exist.** Gmail publishes `compose`, `send`, `insert`, `modify`, `readonly`, `metadata`, `labels`, `settings.*`. `orchestrator/src/connectors/google.ts` states outright that **there is no draft-only scope** — `gmail.compose` is the narrowest that can create a draft, **and it also permits sending**. A submission justifying a non-existent scope gets bounced, and the "structurally cannot send" claim in the row is the opposite of true. |
+> | **`gmail.send`** | "sensitive" | Likely **correct**. Google's split runs on *reading*: `readonly`/`metadata`/`modify`/`insert`/`mail.google.com` restricted; `compose` and `send` sensitive. |
+> | **`contacts.readonly` / `.other.readonly`** | **restricted** | `orchestrator/src/connectors/google-contacts.ts` says merely **sensitive** — *"they add nothing to the verification burden that Drive does not already carry."* |
+>
+> **Why the contacts row is the expensive one.** If contacts is *sensitive*, then a
+> `drive.file` + `contacts.*` + `gmail.compose` app carries **no restricted scopes at all** — fast,
+> cheap verification, no CASA. Only `drive` / `drive.readonly` / `gmail.readonly` cross that line. And
+> since **verification reviews the UNION** of everything the app *can* request, offering wide Drive or
+> mailbox-read *as an option* buys the assessment for every tenant, including those who choose neither.
+>
+> ⚠️ **Do not resolve this from either document.** The disagreement was found by an agent that then
+> got the classification wrong in *both* directions inside one session. Google's live list is the only
+> authority; reconcile this table to it once, and correct the row rather than adding a note.
+
 | Scope | Why | Class |
 |---|---|---|
 | `openid`, `userinfo.email`, `userinfo.profile` | Know WHICH account consented, so a wrong-account connect is detectable | basic |
@@ -95,10 +116,10 @@ each extra one costs real time.
 | `drive.readonly` | Read everything. The recommended default | **restricted** |
 | `drive.file` | Only files the user picks. Least privilege | non-sensitive |
 | `gmail.readonly` | Read Sent mail — where a tenant's ISSUED documents actually are (§4) | **restricted** |
-| `gmail.send` | Send as the tenant, from their real address | sensitive |
-| `gmail.drafts.create` | Put a draft in their Gmail for them to send. Structurally cannot send | sensitive |
-| `contacts.readonly` | Resolve "Roger at Quantum Surveys" to an address | **restricted** |
-| `contacts.other.readonly` | The auto-saved-from-email list, where infrequent contacts live | **restricted** |
+| `gmail.send` | Send as the tenant, from their real address | sensitive ⛔ |
+| `gmail.compose` | Create a draft in their Gmail. ⚠️ **Also permits sending** — there is no draft-only scope, so the send guard must be in the CODE (see `orchestrator/src/connectors/gmail-draft.ts` and its repo-wide `gmail-no-send.test.ts`) | sensitive ⛔ |
+| `contacts.readonly` | Resolve "Roger at Quantum Surveys" to an address | **restricted** ⛔ |
+| `contacts.other.readonly` | The auto-saved-from-email list, where infrequent contacts live | **restricted** ⛔ |
 
 **Offer all three Drive scopes** if the product lets the owner choose their access level — a scope
 absent from the consent screen makes that option fail at Google rather than in your code.

@@ -30,6 +30,22 @@ code you think it is, and walk the user's whole path yourself. During your own w
 A run that reports defects a five-minute script would have caught has been half wasted, and the
 findings that matter get buried under them.
 
+- [ ] **When the Vercel scope 403s, probe the APP instead of the platform.** `deploy-status` needs a
+      token with the right team scope, and when it does not have one the honest report is *"cannot
+      verify"* — which is where a real session stopped on 2026-08-15, leaving two repos blocked on an
+      unknown. It was answerable in one command, because a route's existence is public:
+
+      ```
+      GET  <route>  -> 405   the route exists (POST-only)
+      POST <route>  -> 401   deployed AND guarded — unauthenticated, so it writes nothing
+                     -> 404   not deployed
+      ```
+
+      What makes this conclusive is that a **405 or a JSON 401 is a real handler answering**. The SSO
+      wall never does that — it returns 200 with HTML. ⚠️ It proves *deployed and guarded*, not
+      *working*: a well-formed **authenticated** call landing a row still needs a token, and that is
+      usually the half with the bug in it.
+
 - [ ] **Gate zero — is production serving the code you think it is?**
       `npx portfolio-gate-deploy-status --public-url <prod> --app-marker "<Product>"`.
       A stale production is *healthy*: it returns 200 all day. Only comparing the deployed commit
