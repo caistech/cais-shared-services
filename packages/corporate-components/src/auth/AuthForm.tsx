@@ -1645,6 +1645,17 @@ function MagicSentPanel({
   );
 }
 
+/**
+ * How long the resend control stays disabled after a successful send.
+ *
+ * 30s, not 60: long enough that nobody mashes it into a provider rate limit
+ * (Supabase's smtp_max_frequency is commonly 10–60s, and a second send inside
+ * that window fails in a way the person reads as "still broken"), short enough
+ * that someone genuinely waiting on a missing email is not stuck watching a
+ * dead screen. It is a pause, not a punishment.
+ */
+const RESEND_COOLDOWN_SECONDS = 30;
+
 function ConfirmEmailPanel({
   email,
   kind,
@@ -1664,6 +1675,14 @@ function ConfirmEmailPanel({
   // remedy is a politer dead end.
   const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [resendError, setResendError] = useState<string | null>(null);
+  // Seconds until the control comes back. See RESEND_COOLDOWN_SECONDS.
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const id = setInterval(() => setCooldown((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(id);
+  }, [cooldown > 0]);
 
   async function resend() {
     if (!onResend) return;
@@ -1676,6 +1695,7 @@ function ConfirmEmailPanel({
       return;
     }
     setResendState('sent');
+    setCooldown(RESEND_COOLDOWN_SECONDS);
   }
   const heading = kind === 'reset' ? 'Reset link sent' : 'Confirm your email';
   const body =
@@ -1709,19 +1729,39 @@ function ConfirmEmailPanel({
       </p>
       {onResend && (
         <div className="mt-5">
-          {resendState === 'sent' ? (
-            <p className={`text-base sm:text-sm ${t.confirmBody}`}>
+          {/*
+            THE CONTROL IS ALWAYS RENDERED — confirmation is a message ABOVE it,
+            never a replacement FOR it.
+
+            This used to swap the button out for "Sent again…" permanently, so
+            after one press the only control left on the screen was "Use a
+            different email". Measured on a live signup: gone at +30s and +60s.
+            That hands the person whose mail did not arrive twice exactly one
+            option — abandon the address they want — which is the same dead end
+            the panel was built to close, one step further along. A tester who
+            hit it put it plainly: she would have closed the tab and never
+            mentioned it.
+
+            A disabled button counting down reads as "wait"; a vanished button
+            reads as "broken". Both stop the double-send; only one of them tells
+            the truth.
+          */}
+          {resendState === 'sent' && (
+            <p className={`mb-2 text-base sm:text-sm ${t.confirmBody}`}>
               Sent again. Open it on this device if you can — that is the quickest way in.
             </p>
-          ) : (
-            <button
-              onClick={resend}
-              disabled={resendState === 'sending'}
-              className={`text-base sm:text-sm font-medium underline min-h-[44px] px-3 disabled:opacity-50 ${t.confirmHeading}`}
-            >
-              {resendState === 'sending' ? 'Sending…' : "Didn't get it? Send it again"}
-            </button>
           )}
+          <button
+            onClick={resend}
+            disabled={resendState === 'sending' || cooldown > 0}
+            className={`text-base sm:text-sm font-medium underline min-h-[44px] px-3 disabled:no-underline disabled:opacity-60 ${t.confirmHeading}`}
+          >
+            {resendState === 'sending'
+              ? 'Sending…'
+              : cooldown > 0
+                ? `You can send again in ${cooldown}s`
+                : "Didn't get it? Send it again"}
+          </button>
           {resendError && <p className="mt-2 text-base sm:text-sm text-red-600">{resendError}</p>}
         </div>
       )}
