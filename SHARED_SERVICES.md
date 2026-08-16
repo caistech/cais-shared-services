@@ -41,6 +41,17 @@
 >   is the more mature client; the orchestrator's is the correct tenancy model. Setup shape, scope set
 >   and the silent-failure traps are canonical in **`GOOGLE_WORKSPACE_CONNECTOR.md`** — read it before
 >   writing any Google integration.
+> - **A Microsoft sibling to the above** (OneDrive/SharePoint over one Entra app registration). ONE
+>   implementation so far — **orchestrator** `src/connectors/microsoft.ts`, files-only, no mail —
+>   deliberately built to the SAME shape as its Google twin (same exported names, same return shapes)
+>   per the build-alike rule below, so a combined package is a lift rather than a rewrite. **Not yet an
+>   extraction candidate** (one occurrence, not two), listed here so the second one converges instead
+>   of diverging. Setup shape, the scope set, and eight silent-failure traps are canonical in
+>   **`MICROSOFT_GRAPH_CONNECTOR.md`** — read it before writing any Graph integration. The three that
+>   most often bite: refresh tokens **rotate** (the opposite of Google, so Google's conditional-write
+>   guard is fatal here), granted scopes come back **without the resource prefix** (so a naive
+>   read-back reports every connection as declined), and Graph gives you **no text from a `.docx`** —
+>   which is usually the whole reason for the connector.
 > - **Conversational, effect-asserted red-teaming** → belongs INSIDE
 >   `@caistech/security-gate/red-team`, which already exists and which **Kira did not consume** (it
 >   built `scripts/red-team.mjs` + `lib/kira/redteam.test.ts` + its own tables instead — an
