@@ -1724,6 +1724,58 @@
       },
       "fixed_at": "2026-08-09",
       "fixed_by": "claude-opus-5"
+    },
+    {
+      "id": "numeric-guard-passes-silently-on-nan",
+      "product": "kira (general — any numeric guard)",
+      "error_pattern": "A validation or drift guard written as Math.abs(a - b) > threshold reports NO PROBLEM when the value is NaN, because every comparison with NaN is false",
+      "error_symptoms": [
+        "the guard logs nothing, throws nothing, and the bad value is written anyway",
+        "the visible symptom is generic and far downstream — \"the number never moves\", a blank figure, a null column",
+        "the guard has tests, and they all pass, because they only ever feed it well-formed input"
+      ],
+      "attempts": [
+        {
+          "tried": "Write the drift check the obvious way: Math.abs(recomputed - stored) > 0.005",
+          "result": "FAILED SILENTLY. A malformed inputs row made computeValuation return NaN; the comparison was false, the guard concluded \"no drift\", and NaN was written to the column."
+        },
+        {
+          "tried": "Feed the function inputs of the WRONG SHAPE in a test, rather than only wrong-but-valid ones",
+          "result": "WORKED — surfaced immediately as baseline NaN and reason undefined, exposing both the bad input and the guard that could not fire on it."
+        }
+      ],
+      "solution": {
+        "approach": "Assert Number.isFinite() on the computed value BEFORE any comparison, and refuse. Keep the malformed input as a permanent fixture. THE GENERAL RULE: a guard built on a numeric comparison must be proven to FIRE on the worst input, not merely on a plausible wrong one — otherwise the first thing it meets in production is the one case it cannot detect.",
+        "code_path": "kira lib/valuation/recompute-readiness.ts (finiteness check) + recompute-readiness.test.ts (NONSENSE_INPUTS)"
+      },
+      "fixed_at": "2026-08-16",
+      "fixed_by": "kira session"
+    },
+    {
+      "id": "column-selected-from-the-wrong-table-fails-only-at-runtime",
+      "product": "kira (general — any Supabase select)",
+      "error_pattern": "A Supabase .select() names a column that lives on a DIFFERENT table; tsc is clean because the client is untyped, and it errors only when the code actually runs",
+      "error_symptoms": [
+        "typecheck, build and unit tests are all green",
+        "the feature simply does nothing in production — no crash the user sees, just a value that never appears",
+        "the error is inside a caught block and surfaces, if at all, as a log line nobody reads"
+      ],
+      "attempts": [
+        {
+          "tried": "Select model_version from business_valuations because a sibling concept lived nearby",
+          "result": "WRONG — model_version is on valuation_snapshots (the append-only history), never on the current row. Would have surfaced as \"readiness_now never gets written\"."
+        },
+        {
+          "tried": "Grep the migrations for the column before trusting the select",
+          "result": "WORKED, and took ten seconds. grep -rn \"model_version\" supabase/migrations/ named the owning table immediately."
+        }
+      ],
+      "solution": {
+        "approach": "Before selecting a column you have not personally seen on that table, grep the migrations for it. An untyped client turns a schema mistake into a runtime-only failure, and the runtime symptom is almost always the vague one (\"it never updates\") rather than an error naming the column.",
+        "code_path": "kira lib/valuation/recompute-readiness.ts"
+      },
+      "fixed_at": "2026-08-16",
+      "fixed_by": "kira session"
     }
   ],
   "usage": "Before fixing ANY bug, grep this file for matching error patterns. Also check SayFix DB for product-specific attempts.",

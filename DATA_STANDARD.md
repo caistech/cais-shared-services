@@ -171,6 +171,54 @@ product at portfolio scale — every wired repo is a live proof-point). Ranked t
 Bounded only by the store rules: never Mnemo an authoritative fact (D1) or a citable instrument
 (D2), and only distilled, non-PII memory leaves our infra (I4/S4).
 
+### ⚠️ 6.2 THERE IS A HARD WRITE QUOTA, AND AS AT 2026-08-16 IT IS FULL
+
+Measured, not inferred — a direct `POST /v1/memories` returns:
+
+```
+403  {"message":"Quota exceeded for memory_writes: 1000+1/1000. Upgrade plan."}
+```
+
+**Not an expired key and not a rate limit.** The token authenticates fine and **reads still work** —
+`bug-memory.mjs recall` returns real prior fixes. It is `memory_writes` specifically that is
+exhausted, so the recall half of §6.1 is intact and the *record* half has been failing.
+
+**Every client fails soft** (`@caistech/mnemo` swallows errors by contract, and rightly — memory is
+an enhancement and an outage must never break the call path, R4). The consequence is that **writes
+have been silently going nowhere for an unknown period**, and the Bug Knowledge Protocol's "record in
+all three" has quietly been recording in two. Nothing announced it. `bug-knowledge.json` is
+unaffected and remains the durable source of truth, which is exactly why §6.1 keeps it.
+
+**Where the 1000 went — Kira, measured 2026-08-16.** Kira writes one Mnemo memory per successful
+`save_memory` (`lib/kira/uid-tools.ts`), so `kira_memory` rows are a near-exact proxy:
+
+| | writes | share of the cap |
+|---|---|---|
+| Kira total (since its key was set) | 441 | **~44%** |
+| — of which **synthetic / test accounts** | 260 | **~26%** |
+| — of which real accounts | 181 | ~18% |
+
+⚠️ **The single biggest consumer of the entire quota is the RED TEAM: 199 writes, ~20% of the cap.**
+A full run writes ~14–15 memories, so **each red-team run costs ~1.5% of the lifetime quota** — and
+that suite is the one meant to be run repeatedly, because a single green run proves nothing and only
+a *rate* does. The most expensive writer is the one whose value depends on repetition.
+
+**What follows for any product wiring Mnemo:**
+
+1. **Budget the writes.** At ~15 per adversarial run, a suite you intend to run to a rate will
+   dominate a shared quota within weeks. Point test/synthetic identities at a **separate scope and
+   ideally a separate key**, so a testing sweep cannot exhaust production recall.
+2. **Fail soft, but say why.** `bug-memory.mjs` printed only *"not remembered (Mnemo unavailable)"*.
+   Missing key, expired key, rate limit and exhausted quota have four different fixes, and it took a
+   raw `curl` to tell them apart. The response is in hand — surface the status. Same lesson as
+   `portfolio-gate`: a check that quietly does nothing is indistinguishable from one that passed.
+3. **Read the deployment posture in §6.1 against this.** "Aggressive deployment" was written when the
+   partnership implied no practical ceiling. A 1000-write plan cap is a default tier, not that
+   arrangement — **raise it with Shah, whose product Mnemo is** (Gareth wrote its rebrand
+   questionnaire *for* him; do not confuse the two).
+4. **Unknown, and it changes the fix:** whether the cap is lifetime or a monthly window. `1000+1/1000`
+   reads as a hard plan cap. Not confirmed.
+
 ---
 
 ## 7. What this unifies (the parent-doc role)
