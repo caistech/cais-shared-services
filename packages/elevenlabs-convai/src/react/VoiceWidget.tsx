@@ -17,6 +17,7 @@ import {
   placementClass,
   shouldUseTextFallback,
   shouldShowConnecting,
+  startsNewConversation,
   DEFAULT_FALLBACK_AFTER_MS,
   statusLabel,
   WIDGET_CSS,
@@ -137,8 +138,12 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
   }, [messages]);
 
   async function connect() {
-    if (fallback || startedRef.current || status === 'connected') return;
+    if (!startsNewConversation({ fallback, alreadyStarted: startedRef.current, status })) return;
     startedRef.current = true;
+    // A new conversation starts with a clean transcript. Without this the panel accumulated every
+    // conversation of the visit into one scroll — see startsNewConversation for why the reset lives
+    // at the START of a conversation rather than at the end of the previous one.
+    setMessages([]);
     // The moment that starts the stall clock: someone has asked to talk, so a connection that
     // neither succeeds nor fails is now worth rescuing with a text box.
     setAttempted(true);

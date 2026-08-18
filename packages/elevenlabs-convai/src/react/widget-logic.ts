@@ -91,6 +91,35 @@ export function shouldShowConnecting(opts: {
   return opts.attempted && !opts.connected && !opts.fallback;
 }
 
+/**
+ * Is this tap the start of a NEW conversation?
+ *
+ * This is the guard that was inline in `connect()`, extracted for one reason: the transcript
+ * reset has to happen at EXACTLY this moment and nowhere else, and two copies of the same
+ * condition drift.
+ *
+ * WHY A RESET IS NEEDED AT ALL. `messages` was a `useState([])` with a single append and no
+ * reset anywhere — not on connect, not on disconnect, not on close. So ending a call and
+ * starting another appended the new conversation to the old one, and a visitor who talked
+ * three times saw all three stacked in one scrolling panel, greetings and all. Observed on a
+ * live product with two "good to see you again" openings visible at once, above a transcript
+ * containing everything the owner had pasted in earlier sessions.
+ *
+ * ⚠️ WHY THE RESET GOES HERE AND NOT IN `close()`. Clearing when the call ENDS would wipe the
+ * transcript at the moment it is most useful — the user has just finished talking and may want
+ * to read back what was said. Clearing when the next one BEGINS keeps the last conversation
+ * readable for as long as it is the most recent thing that happened, which is the behaviour a
+ * person expects from a transcript. "New conversation, clean page" rather than "call over,
+ * everything vanishes".
+ */
+export function startsNewConversation(opts: {
+  fallback: boolean;
+  alreadyStarted: boolean;
+  status: VoiceConnectionStatus;
+}): boolean {
+  return !opts.fallback && !opts.alreadyStarted && opts.status !== 'connected';
+}
+
 export function shouldUseTextFallback(
   props: VoiceWidgetProps,
   status: VoiceConnectionStatus,
