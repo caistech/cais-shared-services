@@ -9,7 +9,8 @@
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "test:webhooks": "node packages/elevenlabs-convai/src/test-webhooks.cjs"
   },
   "repository": {
     "type": "git",
@@ -20,5 +21,8 @@
     "@types/node": "^20.0.0",
     "@types/react": "^19.0.0",
     "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.112.3"
   }
 }

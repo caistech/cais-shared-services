@@ -3,6 +3,51 @@
 // De-coupled from any specific project (Kira, MOVA, etc).
 
 // =============================================================================
+// REQUEST HANDLING TYPES
+// =============================================================================
+
+/**
+ * Represents a request with a body that can be read multiple times.
+ * This interface ensures proper request body handling across the application.
+ */
+export interface MultiReadableRequest extends Request {
+  /**
+   * Read the request body and return it as a string.
+   * This method can be called multiple times without consuming the body.
+   */
+  text(): Promise<string>;
+
+  /**
+   * Read the request body and return it as a parsed JSON object.
+   * This method can be called multiple times without consuming the body.
+   */
+  json(): Promise<any>;
+
+  /**
+   * Clone the request with a fresh body stream.
+   * This allows creating multiple readable versions of the same request.
+   */
+  clone(): MultiReadableRequest;
+}
+
+/**
+ * Options for creating a multi-readable request.
+ */
+export interface CreateMultiReadableRequestOptions {
+  /**
+   * Whether to buffer the entire body in memory.
+   * Set to false for large bodies to avoid memory issues.
+   */
+  bufferBody?: boolean;
+
+  /**
+   * Maximum allowed body size in bytes.
+   * Requests exceeding this size will be rejected.
+   */
+  maxBodySize?: number;
+}
+
+// =============================================================================
 // AGENT CONFIGURATION
 // =============================================================================
 
@@ -380,3 +425,47 @@ export interface VoiceControls {
 }
 
 export type VoiceConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+
+// =============================================================================
+// REQUEST UTILITIES
+// =============================================================================
+
+/**
+ * Create a multi-readable request from a standard Request object.
+ * This ensures the body can be read multiple times.
+ */
+export async function createMultiReadableRequest(
+  req: Request,
+  options: CreateMultiReadableRequestOptions = {}
+): Promise<MultiReadableRequest> {
+  const { bufferBody = true, maxBodySize = 1024 * 1024 } = options; // Default 1MB max size
+
+  // Read and validate the body
+  const rawBody = await req.text();
+  if (bufferBody && rawBody.length > maxBodySize) {
+    throw new Error(`Request body exceeds maximum allowed size of ${maxBodySize} bytes`);
+  }
+
+  const body = JSON.parse(rawBody);
+
+  return {
+    ...req,
+    text: async () => rawBody,
+    json: async () => body,
+    clone: () => createMultiReadableRequest(new Request(req.url, {
+      method: req.method,
+      headers: req.headers,
+      body: rawBody
+    }), options)
+  };
+}
+
+/**
+ * Clone a multi-readable request with a fresh body stream.
+ */
+export function cloneMultiReadableRequest(req: MultiReadableRequest): MultiReadableRequest {
+  return {
+    ...req,
+    clone: () => cloneMultiReadableRequest(req)
+  };
+}
