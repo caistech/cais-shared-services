@@ -9,6 +9,8 @@
 // gstack naive-tester/voice-auditor; it starts narrower than gstack and widens over time. It does
 // NOT fabricate a verdict.
 
+import { readdirSync, readFileSync } from 'node:fs'
+import path from 'node:path'
 import { chromium } from 'playwright'
 import { recordReadiness } from '../gate-check.mjs'
 
@@ -60,6 +62,16 @@ export async function shot(page, label) {
     try { buf = await page.screenshot() } catch { buf = Buffer.from('') }
   }
   return { label, b64: buf.toString('base64') }
+}
+
+// Load pre-captured .png screenshots from a directory (--shots mode).
+// Filenames become labels (e.g. "landing-desktop.png"), enabling offline re-verdicts without a browser.
+export function loadShots(dir) {
+  const files = readdirSync(dir).filter(f => /\.png$/i.test(f)).sort()
+  return files.map(f => ({
+    label: f.replace(/\.png$/i, ''),
+    b64: readFileSync(path.join(dir, f)).toString('base64'),
+  }))
 }
 
 // Best-effort form login (Mode A — also exercises the real auth path). Returns {ok, note}.
@@ -277,6 +289,29 @@ export async function visionVerdicts({ apiKey, persona, checks, shots }) {
     content.push({ type: 'text', text: `^ screenshot: ${s.label}` })
   }
   content.push({ type: 'text', text: buildPrompt(persona, checks) })
+  const LOCAL_VISION_MODEL = process.env.LOCAL_VISION_MODEL
+  const LOCAL_VISION_API = process.env.LOCAL_VISION_API || 'http://localhost:11434/api/generate'
+  const LOCAL_VISION_API_KEY = process.env.LOCAL_VISION_API_KEY
+
+  if (LOCAL_VISION_MODEL) {
+    const headers = { 'content-type': 'application/json' }
+    if (LOCAL_VISION_API_KEY) headers['authorization'] = `Bearer ${LOCAL_VISION_API_KEY}`
+    const res = await fetch(LOCAL_VISION_API, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model: LOCAL_VISION_MODEL,
+        prompt: buildPrompt(persona, checks) + '\n' + shots.map((s, i) => `[Image ${i + 1}: ${s.label}]`).join('\n'),
+        images: shots.map(s => s.b64),
+      }),
+    })
+    if (!res.ok) throw new Error(`Local Vision ${res.status}: ${(await res.text()).slice(0, 200)}`)
+    const data = await res.json()
+    // Handle both Ollama (data.response) and OpenAI-compatible (data.choices) response shapes
+    const text = data.response || (data.choices?.[0]?.message?.content ?? '')
+    return parseJsonArray(text)
+  }
+
   const res = await fetch(ANTHROPIC_API, {
     method: 'POST',
     headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
