@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import type { EmailOtpType } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
 import { serverSupabase } from '@/lib/supabase-server';
 
 /**
@@ -18,6 +19,14 @@ import { serverSupabase } from '@/lib/supabase-server';
  *
  * Keep `/auth/callback` allowlisted in middleware (public) or the redirect 401s
  * before it can establish the session.
+ *
+ * THE SESSION-COOKIE TRAP (why magic-link/recovery bounced to /login): the OTP
+ * exchange writes the session cookies onto the SSR cookie store (next/headers).
+ * A bare `NextResponse.redirect(...)` returns a DIFFERENT object that carries
+ * NONE of them, so the freshly-minted session never reaches the browser — the
+ * next request to a protected route finds no session and redirects to /login.
+ * Every successful redirect below copies the sb-* cookies from the store onto
+ * the response first (same fix the middleware's redirectPreservingSession makes).
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -28,15 +37,36 @@ export async function GET(request: NextRequest) {
 
   const supabase = await serverSupabase();
 
+  let ok = false;
   if (tokenHash && type) {
     const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
-    if (!error) return NextResponse.redirect(`${origin}${next}`);
-  }
-
-  if (code) {
+    ok = !error;
+  } else if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(`${origin}${next}`);
+    ok = !error;
   }
 
-  return NextResponse.redirect(`${origin}/login?error=auth`);
+  const response = ok
+    ? NextResponse.redirect(`${origin}${next}`)
+    : NextResponse.redirect(`${origin}/login?error=auth`);
+
+  if (ok) {
+    // Carry the session cookies the OTP exchange just wrote onto the redirect,
+    // re-applying the SSR attributes (path=/, httpOnly, sameSite=lax, secure in
+    // prod). A wrong/missing path means the next request doesn't send them.
+    const cookieStore = await cookies();
+    const secure = process.env.NODE_ENV === 'production';
+    for (const cookie of cookieStore.getAll()) {
+      if (cookie.name.startsWith('sb-')) {
+        response.cookies.set(cookie.name, cookie.value, {
+          path: '/',
+          httpOnly: true,
+          sameSite: 'lax',
+          secure,
+        });
+      }
+    }
+  }
+
+  return response;
 }
