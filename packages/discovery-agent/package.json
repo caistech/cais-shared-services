@@ -1,6 +1,6 @@
 {
   "name": "@caistech/discovery-agent",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Config-driven AI voice discovery/interview agent — a product supplies only purpose + persona + question arc + extraction schema + result sink; the staged conversation, context priming, memory loop, HMAC webhook and transcript→structured-output are shared. Built on @caistech/elevenlabs-convai.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -29,9 +29,15 @@
     "zod": ">=3.0.0"
   },
   "peerDependenciesMeta": {
-    "@supabase/supabase-js": { "optional": true },
-    "@elevenlabs/react": { "optional": true },
-    "react": { "optional": true }
+    "@supabase/supabase-js": {
+      "optional": true
+    },
+    "@elevenlabs/react": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@caistech/elevenlabs-convai": "^0.9.0",
@@ -41,7 +47,10 @@
     "vitest": "^1.6.0",
     "zod": "^3.23.0"
   },
-  "files": ["dist/", "README.md"],
+  "files": [
+    "dist/",
+    "README.md"
+  ],
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },

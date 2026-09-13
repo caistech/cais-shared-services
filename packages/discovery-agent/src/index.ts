@@ -126,6 +126,16 @@ export interface DiscoveryDeps {
   existingAgentId?: string;
   /** Post-call webhook HMAC secret (captured from provision()). When set, post-call is verified. */
   postCallSecret?: string;
+  /** Shared secret for the memory-loop tool webhooks. When set it is:
+   *   - baked into every memory-loop tool at provision() as `x-convai-tool-secret`, AND
+   *   - verified by webhookRoutes() (with requireToolSecret) so recall/save/topic are NOT
+   *     open to anyone holding only the public agent id.
+   *  Without it, the memory endpoints are UNAUTHENTICATED (identity derives from the public
+   *  agent id) — set this in any environment with real users. */
+  toolSecret?: string;
+  /** When true, webhookRoutes() REJECTS memory-loop calls that lack the tool secret. Only
+   *  meaningful when toolSecret is set (a guard with no secret can never succeed). */
+  requireToolSecret?: boolean;
 }
 
 // --- the instance a product gets back ----------------------------------------------------------
@@ -254,7 +264,11 @@ export function defineDiscovery<T>(config: DiscoveryConfig<T>, deps: DiscoveryDe
         },
         systemPrompt: buildDiscoverySystemPrompt(config),
         firstMessage: config.persona.opening,
-        tools: createConversationTools(deps.baseUrl), // the memory loop (recall/save/topic)
+        tools: createConversationTools(
+          deps.baseUrl,
+          undefined,
+          deps.toolSecret ? { secret: deps.toolSecret } : undefined
+        ), // the memory loop (recall/save/topic) — secret-baked when toolSecret set
         baseUrl: deps.baseUrl,
         allowedOrigins: deps.allowedOrigins ?? [hostOf(deps.baseUrl)],
         existingAgentId: deps.existingAgentId, // idempotency key
@@ -277,6 +291,8 @@ export function defineDiscovery<T>(config: DiscoveryConfig<T>, deps: DiscoveryDe
         supabase: deps.supabase,
         tableNames: deps.tableNames,
         postCallSecret: deps.postCallSecret,
+        toolSecret: deps.toolSecret,
+        requireToolSecret: deps.requireToolSecret,
         resolveSession: (req, body) => resolveDiscoverySession(req, body, deps.sessionSecret),
         // Post-call: convai has already persisted the transcript + run the memory loop; now pull the
         // authoritative transcript from ElevenLabs, distil it to the schema, and hand it to the sink.

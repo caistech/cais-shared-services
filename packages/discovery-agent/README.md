@@ -66,9 +66,17 @@ const kindred = defineDiscovery(
     baseUrl: process.env.NEXT_PUBLIC_APP_URL!,
     existingAgentId: process.env.KINDRED_AGENT_ID, // from provision(), see below
     postCallSecret: process.env.KINDRED_WEBHOOK_SECRET, // from provision()
+    toolSecret: process.env.CONVAI_TOOL_SECRET, // REQUIRED in any env with real users — see Security
+    requireToolSecret: Boolean(process.env.CONVAI_TOOL_SECRET),
   }
 );
 ```
+
+> **Security (memory-loop webhooks).** Without `toolSecret` the `recall_memory` / `save_memory`
+> routes are UNAUTHENTICATED — identity is derived from the public agent id, so anyone with the
+> id can read/write conversation memory. Set `toolSecret` (and `requireToolSecret: true`), then
+> REPROVISION the agent so its tools carry the `x-convai-tool-secret` header — `provision()`
+> bakes it in automatically when `deps.toolSecret` is set.
 
 ### 1. Provision once (a script / one-off)
 
