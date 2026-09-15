@@ -14,7 +14,7 @@ This is the operator's path *into* the factory, and the routes the UI implements
 
 ```
 /admin                         Dashboard — cards, one per control surface
-   ├─ Methodology   /admin/methodology       renders THIS document (live source of truth)
+   ├─ Reference     /admin/reference/methodology   renders THIS document (live source of truth)
    ├─ Pipeline      /admin/pipeline          PORTFOLIO: every product by state
    │     ├─ [+ New Product] → /admin/pipeline/new-ideas    ONBOARDING (Stage 1 office-hours intake)
    │     └─ click a product → /admin/pipeline/[slug]       PROCESSING (per-product card, Stages 1→6)
@@ -43,7 +43,7 @@ The office-hours intake (`/new-ideas`) is the **feasibility gate + spec capture*
 
 - **`/admin/pipeline/[slug]` is the product's permanent home.** Title the *page* "Processing" (literal to what it does — the product is being processed across all stages). **Do not rename the URL to `/processing`.** Bookmarks, the InvestorPilot login link, and recorded gate refs key off the slug path — stable external IDs matter (same class as the webhook-UUID lesson).
 - **Fold `/admin/pipeline/factory` into `/admin/pipeline`.** Today `/factory` is a mishmash whose primary job — "where is every product in the process" — is the portfolio view. One portfolio surface, not two.
-- **`/admin/methodology` renders this document.** It is currently a "Phase 3+ not implemented" stub; wiring it to this doc puts the canonical source of truth live, next to the pipeline it governs, so it stops being a file that drifts.
+- **`/admin/reference/methodology` renders this document.** Moved out of the top-level admin row (2026-09-15) because it is a reference surface, not an operational one — the top row is now only operational control surfaces (Products, Cost, Reviews). A proper ExplanatoryHeader lands in the extraction rewrite (docs/PIPELINE_SEPARATION_PLAN.md).
 
 ### Scaffolding order
 

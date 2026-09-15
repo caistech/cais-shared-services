@@ -1,0 +1,31 @@
+{
+  "name": "@caistech/kira-testing-client",
+  "version": "0.1.1",
+  "private": false,
+  "description": "Public client for the centralised Kira Testing service",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@caistech/kira-testing": "^0.1.0"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.0"
+  },
+  "files": [
+    "dist/"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "packages/kira-testing-client"
+  },
+  "license": "PRIVATE"
+}

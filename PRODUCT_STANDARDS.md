@@ -43,6 +43,23 @@ Every tester that surfaces findings — **`/naive-tester`, `/voice-auditor`, `/g
 - Visual design + DX consistency applies across both portals
 - QA testing validates both access paths work
 
+### Centralised LLM testing service (Kira Testing) — shared, not per-repo
+
+LLM-driven testing (naive-tester, red-team, adversarial probes) is routed through the **centralised
+Kira Testing service** in `cais-shared-services` (`services/kira-testing/`), consumed via
+`@caistech/kira-testing-client`. Testers **must not** contain provider/model routing logic — the
+shared service owns model resolution (the logical `kira-testing` combo) and the OmniRoute gateway
+(with auto-fallback across free-tier providers). A repo invokes the client:
+
+```ts
+import { test, redTeam } from '@caistech/kira-testing-client';
+const result = await test({ repository, testId, testType, target, prompt, expectedBehaviour });
+```
+
+Requires env: `KIRA_TESTING_OMNIROUTE_BASE_URL` (default `http://localhost:20128`),
+`KIRA_TESTING_OMNIROUTE_API_KEY`, `KIRA_TESTING_MODEL_COMBO=kira-testing`. See
+`SHARED_SERVICES.md` → **Testing & QA** and `services/kira-testing/README.md`.
+
 ### Gate zero: is the thing you are about to test actually deployed?
 
 **Run `portfolio-gate-deploy-status` BEFORE any live tester.** Every finding below is worthless if

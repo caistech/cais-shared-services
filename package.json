@@ -4,7 +4,9 @@
   "private": true,
   "description": "Shared services for Corporate AI Solutions projects",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "services/kira-testing",
+    "testers/*"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",

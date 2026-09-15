@@ -12,15 +12,20 @@
   "peerDependencies": {
     "@supabase/supabase-js": "^2.49.4",
     "@caistech/security-gate": "*",
+    "@caistech/kira-testing-client": "^0.1.0",
     "typescript": ">=5.0.0"
   },
   "peerDependenciesMeta": {
     "@caistech/security-gate": {
       "optional": true
+    },
+    "@caistech/kira-testing-client": {
+      "optional": true
     }
   },
   "devDependencies": {
-    "@caistech/security-gate": "*"
+    "@caistech/security-gate": "*",
+    "@caistech/kira-testing-client": "^0.1.0"
   },
   "files": [
     "dist/"

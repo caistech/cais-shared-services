@@ -1776,6 +1776,90 @@
       },
       "fixed_at": "2026-08-16",
       "fixed_by": "kira session"
+    },
+    {
+      "id": "lingopure-service-role-key-in-client-bundle",
+      "product": "LingoPureAI",
+      "error_pattern": "RuntimeError: supabaseKey is required (createClient at module evaluation in a file imported by a 'use client' component)",
+      "error_symptoms": [
+        "browser crashes with supabaseKey is required from a client component",
+        "build passes but dev runtime blows up because SUPABASE_SERVICE_ROLE_KEY is empty string in the client bundle",
+        "only NEXT_PUBLIC_* env vars are inlined into client bundles; any other process.env.X is undefined there"
+      ],
+      "attempts": [],
+      "solution": {
+        "approach": "Split the module: a client-safe config file (used by the widget) vs a server-only module (import \"server-only\") that constructs the service-role Supabase client at module scope. Move side-effectful client construction (createClient) into the server-only half; let async callbacks dynamically import() the supabase client so only the server path executes it.",
+        "code_path": "LingoPureAI: src/lib/onboarding/aria-discovery-config.ts (client-safe) + src/lib/onboarding/aria-discovery.ts (server-only)"
+      },
+      "fixed_at": "2026-09-13",
+      "fixed_by": "opencode (LingoPureAI discovery-agent split)"
+    },
+    {
+      "id": "lingopure-agent-id-not-passed-and-unhandled-empty-500",
+      "product": "LingoPureAI",
+      "error_pattern": "Unexpected end of JSON input on res.json() after POST /api/onboarding/discovery/session",
+      "error_symptoms": [
+        "client fetch to a route handler that throws (unhandled) gets an empty/HTML 500 body",
+        "startSession() throws because deps.existingAgentId is required but never passed (agent IS provisioned, ELEVENLABS_AGENT_ID is set in env)",
+        "route returned NextResponse.json only on success; the throw produced a body that res.json() cannot parse"
+      ],
+      "attempts": [],
+      "solution": {
+        "approach": "1) Wire the provisioned agent id into the discovery deps: existingAgentId: process.env.ELEVENLABS_AGENT_ID || undefined. 2) Wrap startSession in try/catch returning NextResponse.json({error}, {status:500}). 3) Client: check res.ok before .json(), surface error.message instead of crashing.",
+        "code_path": "LingoPureAI: src/lib/onboarding/aria-discovery.ts + src/app/api/onboarding/discovery/session/route.ts + src/app/(app)/onboarding/discovery-session.tsx"
+      },
+      "fixed_at": "2026-09-13",
+      "fixed_by": "opencode (LingoPureAI discovery session route)"
+    },
+    {
+      "id": "next-runtime-hook-in-server-component",
+      "product": "LingoPureAI / any Next.js app-router",
+      "error_pattern": "useState only works in Client Components. Add the \"use client\" directive at the top of the file",
+      "error_symptoms": [
+        "Runtime TypeError: react-client-hook-in-server-component",
+        "A marketing component (Nav.tsx) uses React.useState/useEffect without a 'use client' directive",
+        "error surfaces at the server layout that mounts the component (MktShell -> MarketingLayout)"
+      ],
+      "attempts": [
+        {
+          "tried": "Full-scan sibling marketing components (MktMobileMenu, SpecProvider) for the same missing directive",
+          "result": "Both had \"use client\"; only Nav.tsx had lost it during a styling port"
+        }
+      ],
+      "solution": {
+        "approach": "Any component using client hooks and rendered by a server layout must declare \"use client\" as the first line. When porting/restyling server-rendered marketing components, keep the directive.",
+        "answer": "Prepend \"use client\"; to Nav.tsx (first line, before imports). Verified with next build (compiled successfully)."
+      },
+      "fixed_at": "2026-09-13",
+      "fixed_by": "opencode session (LingoPureAI book-a-demo)"
+    },
+    {
+      "id": "kira-plan-onboarding-spinner-hang",
+      "product": "Kira",
+      "error_pattern": "beta tester stuck at \"Loading your onboarding session…\" spinner on /plan; page never advances",
+      "error_symptoms": [
+        "Spinner on /plan with Loader2 renders indefinitely, no error message",
+        "No GET /api/identity/plan request fires at all (initialBetaCode stuck null)",
+        "GET /api/identity/plan request stays pending forever (no client timeout)",
+        "Happens when tester reaches /plan with no code in URL AND empty sessionStorage"
+      ],
+      "attempts": [
+        {
+          "result": "Confirmed two independent hang paths, both surfaced as the same spinner",
+          "tried": "Traced loading gate on /plan -> identityLoading only cleared on settle/reject, never in-flight"
+        },
+        {
+          "result": "Code preserved correctly; not the loss point",
+          "tried": "Checked magic-link redirect leg (BetaRedeem -> /auth/callback -> /plan?code=...)"
+        }
+      ],
+      "solution": {
+        "answer": "A null initialBetaCode was the only value the canonical identity load bailed on, and previously no-code arrivals left it at null forever -> permanent spinner. Empty string (already used as the cleared sentinel in continueMismatch) is the fix for the no-code path.",
+        "approach": "Two fixes in app/plan/page.tsx. (1) URL-read effect now ALWAYS sets initialBetaCode (empty string when no code found) so null means only \"URL not yet read\" and a code-less arrival proceeds instead of stalling the identity effect which bails on null. (2) Identity fetch now uses AbortController with a 15s timeout that aborts into the error path with a friendly message, plus abort on unmount and timer cleanup.",
+        "code_path": "app/plan/page.tsx (URL-read effect ~L163-190; canonical identity load ~L196-330)"
+      },
+      "fixed_at": "2026-09-14",
+      "fixed_by": "opencode (Dennis session, Kira)"
     }
   ],
   "usage": "Before fixing ANY bug, grep this file for matching error patterns. Also check SayFix DB for product-specific attempts.",

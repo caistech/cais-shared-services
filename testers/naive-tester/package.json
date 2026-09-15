@@ -1,0 +1,25 @@
+{
+  "name": "@caistech/naive-tester",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Naive tester that invokes Kira Testing via kira-testing-client",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@caistech/kira-testing-client": "^0.1.0"
+  },
+  "files": ["dist/"],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caistech/cais-shared-services.git",
+    "directory": "testers/naive-tester"
+  },
+  "license": "PRIVATE"
+}

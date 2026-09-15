@@ -24,6 +24,7 @@ export interface DistilledMemory {
   memoryType: MemoryType;
   importance?: number; // 1-10; defaults to handleSaveMemory's 5
   tags?: string[];
+  organisationId?: string;
 }
 
 /** The product-supplied extraction step: turn the transcript into the memories worth keeping. */
@@ -38,6 +39,8 @@ export interface DistillParams {
   conversationId: string;
   extract: MemoryExtractor;
   tables: TableNames;
+  /** Organisation context — P0.4: every memory row must carry organisation_id. */
+  organisationId?: string;
 }
 
 /**
@@ -49,7 +52,7 @@ export async function distillConversationToMemory(
   supabase: Supabase,
   params: DistillParams,
 ): Promise<{ saved: number; error?: string }> {
-  const { elevenlabsConversationId, conversationId, extract, tables } = params;
+  const { elevenlabsConversationId, conversationId, extract, tables, organisationId } = params;
 
   const { data: msgs, error: readErr } = await supabase
     .from(tables.messages)
@@ -86,6 +89,7 @@ export async function distillConversationToMemory(
         memoryType: it.memoryType,
         importance: it.importance,
         tags: it.tags,
+        organisationId: it.organisationId,
       },
       tables,
     );

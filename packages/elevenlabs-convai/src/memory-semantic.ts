@@ -61,15 +61,19 @@ export async function dedupeUserMemory(
   supabase: Supabase,
   userId: string,
   tables: TableNames,
+  organisationId?: string,
 ): Promise<number> {
   if (!userId) return 0;
   try {
-    const { data: rows } = await supabase
+    let q = supabase
       .from(tables.memory)
       .select('id, content, created_at')
       .eq('user_id', userId)
       .eq('active', true)
       .order('created_at', { ascending: false }); // newest first → first seen per group is the keeper
+    if (organisationId) q = q.eq('organisation_id', organisationId);
+
+    const { data: rows } = await q;
 
     const seen = new Set<string>();
     const supersede: string[] = [];
@@ -94,13 +98,15 @@ export async function activeMemoryKeys(
   supabase: Supabase,
   userId: string,
   tables: TableNames,
+  organisationId?: string,
 ): Promise<Set<string>> {
   try {
-    const { data } = await supabase
+    let q = supabase
       .from(tables.memory)
       .select('content')
       .eq('user_id', userId)
       .eq('active', true);
+    if (organisationId) q = q.eq('organisation_id', organisationId);
     return new Set(
       ((data ?? []) as { content?: string }[])
         .map((r) => normaliseFact(String(r.content ?? '')))
@@ -128,20 +134,24 @@ export async function indexNewFacts(
     priorKeys: Set<string>;
     tables: TableNames;
     options: SemanticMemoryOptions;
+    organisationId?: string;
   },
 ): Promise<number> {
-  const { userId, conversationId, priorKeys, tables, options } = params;
+  const { userId, conversationId, priorKeys, tables, options, organisationId } = params;
   if (!userId) return 0;
 
   const client = options.client ?? createMnemoClient({ label: 'convai/semantic' });
   if (!client.enabled()) return 0;
 
   try {
-    const { data } = await supabase
+    let q = supabase
       .from(tables.memory)
       .select('content')
       .eq('source_conversation_id', conversationId)
       .eq('active', true);
+    if (organisationId) q = q.eq('organisation_id', organisationId);
+
+    const { data } = await q;
 
     const netNew = ((data ?? []) as { content?: string }[])
       .map((r) => String(r.content ?? ''))

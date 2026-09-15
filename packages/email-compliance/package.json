@@ -1,34 +1,49 @@
 {
-  "name": "@caistech/email-compliance",
-  "version": "0.4.0",
-  "description": "Australian Spam Act 2003 email compliance — sender identity + consent-basis footer, assertCompliant/assertJurisdictionAllowed guards, AND the runtime opt-out layer: signed unsubscribe links, a framework-agnostic unsubscribe route, List-Unsubscribe headers, and a durable suppression store the send path must consult.",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsc",
-    "lint": "tsc --noEmit",
-    "prepublishOnly": "npm run build",
-    "test": "vitest run"
-  },
-  "peerDependencies": {
-    "typescript": ">=5.0.0"
-  },
-  "files": [
-    "dist/",
-    "migration.sql",
-    "README.md"
-  ],
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/caistech/cais-shared-services.git",
-    "directory": "packages/email-compliance"
-  },
-  "license": "PRIVATE",
-  "type": "module",
-  "devDependencies": {
-    "vitest": "^1.6.0"
-  }
+"name": "@caistech/email-compliance",
+"version": "0.5.0",
+"description": "Jurisdiction-aware email compliance engine for Kira and other CAIS applications. Evaluates email compliance by recipient jurisdiction, message purpose, consent or other applicable legal basis, sender identification, unsubscribe requirements, and durable suppression state. Provides common compliance primitives with jurisdiction-specific policy modules and ALLOW/BLOCK/QUARANTINE decisions.",
+"main": "dist/index.js",
+"types": "dist/index.d.ts",
+"scripts": {
+"build": "tsc",
+"lint": "tsc --noEmit",
+"prepublishOnly": "npm run build",
+"test": "vitest run"
+},
+"peerDependencies": {
+"typescript": ">=5.0.0"
+},
+"files": [
+"dist/",
+"migration.sql",
+"README.md"
+],
+"publishConfig": {
+"registry": "https://npm.pkg.github.com"
+},
+"repository": {
+"type": "git",
+"url": "https://github.com/caistech/cais-shared-services.git",
+"directory": "packages/email-compliance"
+},
+"license": "PRIVATE",
+"type": "module",
+"devDependencies": {
+"vitest": "^1.6.0"
+},
+"keywords": [
+"email",
+"compliance",
+"email-compliance",
+"consent",
+"unsubscribe",
+"suppression",
+"jurisdiction",
+"marketing-email",
+"can-spam",
+"spam-act",
+"casl",
+"gdpr",
+"pecr"
+]
 }

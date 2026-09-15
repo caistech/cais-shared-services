@@ -30,7 +30,7 @@
 >
 > **Install:** registry is GitHub Packages (`@caistech:registry=https://npm.pkg.github.com`, token
 > `NODE_AUTH_TOKEN`/`GITHUB_PACKAGES_TOKEN`). `npm install @caistech/<name>`. Consumers import the
-> compiled `dist/`, never source. **Last updated:** 2026-08-13 (53 packages).
+> compiled `dist/`, never source. **Last updated:** 2026-08-31 (56 packages).
 >
 > **OPEN EXTRACTION CANDIDATES — second occurrence reached, package not yet built.** Listed here so a
 > third implementation is a deliberate choice rather than an accident:
@@ -159,6 +159,15 @@
 | `@caistech/byok-setup` | BYOK key-onboarding wizard — reads `byok.config.json`, validates pasted keys, generates secrets, distributes to `.env.local` + Vercel. |
 | `@caistech/webmcp-kit` | **Agent-Readiness kit (PRODUCT_STANDARDS §11 Layer 1: DISCOVERABLE) — the one-install path so a product is legible to AI search + browser agents.** Ends the gap found 2026-07-12 (0/26 audited products served `llms.txt`; the pattern lived only in the `storefront-mcp` repo it was born in). Three signals from ONE `AgentReadinessConfig`: `generateLlmsTxt` + `llmsTxtHandler` (→ `/llms.txt` route), `buildLandingJsonLd` + `<AgentJsonLd>` (`/react` — schema.org `SoftwareApplication`+`Organization` on the landing), `buildAgentManifest` + `agentManifestHandler` (→ `/.well-known/agent.json`). Zero runtime deps, `react` optional peer (only `/react` needs it). **Lane-aware** — pass `provider` = the DISTRIBUTOR for white-label, omit for a single-brand CAS product. **v0.1 = Layer 1 ONLY**; Layer 2 (WebMCP operability) + Layer 3 (remote MCP) are DEFERRED post-Gate-2 subpaths — don't over-build them into a validation slice. Wire = 1 config + 2 route files + 1 landing line (README). Feeds `/gtm-auditor`'s Agent-Readiness stream (D3 evidence). |
 | `@caistech/spec-markers` | **Survey-marker drop-in for EXTERNAL pre-built products.** The methodology survey gate greps 14 `data-*` markers from a product's SSR'd landing HTML (no JS exec) to verdict it (RENOVATION/TEARDOWN/…). Factory-generated products plant them at build; a hand-built/external product (separate codebase, can't read the pipeline DB) installs this and drops `<SpecMarkers slug="x"/>` (async Server Component) on its public landing — it fetches the public `GET <pipeline>/api/public/spec-markers/<slug>` and SSRs the attrs. Marker MAPPING stays single-sourced in pipeline (thin renderer, no drift). Also `fetchSpecMarkers()` + `buildSurveyManifest()` (→ `public/survey-manifest.json`). ⚠️ the product's card needs `feasibility.why_now` set or survey P3 fails. |
+
+## Testing & QA
+| Package | Capability |
+|---|---|
+| `@caistech/kira-testing` | **Centralised Kira Testing service** — model resolution + OmniRoute gateway + test/red-team APIs. Resolves the logical `kira-testing` combo via the self-hosted OmniRoute gateway (`localhost:20128`), with auto-fallback across free-tier providers. **v0.1.0.** |
+| `@caistech/kira-testing-client` | **Public client for Kira Testing** — `test()` + `redTeam()` with strong TypeScript types, input validation, and a stable provider-independent result schema. Consumed by naive-tester, red-team, agent-trust-score, and any repository needing LLM-based testing. **v0.1.0.** |
+| `@caistech/kira-testing-cli` | **CLI for Kira Testing** — `kira-testing test` + `kira-testing red-team` with `--json` output. Bin: `kira-testing`. |
+| `@caistech/naive-tester` | **Naive-tester runner** — invokes Kira Testing via `kira-testing-client` only. Contains NO provider/model routing logic. Flow: naive-tester → client → service → resolver → OmniRoute → model. |
+| `@caistech/red-team` | **Red-team runner** — invokes Kira Testing via `kira-testing-client` only. Contains NO provider/model routing logic. Owns attack strategy/scenario logic; the shared service owns model invocation. |
 
 ## Portfolio operations (hub tooling, not product deps)
 | Package | Capability |

@@ -18,6 +18,7 @@ import { checkCodeSecurity } from "./checkers/code-security";
 import { checkCostGovernance } from "./checkers/cost-governance";
 import { checkCompliance } from "./checkers/compliance";
 import { calculateGrade } from "./grader";
+import { runBehaviouralProbes } from "./probes";
 
 /**
  * Run a full trust score scan on a project.
@@ -33,11 +34,13 @@ export async function scanProject(config: ScanConfig): Promise<TrustScoreReport>
   results.push(...checkCompliance(config.projectRoot));
 
   // Layer 2: Behavioural Probes (if enabled)
-  if (config.runBehavioural && config.modelCallFn) {
-    // TODO: Wire behavioural probes from red-team runner
-    // This maps AS-01 synonym attacks, AS-05 social engineering,
-    // AS-06 prompt injection, etc. to the probe runner
-    console.log("[trust-score] Behavioural probes not yet wired — using static results only");
+  if (config.runBehavioural) {
+    console.log("[trust-score] Running behavioural probes via Kira Testing…");
+    const behaviouralResults = await runBehaviouralProbes(
+      config.projectSlug,
+      config.projectRoot
+    );
+    results.push(...behaviouralResults);
   }
 
   // Calculate grade — prefer config.graderUrl (BYOK consumer's own grader

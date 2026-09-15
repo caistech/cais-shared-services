@@ -13,12 +13,15 @@
 // Env: ANTHROPIC_API_KEY (required); TEST_USER_EMAIL + QA_USER_PASSWORD (optional, for the authed
 //      surface); VERCEL_AUTOMATION_BYPASS_SECRET (optional, for preview SSO).
 
-import { arg, launch, goto, shot, tryLogin, visionVerdicts, record } from './lib.mjs'
+import { arg, hasFlag, launch, goto, shot, tryLogin, visionVerdicts, record } from './lib.mjs'
 
 const slug = arg('slug')
 const origin = arg('url').replace(/\/$/, '')
 const deployment = arg('deployment')
-const apiKey = process.env.ANTHROPIC_API_KEY
+const MOCK = hasFlag('mock')
+const LOCAL = process.env.LOCAL_VISION_MODEL
+// Anthropic is required ONLY when neither the local judge nor --mock is supplying the verdicts.
+const apiKey = MOCK || LOCAL ? null : process.env.ANTHROPIC_API_KEY
 
 const CHECKS = [
   { code: '1', label: 'Explanatory header at the top of pages (what is this / what do I do / why it matters)' },
@@ -34,7 +37,7 @@ const CHECKS = [
 
 async function main() {
   if (!slug || !origin) { console.error('naive-tester: --slug and --url are required'); return 2 }
-  if (!apiKey) { console.error("naive-tester: ANTHROPIC_API_KEY required — recording nothing (degrade-don't-fake)"); return 1 }
+  if (!apiKey) { console.error("naive-tester: ANTHROPIC_API_KEY required unless LOCAL_VISION_MODEL or --mock — recording nothing (degrade-don't-fake)"); return 1 }
 
   const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || ''
   const { browser, ctx } = await launch({ bypass })
@@ -55,9 +58,15 @@ async function main() {
 
     if (!shots.length) { console.error('naive-tester: could not load any page — recording nothing'); return 1 }
 
-    const verdicts = await visionVerdicts({ apiKey, persona: 'a naive first-time end-user', checks: CHECKS, shots })
+    const verdicts = MOCK
+      ? CHECKS.map((c) => ({
+          code: c.code,
+          status: Number(c.code) <= 6 ? 'pass' : 'na',
+          evidence: 'mock — plumbing-only verdict, not a real naive-tester observation',
+        }))
+      : await visionVerdicts({ apiKey, persona: 'a naive first-time end-user', checks: CHECKS, shots })
     const n = await record(slug, 'naive-tester', verdicts, deployment)
-    console.log(`naive-tester: recorded ${n} verdict(s) for ${slug} from ${shots.length} screenshot(s)`, login.ok ? '(incl. authed surface)' : `(login: ${login.note})`)
+    console.log(`naive-tester: recorded ${n} verdict(s) for ${slug} from ${shots.length} screenshot(s)`, login.ok ? '(incl. authed surface)' : `(login: ${login.note})`, MOCK ? '(MOCK)' : '')
     return 0
   } finally {
     await browser.close()

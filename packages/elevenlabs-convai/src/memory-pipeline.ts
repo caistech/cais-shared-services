@@ -28,6 +28,8 @@ export interface ConversationMemoryParams {
   elevenlabsConversationId: string;
   /** Resolved by the caller; without it there is no scope to write to and the job is skipped. */
   userId?: string;
+  /** Organisation that owns the memory. P0.4: every memory row must carry organisation_id. */
+  organisationId?: string;
   extract: MemoryExtractor;
   tables: TableNames;
   /**
@@ -59,7 +61,7 @@ export async function completeConversationMemory(
   supabase: Supabase,
   params: ConversationMemoryParams,
 ): Promise<ConversationMemoryResult> {
-  const { conversationId, elevenlabsConversationId, userId, extract, tables, semantic } = params;
+  const { conversationId, elevenlabsConversationId, userId, organisationId, extract, tables, semantic } = params;
   const result: ConversationMemoryResult = { distilled: 0, deduped: 0, indexed: 0, errors: [] };
 
   // 1. Snapshot BEFORE distilling. This ordering is the whole reason the sequence is packaged:
@@ -67,7 +69,7 @@ export async function completeConversationMemory(
   //    no-op that looks exactly like a working integration.
   let priorKeys = new Set<string>();
   if (userId && semantic) {
-    priorKeys = await activeMemoryKeys(supabase, userId, tables);
+    priorKeys = await activeMemoryKeys(supabase, userId, tables, organisationId);
   }
 
   // 2. Distil the transcript into durable facts.
@@ -77,6 +79,7 @@ export async function completeConversationMemory(
       conversationId,
       extract,
       tables,
+      organisationId,
     });
     result.distilled = distil.saved;
     if (distil.error) result.errors.push(`distil: ${distil.error}`);
@@ -88,7 +91,7 @@ export async function completeConversationMemory(
 
   // 3. Collapse literal repeats before anything indexes them.
   try {
-    result.deduped = await dedupeUserMemory(supabase, userId, tables);
+    result.deduped = await dedupeUserMemory(supabase, userId, tables, organisationId);
   } catch (error) {
     result.errors.push(`dedupe: ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -102,6 +105,7 @@ export async function completeConversationMemory(
         priorKeys,
         tables,
         options: semantic,
+        organisationId,
       });
     } catch (error) {
       result.errors.push(`index: ${error instanceof Error ? error.message : String(error)}`);

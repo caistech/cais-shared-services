@@ -285,6 +285,7 @@ interface ConversationBinding {
   userId: string;
   agentId: string;
   anonSessionId: string | null;
+  organisationId: string | null;
 }
 
 async function getConversationBinding(
@@ -294,7 +295,7 @@ async function getConversationBinding(
 ): Promise<ConversationBinding | null> {
   const { data, error } = await supabase
     .from(tables.conversations)
-    .select('id, user_id, agent_id, anon_session_id')
+    .select('id, user_id, agent_id, anon_session_id, organisation_id')
     .eq('elevenlabs_conversation_id', elevenlabsConversationId)
     .single();
 
@@ -304,6 +305,7 @@ async function getConversationBinding(
     userId: data.user_id,
     agentId: data.agent_id,
     anonSessionId: data.anon_session_id ?? null,
+    organisationId: data.organisation_id ?? null,
   };
 }
 
@@ -423,6 +425,7 @@ export interface SaveMemoryParams {
   importance?: number;
   tags?: string[];
   identity?: { userId: string; agentId?: string | null };
+  organisationId?: string;
 }
 
 const VALID_MEMORY_TYPES: MemoryType[] = [
@@ -458,11 +461,13 @@ export async function handleSaveMemory(
 
     let userId: string;
     let agentId: string | null | undefined;
+    let organisationId: string | null | undefined;
 
     // Use provided identity if available
     if (params.identity) {
       userId = params.identity.userId;
       agentId = params.identity.agentId;
+      organisationId = params.organisationId ?? null;
     } else if (params.elevenlabsConversationId) {
       // Otherwise get from conversation binding
       const binding = await getConversationBinding(
@@ -477,8 +482,13 @@ export async function handleSaveMemory(
 
       userId = binding.userId;
       agentId = binding.agentId;
+      organisationId = binding.organisationId ?? params.organisationId ?? null;
     } else {
       return { success: false, error: 'Missing conversation ID or identity' };
+    }
+
+    if (!organisationId) {
+      return { success: false, error: 'Missing organisation_id — memory must belong to an organisation' };
     }
 
     // Save memory
@@ -487,6 +497,7 @@ export async function handleSaveMemory(
       .insert({
         user_id: userId,
         agent_id: agentId || null,
+        organisation_id: organisationId,
         content: params.content,
         memory_type: params.memoryType,
         importance: params.importance || 0,
