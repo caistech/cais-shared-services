@@ -1860,6 +1860,39 @@
       },
       "fixed_at": "2026-09-14",
       "fixed_by": "opencode (Dennis session, Kira)"
+    },
+    {
+      "id": "supabase-email-link-fragment-missing-verification-code",
+      "product": "lingopure",
+      "error_pattern": "User clicks the signup/magic-link email and lands on the login page with 'Missing verification code' (no session).",
+      "error_symptoms": [
+        "Email link points at https://<ref>.supabase.co/auth/v1/verify?token=...&type=signup&redirect_to=... (the default {{ .ConfirmationURL }} shape), NOT at the app's /auth/callback",
+        "App is redirected to /login?error=Missing+verification+code",
+        "email IS confirmed in auth.users (email_confirmed_at is set) - only the session hand-off failed",
+        "Affects EVERY self-service email flow (signup, magiclink, recovery); invites are unaffected because they are sent via admin.generateLink + Resend in token_hash form",
+        "Only reproduces when the email was issued by an implicit-flow client (flowType: 'implicit'); a PKCE issuer would instead yield ?code="
+      ],
+      "attempts": [
+        {
+          "tried": "Re-reading /auth/callback expecting it to read the session from the redirect",
+          "result": "It only handles ?code= (exchangeCodeForSession) and ?token_hash=&type= (verifyOtp); it cannot see the access_token because it arrives in the URL fragment (#access_token=...), which browsers never send to the server"
+        },
+        {
+          "tried": "Reading/patching the hosted email templates via the Supabase Management API (api.supabase.com/v1/projects/<ref>/config/auth)",
+          "result": "401 'Your account does not have the necessary privileges to access this endpoint' - token lacks privilege; templates are dashboard-only for this project"
+        },
+        {
+          "tried": "Using the new sb_secret_ service-role key against the auth admin REST API from PowerShell/Invoke-RestMethod",
+          "result": "401 'Forbidden use of secret API key in browser' - fixed by sending an explicit non-browser User-Agent header (e.g. 'curl/8.4.0'); the key is fine, the UA was the trigger"
+        }
+      ],
+      "solution": {
+        "approach": "Root cause = mismatch between the email-issuing client's flow and the email template shape. LingoPure's createOtpIssuerClient() sets flowType: 'implicit', so GoTrue's /auth/v1/verify returns the session in the URL fragment, which the server-side /auth/callback can never read. A fragment-consistent design MUST use the self-contained token_hash template form (which verifyOtp exchanges with no client-side state, so it works cross-device/browser/domain).",
+        "answer": "Set all five Supabase Auth email templates (Confirm signup, Magic link, Reset password, Invite, Change email) to the self-contained token_hash form: '{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=<signup|magiclink|recovery|invite|email_change>&next=<path>'. Preconditions: auth.site_url = the public domain, that domain + /** in auth.additional_redirect_urls, and a callback that handles ?token_hash=&type=. Paste-ready branded bodies: docs/AUTH_EMAIL_TEMPLATES.md in lingopure. Do NOT use cais-shared-services/scripts/configure-email-templates.sh for this product - it still emits {{ .ConfirmationURL }} (PKCE-oriented) and reproduces the bug under an implicit issuer. Immediate user unblock while the templates are unfixed: sign in with email + password, because /verify already consumed the token and confirmed the email.",
+        "code_path": "docs/AUTH_EMAIL_TEMPLATES.md + src/app/auth/callback/route.ts (handleTokenHash branch) + src/lib/supabase/otp.ts (flowType: 'implicit')"
+      },
+      "fixed_at": "2026-09-18",
+      "fixed_by": "opencode (LingoPure signup test)"
     }
   ],
   "usage": "Before fixing ANY bug, grep this file for matching error patterns. Also check SayFix DB for product-specific attempts.",
