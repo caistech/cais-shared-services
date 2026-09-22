@@ -57,9 +57,42 @@ they inherit local-judge support for free). No consumer reconciliation needed �
 
 **Not a bug fix:** no bug-knowledge.json / Mnemo / SayFix entry recorded (enhancement, not a defect).
 
+## Session (2026-09-22) — closed the gap: 0.17.1 committed to main + 9 consumers bumped
+
+**Found on status check:** `@caistech/elevenlabs-convai@0.17.1` was already live on the npm
+registry, but the source had never been committed to `cais-shared-services` main — HEAD was still
+sitting on the 0.16.0-era commit. Committed (`305db33`) and pushed to `origin/main`.
+
+**Bumped all 9 locally-checked-out consumers to `^0.17.1`** (SayFix, F2K-Checkpoint, F2K-Projects,
+singify-platform, Connexions, DealFindrs, BucketLyst, PrelabzAI, executorai) — version bump +
+install + typecheck verify + commit per repo, **none pushed yet** (local commits only). Morgan and
+cx-3500 were not found checked out on this machine — not bumped.
+
+**Caught mid-flight:** BucketLyst's first `npm install` actually failed (ERESOLVE peer conflict on
+typescript, which npm misreported as `undefined`) but the `| tail -30` piping swallowed the real
+exit code, so the background-task notification read "completed" over a broken install
+(package.json said 0.17.1, lockfile+node_modules still resolved 0.11.2). Caught by verifying
+`node_modules/@caistech/elevenlabs-convai/package.json`'s actual `version` field rather than
+trusting the notification; retried clean, confirmed 0.17.1 resolved, then committed. Re-verified
+the other repos' resolved versions the same way before committing them, since they'd used the same
+masking pattern.
+
+**PrelabzAI has pre-existing `tsc` errors** in `lib/ai/prompts.ts` (missing config fields) —
+confirmed via `git stash` unrelated to the convai bump, present before and after.
+
+**Branch note — 4 of 9 repos are NOT on `main`:**
+- DealFindrs, singify-platform → currently checked out on `_clean_residency` (a pre-existing local
+  branch from an earlier data-residency-disclosure pass; singify's has a real commit ahead of
+  origin, `864c78d fix(privacy): disclose where recordings are stored`)
+- BucketLyst, Connexions → currently checked out on `chore/gate-machine-routes` (pre-existing,
+  ~2 months stale, likely a fleet-wide portfolio-gate rollout branch)
+
+None of these were created by this session — the convai bump commit just landed on whatever
+branch was already checked out. Flagged to the user; not yet reconciled onto `main`.
+
 ## Next
-- Bump the remaining `@caistech/elevenlabs-convai` consumers to `^0.17.1` (SayFix, Morgan,
-  ExecutorAI, BucketLyst, DealFindrs, F2K, Singify, Connexions, Prelabz, cx-3500) — see above.
+- **Push the 9 consumer commits** (or reconcile the 4 off-main branches onto `main` first — ask
+  the user which).
 - Optional: point CI at `--shots` capture-once/re-verdict flow to cut runner minutes.
 - If `LOCAL_VISION_MODEL` gets set globally, all six agents silently switch judges — decide
   whether that's wanted per-agent before doing it in shared env.
