@@ -1,5 +1,61 @@
 # @caistech/elevenlabs-convai — Changelog
 
+## 0.17.1 — 2026-09-22
+
+Supersedes 0.17.0, published minutes earlier in the same session — the `organisation_id` guard
+described below shipped as a hard, unconditional reject before being caught and softened to
+opt-in. 0.17.0 was live on the registry for under five minutes; nothing had adopted it.
+
+## 0.17.0 — 2026-09-22
+
+### Added — live mic-level indicator, the only signal a long call had between turns
+
+`onMessage` fires once a turn is FINAL. On a 20-35 minute structured voice call there was
+nothing on screen distinguishing "the system is hearing you mid-sentence" from "the system has
+stopped listening" — a real reviewer finding against a live LingoPure discovery call. The vendor
+SDK (`@elevenlabs/client`, checked at both the pinned 1.8.1 and the current latest 1.25.0) still
+never surfaces the tentative/interim transcript event over its public API — `tentative_user_
+transcript` is defined in `@elevenlabs/types` but absent from `IncomingSocketEvent` and the
+websocket message switch, so that half is a vendor gap, not something this package can fix
+without forking the transport layer. It DOES already expose a live input-level signal
+(`onVadScore` / `getInputVolume()`) that `VoiceWidget` simply never read.
+
+`VoiceWidgetProps` gains `onInputVolume` (fires every VAD tick, 0-1) and `showInputLevel`
+(default true); `VoiceControls` (via `onReady`) gains `getInputVolume()` for a consumer-drawn
+meter. The built-in panel shows a small pulsing dot, gated by the new pure `shouldShowInputLevel`
+— visible while connected and the assistant is NOT talking, hidden in text-fallback and while
+disconnected (there is no live input to report). Purely additive; 8 new tests, mutation-verified.
+
+### Fixed — the build had been broken on `main` for a month, and it was quietly regressive
+
+`webhook-handlers.ts` had been rewritten (2026-08-22) to accept a raw `Request` instead of the
+typed params object its three actual callers (`routes.ts`, `memory-distill.ts`,
+`memory-pipeline.ts`) still passed, importing a `./request-utils` module that was never created.
+It never built, so it never published — nothing running in any consumer has ever run this code.
+Reverted to the last working, published (0.16.0) implementation: real `elevenlabs-signature`
+HMAC verification (the rewrite had stubbed it to `!!signature` — present-check only, not
+verified) and the cross-session-memory continuity lookup (`get_conversation_context` /
+`has_history` / `time_gap_category`) the rewrite silently dropped.
+
+A second, later commit (also never built) had added real, wanted P0.4 multi-tenant scoping —
+`organisation_id` on every memory row — on top of the broken rewrite, plus one bug of its own
+(`activeMemoryKeys` built a Supabase query and never awaited it — `Cannot find name 'data'`,
+fixed). Its enforcement (`handleSaveMemory` hard-rejected a save with no resolvable `organisation_id`)
+had no consumer that could satisfy it: nothing wrote `organisation_id` onto a conversation, and
+the public route-contract types didn't carry one — shipping the hard reject as-is would have
+broken `handleSaveMemory` for every existing consumer the moment they bumped this package.
+Wired through properly: `ConvaiRouteContext` and `ConvaiToolIdentity` (both exported) gain an
+optional `organisationId`; `routes.ts`'s `startConversation` passes it from `resolveSession` into
+`handleStartConversation`'s insert, and `saveMemory` passes it from `resolveToolIdentity` for the
+direct-identity path — but the guard itself is **opt-in, not required**: with no `organisationId`
+anywhere it degrades to `organisation_id: null` (today's behaviour for every consumer), the same
+posture as `anon_session_id`. A product wanting real per-organisation memory isolation wires its
+`resolveSession`/`resolveToolIdentity` callbacks to return one; nothing else changes for a
+consumer that doesn't. Both additive on already-optional fields — no consumer migration needed,
+and no reprovisioning of ElevenLabs agents either (this is server-side route/handler behaviour
+only, nothing in the agent config or tool schema changed). 4 new tests covering the wiring
+(routes + webhook-handlers), mutation-verified.
+
 ## 0.15.1 — 2026-08-10
 
 Two things the first real prune exposed, both about what happens when the vendor says no.

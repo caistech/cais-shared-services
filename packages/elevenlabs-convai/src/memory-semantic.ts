@@ -107,6 +107,7 @@ export async function activeMemoryKeys(
       .eq('user_id', userId)
       .eq('active', true);
     if (organisationId) q = q.eq('organisation_id', organisationId);
+    const { data } = await q;
     return new Set(
       ((data ?? []) as { content?: string }[])
         .map((r) => normaliseFact(String(r.content ?? '')))

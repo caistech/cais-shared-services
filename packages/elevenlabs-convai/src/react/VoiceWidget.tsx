@@ -7,7 +7,7 @@
 // resolveSession() owns identity. Use onConnect(conversationId) to POST the conversation id
 // to your session-init route so the server can bind it to the verified user.
 
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import { ConversationProvider, useConversation, type HookOptions } from '@elevenlabs/react';
 import type { VoiceWidgetProps, VoiceConnectionStatus } from '../types.js';
 import {
@@ -17,6 +17,7 @@ import {
   placementClass,
   shouldUseTextFallback,
   shouldShowConnecting,
+  shouldShowInputLevel,
   startsNewConversation,
   DEFAULT_FALLBACK_AFTER_MS,
   statusLabel,
@@ -43,18 +44,30 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
   const [open, setOpen] = useState(embedded);
   const [text, setText] = useState('');
   const [messages, setMessages] = useState<{ source: 'user' | 'ai'; text: string }[]>([]);
+  const [inputLevel, setInputLevel] = useState(0);
   const startedRef = useRef(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
   const convo = useConversation({
     onConnect: (p: { conversationId: string }) => props.onConnect?.(p.conversationId),
-    onDisconnect: () => props.onDisconnect?.(),
+    onDisconnect: () => {
+      setInputLevel(0);
+      props.onDisconnect?.();
+    },
     onError: (message: string) => props.onError?.(message),
     onMessage: (p: { source: 'user' | 'ai'; message: string }) => {
       setMessages((m) => [...m, { source: p.source, text: p.message }]);
       props.onMessage?.(p.source, p.message);
     },
     onStatusChange: (p: { status: string }) => props.onStatusChange?.(p.status as VoiceConnectionStatus),
+    // Live caller input level (0-1), roughly every 100ms while connected. This is the ONLY
+    // signal a visitor gets that the system is hearing them mid-sentence — `onMessage` fires
+    // only once a turn is final. See shouldShowInputLevel for why the built-in dot is gated
+    // to "connected and the assistant isn't talking".
+    onVadScore: (p: { vadScore: number }) => {
+      setInputLevel(p.vadScore);
+      props.onInputVolume?.(p.vadScore);
+    },
   });
 
   const status = convo.status as VoiceConnectionStatus;
@@ -96,6 +109,12 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
   }, [open, connected, attempted, props.fallbackAfterMs]);
 
   const fallback = shouldUseTextFallback(props, status, { stalled });
+  const showLevel = shouldShowInputLevel({
+    connected,
+    assistantSpeaking: convo.isSpeaking,
+    fallback,
+    enabled: props.showInputLevel,
+  });
 
   // THE EIGHT SECONDS NOBODY WAS TOLD ABOUT.
   //
@@ -125,6 +144,7 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
       props.onReady?.({
         sendUserMessage: (t: string) => { try { convo.sendUserMessage?.(t); } catch { /* not connected */ } },
         sendContextualUpdate: (t: string) => { try { convo.sendContextualUpdate?.(t); } catch { /* not connected */ } },
+        getInputVolume: () => { try { return convo.getInputVolume?.() ?? 0; } catch { return 0; } },
       });
     }
     if (!connected) readyFiredRef.current = false;
@@ -289,6 +309,14 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
               {!props.transcript && !connecting && (
                 <div className="convai-status" aria-live="polite">
                   {statusLabel(status, convo.isSpeaking)}
+                  {showLevel && (
+                    <span className="convai-input-level" aria-hidden>
+                      <span
+                        className="convai-input-level-dot"
+                        style={{ '--convai-level': inputLevel } as CSSProperties}
+                      />
+                    </span>
+                  )}
                 </div>
               )}
               <div className="convai-row">
@@ -385,6 +413,14 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
               ) : (
                 <div className="convai-status" aria-live="polite">
                   {statusLabel(status, convo.isSpeaking)}
+                  {showLevel && (
+                    <span className="convai-input-level" aria-hidden>
+                      <span
+                        className="convai-input-level-dot"
+                        style={{ '--convai-level': inputLevel } as CSSProperties}
+                      />
+                    </span>
+                  )}
                 </div>
               )}
               <div className="convai-row">

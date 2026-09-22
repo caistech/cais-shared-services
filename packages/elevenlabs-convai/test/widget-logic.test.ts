@@ -6,6 +6,7 @@ import {
   panelHeader,
   shouldUseTextFallback,
   shouldShowConnecting,
+  shouldShowInputLevel,
   startsNewConversation,
   placementClass,
   statusLabel,
@@ -189,6 +190,38 @@ describe('startsNewConversation — the transcript that never cleared', () => {
   });
 });
 
+describe('shouldShowInputLevel — the mic-level dot', () => {
+  // WHY THIS EXISTS. onMessage fires once a turn is FINAL. On a long structured call there is
+  // otherwise nothing on screen between turns distinguishing "hearing you mid-sentence" from
+  // "stopped listening". onVadScore gives a live signal; this decides when showing it is honest.
+
+  it('shows while connected and the assistant is not talking', () => {
+    expect(shouldShowInputLevel({ connected: true, assistantSpeaking: false, fallback: false })).toBe(true);
+  });
+
+  it('hides while the assistant is speaking — a moving dot then would read as a bug', () => {
+    expect(shouldShowInputLevel({ connected: true, assistantSpeaking: true, fallback: false })).toBe(false);
+  });
+
+  it('hides before/after connection — there is no live input to report', () => {
+    expect(shouldShowInputLevel({ connected: false, assistantSpeaking: false, fallback: false })).toBe(false);
+  });
+
+  it('hides once the text fallback has replaced the voice UI', () => {
+    expect(shouldShowInputLevel({ connected: true, assistantSpeaking: false, fallback: true })).toBe(false);
+  });
+
+  it('respects an explicit opt-out even when every other condition says show it', () => {
+    expect(
+      shouldShowInputLevel({ connected: true, assistantSpeaking: false, fallback: false, enabled: false }),
+    ).toBe(false);
+  });
+
+  it('defaults to shown when `enabled` is not passed', () => {
+    expect(shouldShowInputLevel({ connected: true, assistantSpeaking: false, fallback: false })).toBe(true);
+  });
+});
+
 describe('…and the reset is actually WIRED — the half a pure test cannot reach', () => {
   // ⚠️ EVERY ASSERTION ABOVE PASSES IF `setMessages([])` IS DELETED FROM connect(). They test the
   // predicate; nothing tests that anything CALLS it. That gap is the portfolio's most common defect
@@ -216,5 +249,17 @@ describe('…and the reset is actually WIRED — the half a pure test cannot rea
   it('does NOT clear on close — the last conversation stays readable until the next one begins', () => {
     const closeFn = widget.slice(widget.indexOf('function close()'), widget.indexOf('function submitText'));
     expect(closeFn).not.toContain('setMessages');
+  });
+
+  // Same shape, same reason: shouldShowInputLevel and getInputVolume are correct and useless if
+  // nothing in the component registers onVadScore or reads convo.getInputVolume().
+  it('registers onVadScore on the useConversation() call — the source of the live level', () => {
+    const hookCall = widget.slice(widget.indexOf('useConversation({'), widget.indexOf('const status ='));
+    expect(hookCall).toContain('onVadScore');
+  });
+
+  it('exposes getInputVolume through onReady, not just the internal indicator', () => {
+    const readyBlock = widget.slice(widget.indexOf('props.onReady?.({'), widget.indexOf('if (!connected) readyFiredRef'));
+    expect(readyBlock).toContain('getInputVolume');
   });
 });

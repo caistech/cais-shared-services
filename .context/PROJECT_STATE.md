@@ -1,8 +1,47 @@
 # Project State — cais-shared-services
 
-> Save-game per portfolio convention (.context/PROJECT_STATE.md). Updated 2026-08-23.
+> Save-game per portfolio convention (.context/PROJECT_STATE.md). Updated 2026-09-22.
 
-## Last session (2026-08-23) — zero-cost judging for the validation agents
+## Last session (2026-09-22) — @caistech/elevenlabs-convai 0.17.1: mic-level indicator, a
+## month-old broken build reverted, organisation_id wired through (opt-in)
+
+**Published: `@caistech/elevenlabs-convai@0.17.1`** (0.17.0 was live under 5 minutes before a
+bug in it was caught and fixed — nothing adopted it; see CHANGELOG.md for the full account).
+
+**Done:**
+- **Mic-level indicator** (the original ask — LingoPure reviewer finding: a 20-35 min voice call
+  had no signal between turns that the system was hearing the caller). `VoiceWidget` now reads
+  the vendor SDK's existing `onVadScore`/`getInputVolume()` (never wired before) into a built-in
+  pulsing dot, gated by a new pure `shouldShowInputLevel`. New props: `onInputVolume`,
+  `showInputLevel`; `VoiceControls.getInputVolume()`. Confirmed the true interim-transcript event
+  (`tentative_user_transcript`) is still absent from `@elevenlabs/client`'s public API at both the
+  pinned 1.8.1 and latest 1.25.0 — a real vendor gap, not fixable without forking their transport.
+- **Reverted a month-old, never-published, regressive rewrite of `webhook-handlers.ts`**
+  (commit `8dc55d7`, 2026-08-22): it stubbed `elevenlabs-signature` HMAC verification to a
+  present-check only and silently dropped the cross-session-memory continuity lookup
+  (`get_conversation_context`/`has_history`/`time_gap_category`, the v0.11.0 feature). It broke
+  the build (missing `./request-utils` import) the same day and never built since, so it never
+  shipped — every live consumer has been running the older, correct 0.16.0 behaviour the whole
+  time. Reverted to that.
+- **Re-applied + completed real P0.4 `organisation_id` multi-tenant memory scoping** from a
+  later, also-never-built commit (`25c38f8`) that sat on top of the broken rewrite. Fixed its own
+  bug (`activeMemoryKeys` built a query and never awaited it). Its enforcement had no consumer
+  that could satisfy it (nothing wrote `organisation_id` anywhere) — wired the plumbing through
+  properly (`ConvaiRouteContext`/`ConvaiToolIdentity` gain optional `organisationId`, threaded
+  into `handleStartConversation`'s insert + `handleSaveMemory`) but made the guard **opt-in**:
+  degrades to `organisation_id: null` (today's behaviour) rather than hard-rejecting every
+  existing consumer's memory-save on a routine bump.
+- 147 tests passing (12 new/updated, mutation-verified), clean `tsc` build.
+- **Consumers bumped to `^0.17.1`:** Kira, LingoPureAI (`npm install` run, lockfiles confirmed
+  resolving 0.17.1). No ElevenLabs agent reprovisioning needed — everything changed is
+  route/handler/widget behaviour, not agent config or tool schema.
+
+**Not yet bumped (SHARED_SERVICES.md consumer list):** SayFix, Morgan, ExecutorAI, BucketLyst,
+DealFindrs, F2K, Singify, Connexions, Prelabz, cx-3500 — still on `^0.16.0`. Low urgency (0.16.0
+behaviour is what they're already running; 0.17.1 is backward-compatible), but they won't get the
+mic-level indicator until bumped.
+
+## Previous session (2026-08-23) — zero-cost judging for the validation agents
 
 **Done (verified with `node --check`):**
 - `scripts/agents/lib.mjs`: `loadShots(dir)` export (reads `.png`s, filenames become labels);
@@ -19,6 +58,8 @@ they inherit local-judge support for free). No consumer reconciliation needed �
 **Not a bug fix:** no bug-knowledge.json / Mnemo / SayFix entry recorded (enhancement, not a defect).
 
 ## Next
+- Bump the remaining `@caistech/elevenlabs-convai` consumers to `^0.17.1` (SayFix, Morgan,
+  ExecutorAI, BucketLyst, DealFindrs, F2K, Singify, Connexions, Prelabz, cx-3500) — see above.
 - Optional: point CI at `--shots` capture-once/re-verdict flow to cut runner minutes.
 - If `LOCAL_VISION_MODEL` gets set globally, all six agents silently switch judges — decide
   whether that's wanted per-agent before doing it in shared env.

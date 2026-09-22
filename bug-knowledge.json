@@ -1893,6 +1893,59 @@
       },
       "fixed_at": "2026-09-18",
       "fixed_by": "opencode (LingoPure signup test)"
+    },
+    {
+      "id": "convai-deployed-webhook-secret-is-not-the-live-webhooks-secret",
+      "product": "lingopureai (shared class: every @caistech/elevenlabs-convai consumer)",
+      "error_pattern": "[convai/webhook] invalid signature -> 401 on every real ElevenLabs post-call delivery, while every self-signed probe returns 200",
+      "error_symptoms": [
+        "Vercel logs: level=error '[convai/webhook] invalid signature' with 401 on POST /api/convai/webhook, interleaved with 200s on /api/convai/bind and /api/onboarding/discovery/session (i.e. a REAL call just finished)",
+        "GET /v1/workspace/webhooks shows most_recent_failure_error_code: 401 and a most_recent_failure_timestamp matching the log line; is_disabled false, is_auto_disabled false, retry_enabled false",
+        "Signing a synthetic payload with the deployed ELEVENLABS_WEBHOOK_SECRET and POSTing it to the deployed route returns 200 - so local secret == deployed secret and every in-repo probe/gate is GREEN while real deliveries still 401",
+        "A wrong-secret control on the same route returns 401 - so the verifier itself is fine",
+        "Impact in prod: no convai_conversations/convai_messages, no discovery_sessions row, students.discovery_status never flips to complete, no gap scoring, no discoveryComplete XP, no convai_memory distill - the voice memory loop is silently dead"
+      ],
+      "attempts": [
+        {
+          "tried": "Checked the route is a thin pass-through to @caistech/elevenlabs-convai verifyWebhookSignature, and that an unsigned POST is refused (expectPostCallAuth)",
+          "result": "Not the fault - the code path is canonical and the unsigned-refusal check passes"
+        },
+        {
+          "tried": "Reproduced the shared gate's distil leg by hand: sign a synthetic post-call payload with env.ELEVENLABS_WEBHOOK_SECRET and deliver it to the DEPLOYED route",
+          "result": "HTTP 200. BLIND SPOT: the probe signs with the same secret the server verifies with, so it only ever proves local == deployed. It structurally cannot detect 'deployed != the live webhook's own secret' and passes against a fully broken production."
+        },
+        {
+          "tried": "Ran cais-shared-services vercel-env-check.mjs and check-39-secrets.mjs",
+          "result": "Different axis: those assert secret TYPE (sensitive vs plain) and 'no secrets committed to git'. Neither compares the deployed webhook secret against the live webhook."
+        }
+      ],
+      "solution": {
+        "approach": "ElevenLabs returns webhook_secret ONLY in the POST /v1/workspace/webhooks create response; GET never re-reveals it. A webhook created outside the provisioning code path (by hand in the dashboard, or by a different workspace admin while the provisioning seat was workspace_lite_member and lacked webhooks_manage) leaves its secret captured nowhere. The deployed value is then a secret from an EARLIER, deleted webhook: it verifies against itself, so all self-signed probes pass, but it is not what ElevenLabs signs with. Note the current webhook's created_at_unix is the tell - if it postdates the secret in Vercel, the secret is stale.",
+        "answer": "(1) Delete the stale workspace webhook. (2) Re-run the repo's provision script (node --import tsx scripts/provision-discovery-agent.ts) so the create response's webhook_secret is CAPTURED and written to .env.local. (3) Push ELEVENLABS_WEBHOOK_SECRET to Vercel production as a sensitive var and REDEPLOY - env changes need a new deployment, the value is read at runtime. (4) Verify BOTH ways: a signed probe must return 200 AND GET /v1/workspace/webhooks must stop accumulating most_recent_failure_error_code 401. (5) Set retry_enabled: true so a future miss is not permanently silent. DURABLE RAIL (missing): no shared check reads the ElevenLabs webhook's own most_recent_failure_error_code / is_disabled - that is the only out-of-band signal available, since the API never re-reveals the secret.",
+        "code_path": "src/app/api/convai/webhook/route.ts + scripts/provision-discovery-agent.ts (LingoPure); @caistech/elevenlabs-convai dist/provision.js (capture-on-create only), dist/testing.js probeMemoryLoop (self-referential distil leg), @caistech/portfolio-gate dist/memory-loop.js (--distil)"
+      },
+      "status": "diagnosed 2026-09-18 - fix pending (needs the stale webhook deleted + Vercel env synced + redeploy)",
+      "fixed_at": null,
+      "fixed_by": null
+    },
+    {
+      "product": "LingoPureAI",
+      "error_pattern": "Plan agent not configured (ELEVENLABS_PLAN_AGENT_ID missing)",
+      "error_symptoms": "POST /api/plan/session 500 even though convai_agents has a seeded active LingoPure Plan Agent row; agentId null in /api/plan/delivery GET",
+      "attempts": [
+        {
+          "tried": "Query convai_agents with the student session client as fallback",
+          "result": "Failed - convai_agents RLS is user_id = auth.uid(); a student client is RLS-masked and can never see the seeded row"
+        },
+        {
+          "tried": "Return ELEVENLABS_AGENT_ID (discovery agent) from plan delivery GET",
+          "result": "Wrong agent ID surfaced to the plan UI"
+        }
+      ],
+      "solution": {
+        "approach": "Shared resolvePlanAgentId(): ELEVENLABS_PLAN_AGENT_ID env var first, else service-role createAdminClient() read of the seeded row (bypasses RLS). Used by both /api/plan/delivery and /api/plan/session.",
+        "code_path": "src/lib/plan/resolve-plan-agent.ts, src/app/api/plan/session/route.ts, src/app/api/plan/delivery/route.ts"
+      }
     }
   ],
   "usage": "Before fixing ANY bug, grep this file for matching error patterns. Also check SayFix DB for product-specific attempts.",

@@ -133,7 +133,7 @@ describe('memory handlers — 15A identity derived from the conversation', () =>
   it('handleSaveMemory tags memory with the binding anon_session_id', async () => {
     const resolver: Resolver = (ctx) => {
       if (ctx.table === 'convai_conversations' && ctx.op === 'select')
-        return { data: { id: 'conv_uuid', user_id: 'anon_1', agent_id: 'agent_x', anon_session_id: 'anon_1' }, error: null };
+        return { data: { id: 'conv_uuid', user_id: 'anon_1', agent_id: 'agent_x', anon_session_id: 'anon_1', organisation_id: 'org_1' }, error: null };
       if (ctx.table === 'convai_memory' && ctx.op === 'insert')
         return { data: { id: 'mem_1' }, error: null };
       return { data: null, error: null };
@@ -146,6 +146,26 @@ describe('memory handlers — 15A identity derived from the conversation', () =>
     const payload = insert!.payload as Record<string, unknown>;
     expect(payload.user_id).toBe('anon_1');
     expect(payload.anon_session_id).toBe('anon_1');
+    expect(payload.organisation_id).toBe('org_1');
+  });
+
+  it('handleSaveMemory degrades to a null organisation_id rather than rejecting — no shipped consumer populates it yet', async () => {
+    // organisation_id is opt-in: nothing writes it onto a conversation unless a product's
+    // resolveSession/resolveToolIdentity callbacks return one. Hard-requiring it here would
+    // break handleSaveMemory for every existing consumer on a routine dependency bump.
+    const resolver: Resolver = (ctx) => {
+      if (ctx.table === 'convai_conversations' && ctx.op === 'select')
+        return { data: { id: 'conv_uuid', user_id: 'anon_1', agent_id: 'agent_x', anon_session_id: 'anon_1', organisation_id: null }, error: null };
+      if (ctx.table === 'convai_memory' && ctx.op === 'insert')
+        return { data: { id: 'mem_1' }, error: null };
+      return { data: null, error: null };
+    };
+    const { client, calls } = createMockSupabase(resolver);
+    const res = await handleSaveMemory(client, { elevenlabsConversationId: 'el_conv', content: 'likes blue', memoryType: 'preference' });
+    expect(res.success).toBe(true);
+
+    const insert = calls.find((c) => c.table === 'convai_memory' && c.op === 'insert');
+    expect((insert!.payload as Record<string, unknown>).organisation_id).toBeNull();
   });
 
   it('handleRecallMemory rejects an unknown conversation', async () => {

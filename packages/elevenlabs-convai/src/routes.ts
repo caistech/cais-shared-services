@@ -42,6 +42,9 @@ type Supabase = SupabaseClient<any, any, any>;
 export interface ConvaiRouteContext {
   userId: string;
   anonSessionId?: string;
+  /** Persisted on the conversation row so handleSaveMemory can derive it later without the
+   *  caller having to resupply it on every memory tool call. */
+  organisationId?: string;
 }
 
 /** Identity for the memory tool routes when it is SERVER-BAKED (see resolveToolIdentity). */
@@ -49,6 +52,9 @@ export interface ConvaiToolIdentity {
   userId: string;
   /** Scope recall/save to a single agent; omit/null for user-wide (one-agent-per-user). */
   agentId?: string | null;
+  /** Required by handleSaveMemory when this identity path is used directly (no conversation
+   *  row to derive organisation_id from). */
+  organisationId?: string;
 }
 
 export interface CreateConvaiWebhookRoutesOptions {
@@ -251,6 +257,7 @@ export function createConvaiWebhookRoutes(
         elevenlabsAgentId,
         userId: session.userId,
         anonSessionId: session.anonSessionId,
+        organisationId: session.organisationId,
       },
       tableNames
     );
@@ -341,7 +348,13 @@ export function createConvaiWebhookRoutes(
 
     const result = await handleSaveMemory(
       supabase,
-      { elevenlabsConversationId: conversationId, content, memoryType, identity: identity ?? undefined },
+      {
+        elevenlabsConversationId: conversationId,
+        content,
+        memoryType,
+        identity: identity ?? undefined,
+        organisationId: identity?.organisationId,
+      },
       tableNames
     );
     return json(200, result);

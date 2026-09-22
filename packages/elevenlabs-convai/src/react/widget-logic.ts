@@ -171,6 +171,31 @@ export function statusLabel(status: VoiceConnectionStatus, isSpeaking: boolean):
 }
 
 /**
+ * Should the built-in mic-level indicator render?
+ *
+ * WHY THIS EXISTS. `onMessage` fires once a turn is final — mid-sentence, on a long call
+ * (a 20-35 minute structured interview is the case this was built for), there was nothing
+ * on screen distinguishing "the system is hearing you" from "the system has stopped
+ * listening". `onVadScore` gives a live 0-1 input level; this decides when showing it is
+ * meaningful rather than noise.
+ *
+ * Deliberately false while the ASSISTANT is speaking (`assistantSpeaking`): the caller's
+ * mic may still pick up room noise or a barge-in attempt, and a meter moving while nobody
+ * asked "are you there?" reads as a bug, not a feature. False in fallback/disconnected
+ * states for the same reason `shouldShowConnecting` yields to them — there is no live input
+ * to report. Consumer can still opt out entirely via `showInputLevel: false`.
+ */
+export function shouldShowInputLevel(opts: {
+  connected: boolean;
+  assistantSpeaking: boolean;
+  fallback: boolean;
+  enabled?: boolean;
+}): boolean {
+  if (opts.enabled === false) return false;
+  return opts.connected && !opts.assistantSpeaking && !opts.fallback;
+}
+
+/**
  * Self-contained styles, injected once at runtime. No CSS framework dependency so the
  * widget drops into any consumer. Responsive: floating launcher is a >=44px touch target
  * bottom-right; the open panel becomes a full-screen sheet at <=640px.
@@ -234,6 +259,21 @@ export const WIDGET_CSS = `
   .convai-progress > i { animation: none; transform: scaleX(.35); }
 }
 .convai-row { display: flex; gap: 8px; align-items: center; }
+/* Mic-level indicator: a small dot whose scale tracks the caller's live input level
+   (0-1, set as an inline CSS custom property --convai-level by VoiceWidget). Answers "is it
+   hearing me" mid-sentence, when onMessage has nothing to show yet. */
+.convai-input-level {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #6b7280;
+}
+.convai-input-level-dot {
+  width: 10px; height: 10px; border-radius: 9999px; background: #0f766e;
+  transform: scale(calc(0.4 + (var(--convai-level, 0) * 0.6)));
+  opacity: calc(0.35 + (var(--convai-level, 0) * 0.65));
+  transition: transform 80ms linear, opacity 80ms linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .convai-input-level-dot { transition: none; }
+}
 .convai-fallback input {
   flex: 1; min-height: 44px; font-size: 16px; padding: 8px 12px;
   border: 1px solid #d1d5db; border-radius: 10px;

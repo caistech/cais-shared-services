@@ -3,51 +3,6 @@
 // De-coupled from any specific project (Kira, MOVA, etc).
 
 // =============================================================================
-// REQUEST HANDLING TYPES
-// =============================================================================
-
-/**
- * Represents a request with a body that can be read multiple times.
- * This interface ensures proper request body handling across the application.
- */
-export interface MultiReadableRequest extends Request {
-  /**
-   * Read the request body and return it as a string.
-   * This method can be called multiple times without consuming the body.
-   */
-  text(): Promise<string>;
-
-  /**
-   * Read the request body and return it as a parsed JSON object.
-   * This method can be called multiple times without consuming the body.
-   */
-  json(): Promise<any>;
-
-  /**
-   * Clone the request with a fresh body stream.
-   * This allows creating multiple readable versions of the same request.
-   */
-  clone(): MultiReadableRequest;
-}
-
-/**
- * Options for creating a multi-readable request.
- */
-export interface CreateMultiReadableRequestOptions {
-  /**
-   * Whether to buffer the entire body in memory.
-   * Set to false for large bodies to avoid memory issues.
-   */
-  bufferBody?: boolean;
-
-  /**
-   * Maximum allowed body size in bytes.
-   * Requests exceeding this size will be rejected.
-   */
-  maxBodySize?: number;
-}
-
-// =============================================================================
 // AGENT CONFIGURATION
 // =============================================================================
 
@@ -372,6 +327,21 @@ export interface VoiceWidgetProps extends Omit<VoiceConfigBase, 'agentId'> {
   onStatusChange?: (status: VoiceConnectionStatus) => void;
   /** Called when the user submits via the text fallback (no voice). */
   onTextFallbackSubmit?: (text: string) => void;
+  /**
+   * Fires on every voice-activity-detection tick while connected (roughly every 100ms),
+   * with the caller's input level as a scalar 0-1. This is the ONLY signal a visitor gets
+   * that the system is hearing them mid-sentence — `onMessage` fires only once a turn is
+   * final, so on a long call there is otherwise no feedback between turns. Drives the
+   * built-in mic-level indicator; also useful for a consumer's own UI. No-op cost when
+   * unset (the SDK's `onVadScore` callback is registered either way).
+   */
+  onInputVolume?: (level: number) => void;
+  /**
+   * Show the built-in mic-level indicator while connected and the assistant isn't
+   * speaking. Defaults to true. Set false if the consumer only wants `onInputVolume` for
+   * its own UI and not the widget's.
+   */
+  showInputLevel?: boolean;
 
   // UI
   /** Explanatory header shown at the top of the open panel. Has a sensible default. */
@@ -422,50 +392,9 @@ export interface VoiceControls {
   sendUserMessage: (text: string) => void;
   /** Send non-spoken context that steers the agent's next turn (e.g. a time-remaining nudge). */
   sendContextualUpdate: (text: string) => void;
+  /** Current caller input level, 0-1 (the same scalar `onInputVolume` streams). Poll for a
+   *  consumer-drawn meter instead of subscribing to every tick. */
+  getInputVolume: () => number;
 }
 
 export type VoiceConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
-
-// =============================================================================
-// REQUEST UTILITIES
-// =============================================================================
-
-/**
- * Create a multi-readable request from a standard Request object.
- * This ensures the body can be read multiple times.
- */
-export async function createMultiReadableRequest(
-  req: Request,
-  options: CreateMultiReadableRequestOptions = {}
-): Promise<MultiReadableRequest> {
-  const { bufferBody = true, maxBodySize = 1024 * 1024 } = options; // Default 1MB max size
-
-  // Read and validate the body
-  const rawBody = await req.text();
-  if (bufferBody && rawBody.length > maxBodySize) {
-    throw new Error(`Request body exceeds maximum allowed size of ${maxBodySize} bytes`);
-  }
-
-  const body = JSON.parse(rawBody);
-
-  return {
-    ...req,
-    text: async () => rawBody,
-    json: async () => body,
-    clone: () => createMultiReadableRequest(new Request(req.url, {
-      method: req.method,
-      headers: req.headers,
-      body: rawBody
-    }), options)
-  };
-}
-
-/**
- * Clone a multi-readable request with a fresh body stream.
- */
-export function cloneMultiReadableRequest(req: MultiReadableRequest): MultiReadableRequest {
-  return {
-    ...req,
-    clone: () => cloneMultiReadableRequest(req)
-  };
-}

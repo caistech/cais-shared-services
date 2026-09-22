@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createConvaiWebhookRoutes } from '../src/routes';
-import { createMockSupabase, type Resolver } from './_mock-supabase';
+import { createMockSupabase, findCall, type Resolver } from './_mock-supabase';
 
 const startResolver: Resolver = (ctx) => {
   if (ctx.table === 'convai_agents' && ctx.op === 'select') return { data: { id: 'agent_uuid', agent_name: 'A' }, error: null };
@@ -56,6 +56,63 @@ describe('createConvaiWebhookRoutes — startConversation', () => {
     const routes = makeRoutes({ resolveSession: () => { throw new Error('boom'); } });
     const res = await routes.startConversation(jsonReq({ elevenlabs_conversation_id: 'c', elevenlabs_agent_id: 'a' }));
     expect(res.status).toBe(500);
+  });
+
+  it('threads resolveSession organisationId onto the conversation insert', async () => {
+    const { client, calls } = createMockSupabase(startResolver, () => ({ data: { has_history: false }, error: null }));
+    const routes = createConvaiWebhookRoutes({
+      supabase: client,
+      resolveSession: () => ({ userId: 'u1', organisationId: 'org_1' }),
+      allowUnsignedPostCall: true,
+    });
+    const res = await routes.startConversation(jsonReq({ elevenlabs_conversation_id: 'c', elevenlabs_agent_id: 'a' }));
+    expect(res.status).toBe(200);
+
+    const insert = findCall(calls, 'convai_conversations', 'insert');
+    expect((insert!.payload as Record<string, unknown>).organisation_id).toBe('org_1');
+  });
+});
+
+describe('createConvaiWebhookRoutes — saveMemory', () => {
+  it('threads resolveToolIdentity organisationId through to the memory insert', async () => {
+    const resolver: Resolver = (ctx) => {
+      if (ctx.table === 'convai_memory' && ctx.op === 'insert') return { data: { id: 'mem_1' }, error: null };
+      return { data: null, error: null };
+    };
+    const { client, calls } = createMockSupabase(resolver);
+    const routes = createConvaiWebhookRoutes({
+      supabase: client,
+      resolveSession: () => ({ userId: 'u1' }),
+      resolveToolIdentity: () => ({ userId: 'u1', agentId: 'agent_1', organisationId: 'org_1' }),
+      allowUnsignedPostCall: true,
+    });
+    const res = await routes.saveMemory(jsonReq({ memory: 'likes blue', category: 'preference' }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+
+    const insert = findCall(calls, 'convai_memory', 'insert');
+    expect((insert!.payload as Record<string, unknown>).organisation_id).toBe('org_1');
+  });
+
+  it('still saves when resolveToolIdentity supplies no organisationId — opt-in, not required', async () => {
+    const resolver: Resolver = (ctx) => {
+      if (ctx.table === 'convai_memory' && ctx.op === 'insert') return { data: { id: 'mem_1' }, error: null };
+      return { data: null, error: null };
+    };
+    const { client, calls } = createMockSupabase(resolver);
+    const routes = createConvaiWebhookRoutes({
+      supabase: client,
+      resolveSession: () => ({ userId: 'u1' }),
+      resolveToolIdentity: () => ({ userId: 'u1', agentId: 'agent_1' }),
+      allowUnsignedPostCall: true,
+    });
+    const res = await routes.saveMemory(jsonReq({ memory: 'likes blue', category: 'preference' }));
+    const body = await res.json();
+    expect(body.success).toBe(true);
+
+    const insert = findCall(calls, 'convai_memory', 'insert');
+    expect((insert!.payload as Record<string, unknown>).organisation_id).toBeNull();
   });
 });
 
