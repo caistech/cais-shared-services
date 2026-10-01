@@ -1,5 +1,16 @@
 # @caistech/elevenlabs-convai — Changelog
 
+## 0.17.2 — 2026-10-02
+
+### Fixed — a typed turn during a live call never appeared in the transcript
+
+`VoiceWidget`'s `submitText` sent a typed message to the agent with `sendUserMessage` and did not add
+it to `messages`. The vendor echoes only SPOKEN user turns through `onMessage`, so with `textInput`
+on, the agent answered a question the transcript showed nobody asking. Found by a Kira beta tester
+(2026-10-02), who then asked the agent why — and it invented "you won't see your typing echoed back"
+to explain the gap. The live branch now appends `{ source: 'user', text }` when it sends. Pinned at the
+source in `test/widget-logic.test.ts`. Purely additive: no prop or API change.
+
 ## 0.17.1 — 2026-09-22
 
 Supersedes 0.17.0, published minutes earlier in the same session — the `organisation_id` guard

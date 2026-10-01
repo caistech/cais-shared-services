@@ -205,6 +205,11 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
     if (connected) {
       // Live session: inject as a user turn the agent actually sees (voice + text, one conversation).
       try { convo.sendUserMessage?.(value); } catch { /* not connected */ }
+      // ⚠️ AND SHOW IT. The vendor echoes only the SPOKEN side through onMessage (user_transcript), so
+      // a typed turn reached the agent and never appeared in the transcript: she answered a question
+      // the page showed nobody asking (Kira, John Orian 2026-10-02 — and the agent, asked why, invented
+      // "you won't see your typing echoed back" to explain it).
+      setMessages((m) => [...m, { source: 'user', text: value }]);
     } else {
       // No live voice — hand off to the consumer to route (true no-agent fallback).
       props.onTextFallbackSubmit?.(value);

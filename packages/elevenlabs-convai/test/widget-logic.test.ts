@@ -262,4 +262,14 @@ describe('…and the reset is actually WIRED — the half a pure test cannot rea
     const readyBlock = widget.slice(widget.indexOf('props.onReady?.({'), widget.indexOf('if (!connected) readyFiredRef'));
     expect(readyBlock).toContain('getInputVolume');
   });
+
+  // The vendor echoes only SPOKEN user turns through onMessage. A typed turn during a live call
+  // reached the agent and never reached the transcript, so she answered a question nobody on screen
+  // had asked (0.17.2, from Kira's beta).
+  it('shows a typed turn in the transcript when it is sent during a live call', () => {
+    const submitFn = widget.slice(widget.indexOf('function submitText'), widget.indexOf('// Proactive behaviour on mount'));
+    const liveBranch = submitFn.slice(submitFn.indexOf('if (connected)'), submitFn.indexOf('} else {'));
+    expect(liveBranch).toContain('sendUserMessage');
+    expect(liveBranch).toMatch(/setMessages\(\(m\) => \[\.\.\.m, \{ source: 'user', text: value \}\]\)/);
+  });
 });

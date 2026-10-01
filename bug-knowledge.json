@@ -1946,6 +1946,91 @@
         "approach": "Shared resolvePlanAgentId(): ELEVENLABS_PLAN_AGENT_ID env var first, else service-role createAdminClient() read of the seeded row (bypasses RLS). Used by both /api/plan/delivery and /api/plan/session.",
         "code_path": "src/lib/plan/resolve-plan-agent.ts, src/app/api/plan/session/route.ts, src/app/api/plan/delivery/route.ts"
       }
+    },
+    {
+      "product": "Kira (applies to every ElevenLabs ConvAI agent in the portfolio)",
+      "error_pattern": "Voice agent keeps asking \"are you still there?\" every ~7 seconds of user silence, even after turn_eagerness was set to patient",
+      "error_symptoms": "Transcript shows the agent re-engaging at regular ~10s intervals after the user says 'stop asking if I'm here' or 'wait'; the agent promises to stay quiet and then speaks again; conversation_config.turn.turn_timeout = 7 on the live agent",
+      "attempts": [
+        {
+          "tried": "Set conversation_config.turn.turn_eagerness to 'patient' on all agents and in every creation path (2026-09-30)",
+          "result": "Wrong setting. turn_eagerness controls when the agent decides the user has FINISHED speaking; it does not control the silence re-prompt. The same change hardcoded turn_timeout: 7.0 into all three creation paths, locking the bug in."
+        }
+      ],
+      "solution": {
+        "approach": "turn_timeout is the 'maximum wait for the user's reply before re-engaging' (vendor default 7). Valid values: -1 (never) or 1-300 seconds (confirmed by a validation-error probe). Set -1 in ONE shared constant consumed by every creation path, and PATCH live agents with the WHOLE turn object (a partial PATCH can reset sibling fields). Verify by reading every agent back.",
+        "code_path": "kira: lib/kira/turn-config.ts (KIRA_TURN_CONFIG), app/api/kira/create/route.ts, app/api/kira/ensure/route.ts, scripts/fix-agent-turn-and-postcall.mjs; regression test lib/kira/turn-config.test.ts"
+      }
+    },
+    {
+      "product": "Kira (pattern applies to any repo calling bindWorkspaceWebhook alongside setAllowlist)",
+      "error_pattern": "Voice agent never records or remembers any call: post_call_webhook_id is null on the agent although provisioning logged webhook_bind success",
+      "error_symptoms": "No conversations rows for voice calls; kira_agents.last_conversation_at stays null; voice opener says 'this is our first conversation' to a returning user; agent platform_settings.workspace_overrides.webhooks.post_call_webhook_id is null; the workspace default webhook points at a retired/disabled URL",
+      "attempts": [
+        {
+          "tried": "Ran bindWorkspaceWebhook and setAllowlist concurrently via Promise.allSettled after agent creation",
+          "result": "Both PATCH platform_settings; when the bind landed first, the allowlist PATCH erased it. kira_logs showed 4 of 5 agents (all where webhook_bind finished before allowlist_set) unbound, the 1 where the allowlist landed first kept its binding. All logged success."
+        }
+      ],
+      "solution": {
+        "approach": "Sequence strictly: allowlist -> tools/overrides -> post-call bind LAST, then read the agent back and retry once (bindPostCallWebhookVerified). Never log the bind as success without the read-back. Re-bind existing unbound agents and verify.",
+        "code_path": "kira: lib/kira/post-call-binding.ts, app/api/kira/create/route.ts, app/api/kira/ensure/route.ts; test lib/kira/post-call-binding.test.ts"
+      }
+    },
+    {
+      "product": "Kira",
+      "error_pattern": "Everything typed to the agent is invisible to her next voice call; duplicate memories pile up from typed sessions",
+      "error_symptoms": "kira_memory rows for one person split across two user_id values (legacy users.id vs persons.person_id); get_conversation_context returns has_history:false for a user with hours of typed history; the same facts re-filed on every distil",
+      "attempts": [
+        {
+          "tried": "2026-09-30 fix passed person_id for text-transport TOOL calls only",
+          "result": "Partial — the conversation row, message rows and therefore the distil still used agent.user_id (legacy), and completeConversationMemory was never given userId, so its dedupe and semantic-index steps were skipped"
+        }
+      ],
+      "solution": {
+        "approach": "Write conversations/messages with person_id, pass userId to completeConversationMemory, and in the voice post-call hook realign a conversation row inserted with the legacy id (no start row) to the agent's person_id BEFORE the distil. Migrate the affected user's rows and supersede duplicates.",
+        "code_path": "kira: app/api/kira/chat/text/route.ts, lib/kira/convai.ts (onConversationComplete)"
+      }
+    },
+    {
+      "product": "Kira (any Next.js + @supabase/ssr app whose auth callback copies cookies onto a redirect)",
+      "error_pattern": "Auth session missing! when changing password (or any client-side supabase.auth call) after logging in with a magic link",
+      "error_symptoms": "Password login users are fine; magic-link users fail every browser-client auth call; session also drops when the browser closes",
+      "attempts": [],
+      "solution": {
+        "approach": "The /auth/callback route re-set every cookie with httpOnly: true and no maxAge. createBrowserClient reads the session from document.cookie and cannot see httpOnly cookies. Re-set only sb- cookies with @supabase/ssr's own defaults (httpOnly false, sameSite lax, path /, maxAge 400 days). Existing users must sign in again once.",
+        "code_path": "kira: app/auth/callback/route.ts; test app/auth/callback/route.test.ts"
+      }
+    },
+    {
+      "product": "Kira (class: any ElevenLabs tool webhook that resolves identity from a login session)",
+      "error_pattern": "Voice tool says 'No organisation membership found' for a user who has a valid membership",
+      "error_symptoms": "Tool result ok:false 'No organisation membership found — cannot file.'; agent tells the user their organisation membership isn't set up; the same user's web pages work fine; the tool URL carries ?uid=<person_id>",
+      "attempts": [],
+      "solution": {
+        "approach": "The handler called getCurrentOrganisationContext(), which reads the browser session cookie. An ElevenLabs tool webhook never carries one, so it was null on every voice call and the tool had never worked. Resolve from the server-baked ?uid with resolveOrganisationForPerson(personId) like every other tool. Grep webhook handlers for session-based context calls.",
+        "code_path": "kira: lib/genome/file-manual.ts (fileManual(audience, personId)), app/api/kira/webhooks/file_manual/route.ts"
+      }
+    },
+    {
+      "product": "Kira (class: code renames a column without a migration; mocked tests pass)",
+      "error_pattern": "Tool reports \"I couldn't write that down just now\" with debug '[object Object]'; the target table has 0 rows ever",
+      "error_symptoms": "confirm_fact always fails; kira_fact_confirmations empty since creation; String(supabaseError) hides the message as [object Object]; unit test asserts the wrong column name against a mock and passes",
+      "attempts": [],
+      "solution": {
+        "approach": "Commit 4d79901 inserted organisation_id and user_said; the table had neither (column is said). Write `said`, add organisation_id by idempotent migration, log error.message not String(error), and add a test that checks every inserted key is created by some migration (mutation-verified).",
+        "code_path": "kira: lib/kira/confirm.ts, supabase/migrations/20261002010000_fact_confirmations_organisation.sql, lib/kira/confirm.test.ts"
+      }
+    },
+    {
+      "product": "@caistech/elevenlabs-convai (VoiceWidget, every consumer using textInput)",
+      "error_pattern": "Typed message during a live voice call reaches the agent but never shows in the transcript",
+      "error_symptoms": "Agent replies to text the user typed, but the transcript shows only the agent's reply; agent invents an explanation ('you won't see your typing echoed back')",
+      "attempts": [],
+      "solution": {
+        "approach": "ElevenLabs echoes only spoken user turns via onMessage. submitText's live branch now appends { source: 'user', text } after sendUserMessage. Released as 0.17.2.",
+        "code_path": "cais-shared-services: packages/elevenlabs-convai/src/react/VoiceWidget.tsx (submitText), test/widget-logic.test.ts"
+      }
     }
   ],
   "usage": "Before fixing ANY bug, grep this file for matching error patterns. Also check SayFix DB for product-specific attempts.",
