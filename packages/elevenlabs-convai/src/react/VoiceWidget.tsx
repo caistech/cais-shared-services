@@ -20,6 +20,7 @@ import {
   shouldShowInputLevel,
   startsNewConversation,
   DEFAULT_FALLBACK_AFTER_MS,
+  formatTranscriptText,
   statusLabel,
   WIDGET_CSS,
 } from './widget-logic.js';
@@ -45,6 +46,7 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
   const [text, setText] = useState('');
   const [messages, setMessages] = useState<{ source: 'user' | 'ai'; text: string }[]>([]);
   const [inputLevel, setInputLevel] = useState(0);
+  const [copied, setCopied] = useState(false);
   const startedRef = useRef(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
@@ -192,6 +194,27 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
     connect();
   }
 
+  // Plain text on the clipboard — see formatTranscriptText for why not the rendered bubbles.
+  async function copyConversation() {
+    const plain = formatTranscriptText(messages, { coachName: props.coachName, userLabel: props.userLabel });
+    try {
+      await navigator.clipboard.writeText(plain);
+    } catch {
+      // Clipboard API refused (older browser, or a page without permission): the textarea route.
+      const area = document.createElement('textarea');
+      area.value = plain;
+      area.setAttribute('readonly', '');
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      try { document.execCommand('copy'); } catch { /* nothing more to try */ }
+      document.body.removeChild(area);
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 2500);
+  }
+
   function close() {
     setOpen(false);
     startedRef.current = false;
@@ -263,6 +286,12 @@ function VoiceWidgetInner(props: VoiceWidgetProps) {
                 ))
               )}
             </div>
+          )}
+
+          {props.transcript && props.copyTranscript && messages.length > 0 && (
+            <button type="button" className="convai-copy" onClick={copyConversation} aria-live="polite">
+              {copied ? 'Copied — paste it anywhere' : 'Copy conversation as text'}
+            </button>
           )}
 
           {fallback ? (

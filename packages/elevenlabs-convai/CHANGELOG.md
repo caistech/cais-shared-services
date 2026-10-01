@@ -1,5 +1,17 @@
 # @caistech/elevenlabs-convai — Changelog
 
+## 0.17.3 — 2026-10-02
+
+### Added — "Copy conversation as text" (`copyTranscript`, opt-in)
+
+A Kira beta tester copied the transcript bubbles into an email to report a problem; the copy carried
+the bubbles' styling, his email program stripped it on send, and the conversation arrived looking
+like spreadsheet cells. With `transcript` and the new `copyTranscript` prop, a button under the
+transcript puts the conversation on the clipboard as plain text — `Kira: …` / `You: …`, one turn per
+paragraph — via the new pure `formatTranscriptText` (exported). `userLabel` names the user's turns
+(default "You"). Clipboard API first, a hidden-textarea copy as fallback. 44px target. Off by
+default, so no consumer's UI changes until it opts in.
+
 ## 0.17.2 — 2026-10-02
 
 ### Fixed — a typed turn during a live call never appeared in the transcript

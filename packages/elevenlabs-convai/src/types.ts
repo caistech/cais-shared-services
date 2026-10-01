@@ -379,6 +379,17 @@ export interface VoiceWidgetProps extends Omit<VoiceConfigBase, 'agentId'> {
   transcript?: boolean;
 
   /**
+   * With `transcript`: show a "Copy conversation" button under it that puts the conversation on the
+   * clipboard as PLAIN TEXT ("Kira: …", "You: …"). Off by default. Exists because copying the styled
+   * bubbles carries their formatting, which email programs then strip into something that looks like
+   * spreadsheet cells — and a tester reporting a problem pastes exactly that.
+   */
+  copyTranscript?: boolean;
+
+  /** The name the user's own turns get in copied text. Default "You". */
+  userLabel?: string;
+
+  /**
    * Called once the live session is connected, with imperative controls into THIS conversation.
    * Lets the consumer push messages the user didn't type — e.g. a timed "wrap up, ~2 min left"
    * contextual update the agent speaks, or a programmatic user message. No-op before connect.

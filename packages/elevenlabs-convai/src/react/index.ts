@@ -9,6 +9,7 @@ export {
   panelHeader,
   shouldUseTextFallback,
   DEFAULT_FALLBACK_AFTER_MS,
+  formatTranscriptText,
   placementClass,
   statusLabel,
   WIDGET_CSS,

@@ -196,6 +196,24 @@ export function shouldShowInputLevel(opts: {
 }
 
 /**
+ * The conversation as plain text, one turn per paragraph, each labelled with who said it.
+ *
+ * Plain on purpose: copying the rendered bubbles carries their styling, which email programs strip
+ * into a grid of cells. Text survives every program it is pasted into.
+ */
+export function formatTranscriptText(
+  messages: ReadonlyArray<{ source: 'user' | 'ai'; text: string }>,
+  labels: { coachName?: string; userLabel?: string } = {},
+): string {
+  const coach = labels.coachName?.trim() || 'Assistant';
+  const user = labels.userLabel?.trim() || 'You';
+  return messages
+    .filter((message) => message.text.trim())
+    .map((message) => `${message.source === 'ai' ? coach : user}: ${message.text.trim()}`)
+    .join('\n\n');
+}
+
+/**
  * Self-contained styles, injected once at runtime. No CSS framework dependency so the
  * widget drops into any consumer. Responsive: floating launcher is a >=44px touch target
  * bottom-right; the open panel becomes a full-screen sheet at <=640px.
@@ -232,6 +250,12 @@ export const WIDGET_CSS = `
 .convai-msg { font-size: 15px; line-height: 1.45; padding: 8px 12px; border-radius: 12px; max-width: 85%; }
 .convai-msg--ai { background: #fff; border: 1px solid #e5e7eb; align-self: flex-start; color: #111827; }
 .convai-msg--user { background: #0f766e; color: #fff; align-self: flex-end; }
+.convai-copy {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 8px 14px; margin: -6px 0 12px;
+  border: 1px solid #d1d5db; border-radius: 9999px; background: #fff; color: #374151;
+  font-size: 15px; cursor: pointer;
+}
+.convai-copy:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 .convai-coach--lg .convai-avatar { width: 112px; height: 112px; }
 .convai-header { font-size: 14px; line-height: 1.4; color: #374151; margin: 0 0 12px; }
 .convai-coach { display: flex; flex-direction: column; align-items: center; margin: 4px 0 10px; }

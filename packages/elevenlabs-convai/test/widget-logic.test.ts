@@ -8,6 +8,7 @@ import {
   shouldShowConnecting,
   shouldShowInputLevel,
   startsNewConversation,
+  formatTranscriptText,
   placementClass,
   statusLabel,
 } from '../src/react/widget-logic';
@@ -271,5 +272,37 @@ describe('…and the reset is actually WIRED — the half a pure test cannot rea
     const liveBranch = submitFn.slice(submitFn.indexOf('if (connected)'), submitFn.indexOf('} else {'));
     expect(liveBranch).toContain('sendUserMessage');
     expect(liveBranch).toMatch(/setMessages\(\(m\) => \[\.\.\.m, \{ source: 'user', text: value \}\]\)/);
+  });
+
+  // The pure formatter is right and useless if the button never calls it.
+  it('the copy button copies the formatted text, and only when the consumer opts in', () => {
+    const copyFn = widget.slice(widget.indexOf('async function copyConversation'), widget.indexOf('function close()'));
+    expect(copyFn).toContain('formatTranscriptText(messages');
+    expect(copyFn).toContain('navigator.clipboard.writeText');
+    expect(widget).toMatch(/props\.transcript && props\.copyTranscript && messages\.length > 0/);
+  });
+});
+
+describe('formatTranscriptText — the conversation as text that survives being pasted', () => {
+  const messages = [
+    { source: 'ai' as const, text: 'Hey John — what are we picking up?' },
+    { source: 'user' as const, text: '  Testing whether you wait.  ' },
+    { source: 'ai' as const, text: '' },
+  ];
+
+  it('labels each turn with who said it, one turn per paragraph', () => {
+    expect(formatTranscriptText(messages, { coachName: 'Kira', userLabel: 'John' })).toBe(
+      'Kira: Hey John — what are we picking up?\n\nJohn: Testing whether you wait.',
+    );
+  });
+
+  it('defaults the labels rather than printing "undefined:"', () => {
+    expect(formatTranscriptText(messages)).toBe(
+      'Assistant: Hey John — what are we picking up?\n\nYou: Testing whether you wait.',
+    );
+  });
+
+  it('is empty for an empty conversation', () => {
+    expect(formatTranscriptText([])).toBe('');
   });
 });
